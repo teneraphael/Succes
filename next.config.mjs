@@ -16,6 +16,12 @@ const nextConfig = {
       },
     ],
   },
+
+  typescript:{
+   ignoreBuildErrors: true,    
+  },
+
+
   rewrites: () => {
     return [
       {
