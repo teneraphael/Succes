@@ -7,7 +7,7 @@ const nextConfig = {
   },
   serverExternalPackages: ["@node-rs/argon2"],
   images: {
-    domains:['un9zgttebh.ufs.sh'],
+    domains:["un9zgttebh.ufs.sh"],
     remotePatterns: [
       {
         protocol: "https",

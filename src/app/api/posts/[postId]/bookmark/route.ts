@@ -4,7 +4,7 @@ import { BookmarkInfo } from "@/lib/types";
 
 export async function GET(
   req: Request,
-  { params: { postId } }: { params: { postId: string } },
+  { params }: { params: { postId: string } },
 ) {
   try {
     const { user: loggedInUser } = await validateRequest();
@@ -12,6 +12,8 @@ export async function GET(
     if (!loggedInUser) {
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    const { postId } = await params;
 
     const bookmark = await prisma.bookmark.findUnique({
       where: {
@@ -35,7 +37,7 @@ export async function GET(
 
 export async function POST(
   req: Request,
-  { params: { postId } }: { params: { postId: string } },
+  { params }: { params: { postId: string } },
 ) {
   try {
     const { user: loggedInUser } = await validateRequest();
@@ -43,6 +45,9 @@ export async function POST(
     if (!loggedInUser) {
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+
+    const { postId } = await params;
 
     await prisma.bookmark.upsert({
       where: {
@@ -67,7 +72,7 @@ export async function POST(
 
 export async function DELETE(
   req: Request,
-  { params: { postId } }: { params: { postId: string } },
+  { params }: { params: { postId: string } },
 ) {
   try {
     const { user: loggedInUser } = await validateRequest();
@@ -75,6 +80,9 @@ export async function DELETE(
     if (!loggedInUser) {
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+
+    const { postId } = await params;
 
     await prisma.bookmark.deleteMany({
       where: {

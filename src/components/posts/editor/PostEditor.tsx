@@ -208,7 +208,7 @@ function AttachmentPreview({
         <Image
           src={src}
           alt="Attachment preview"
-          width={500}
+          width={800}
           height={500}
           className="size-fit max-h-[30rem] rounded-2xl"
         />

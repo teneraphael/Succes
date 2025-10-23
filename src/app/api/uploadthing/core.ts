@@ -29,7 +29,7 @@ export const fileRouter = {
       }
 
       const newAvatarUrl = file.ufsUrl.replace(
-        "/f/",
+        `/b/`,
         `/a/${process.env.NEXT_PUBLIC_UPLOADTHING_APP_ID}/`,
       );
 
@@ -65,7 +65,7 @@ export const fileRouter = {
       const media = await prisma.media.create({
         data: {
           url: file.ufsUrl.replace(
-            "/f/",
+            `/b/`,
             `/a/${process.env.NEXT_PUBLIC_UPLOADTHING_APP_ID}/`,
           ),
           type: file.type.startsWith("image") ? "IMAGE" : "VIDEO",
