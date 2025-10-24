@@ -1,4 +1,0 @@
-# netlify.toml
-[build]
-  command = "npm run build"  # Assurez-vous que cette commande est correcte
-  publish = ".next"           # Répertoire de publication pour Next.js
