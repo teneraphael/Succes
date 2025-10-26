@@ -24,7 +24,6 @@ model User {
   googleId              String?        @unique
   avatarUrl             String?
   bio                   String?
-  fcmToken              String?        @map("fcm_token")
   sessions              Session[]
   posts                 Post[]
   following             Follow[]       @relation("Following")
