@@ -1,117 +1,60 @@
 import React, { useRef, useState } from 'react';
 import useAutoplayOnVisible from '../hooks/useAutoplayOnVisible'; 
 import { cn } from "@/lib/utils";
-import { Volume2, VolumeX } from 'lucide-react'; 
 
 const VideoPost = ({ src, className }) => {
   const videoRef = useRef(null);
   const [isMuted, setIsMuted] = useState(true); 
-  const [progress, setProgress] = useState(0); 
-  const [isPlaying, setIsPlaying] = useState(false); // AJOUT pour indiquer l'état
 
   // Hook pour la lecture/pause au défilement
   useAutoplayOnVisible(videoRef, 0.5); 
 
-  // Mise à jour de l'état de lecture/pause au clic
-  const handleClick = () => {
+  // La fonction handleClick est conservée pour le clic Play/Pause et le démutage
+  const handleClick = (e) => {
     const video = videoRef.current;
     if (video) {
+      
+      // La vérification e.target.closest('div[controls]') est complexe en React.
+      // Le plus simple est de laisser le Play/Pause s'appliquer MAIS de gérer le mute.
+      
       if (video.paused) {
-        // Tente de jouer
-        video.play().then(() => setIsPlaying(true)).catch(error => {
-          console.warn("Lecture impossible après clic (problème de média ou de permission):", error);
- });
+video.play().catch(error => console.warn("Erreur de lecture:", error));
       } else {
-        // Met en pause
         video.pause();
-        setIsPlaying(false);
+      }
+
+      // UX Améliorée : Si l'utilisateur clique, cela signifie qu'il veut interagir,
+      // donc on peut supposer qu'il veut le son s'il est muet.
+      if (isMuted) {
+          setIsMuted(false);
+          // Le DOM sera mis à jour via le setMuted dans le render suivant.
       }
     }
   };
-
-  const toggleMute = (e) => {
-    e.stopPropagation(); 
-    const newMutedState = !isMuted;
-    setIsMuted(newMutedState);
-    if (videoRef.current) {
-        videoRef.current.muted = newMutedState;
-    }
-  };
-
-  // Mise à jour de la progression
-  const handleTimeUpdate = () => {
-    const video = videoRef.current;
-    if (video && video.duration > 0) { // Vérifie que la durée est valide
-      const newProgress = (video.currentTime / video.duration) * 100;
-      setProgress(newProgress);
-    }
-};
-
-  // Gestion de l'avancement/recul par clic sur la barre
-  const handleProgressClick = (e) => {
-    e.stopPropagation(); // Évite de mettre la vidéo en pause/lecture
-    const video = videoRef.current;
-
-    if (video && video.duration > 0) {
-      // Calculer la position du clic
-      const rect = e.currentTarget.getBoundingClientRect();
-      const clickX = e.clientX - rect.left;
-      
-      // Calculer le pourcentage du clic
-      const percent = clickX / rect.width;
-      
-      // Définir le nouveau temps de lecture
-      video.currentTime = video.duration * percent;
-    }
-  };
-
-  // Met à jour l'état de lecture si un événement se produit sur la vidéo
-  const handleVideoEvents = (event) => {
-      if (event.type === 'play') {
-          setIsPlaying(true);
-      } else if (event.type === 'pause') {
-          setIsPlaying(false);
-      }
- }
+  
+  // Note: Nous n'avons pas besoin de toggleMute car les contrôles natifs gèrent le son.
 
   return (
-    // 1. Le conteneur prend la taille définie par 'className' et est 'relative'
     <div className={cn("relative overflow-hidden", className)}> 
-      <video
+ <video
         ref={videoRef}
         src={src}
-        // La vidéo prend 100% de la taille du parent
-        className="w-full h-full object-cover block" 
+        className="w-full h-full object-cover block rounded-2xl" 
         loop 
+        // L'état 'isMuted' contrôle le statut muet
         muted={isMuted} 
         playsInline 
+        
+        // CONFLICTUEL MAIS MAINTENU : Gère le Play/Pause au clic n'importe où
         onClick={handleClick}
-        onTimeUpdate={handleTimeUpdate} // Met à jour la progression
-        onPlay={handleVideoEvents}    // Met à jour l'état (isPlaying)
-        onPause={handleVideoEvents}   // Met à jour l'état (isPlaying)
+        
+        // CONTRÔLES NATIFS : Affiche la barre de progression
+        controls 
       >
         Votre navigateur ne supporte pas la balise vidéo.
       </video>
- {/* 2. Le Bouton de Son (toujours visible) */}
-      <button 
-        onClick={toggleMute} 
-        className="absolute top-4 right-4 z-10 p-2 bg-black bg-opacity-50 text-white rounded-full transition-opacity hover:bg-opacity-75"
-      >
-        {isMuted ? <VolumeX className="size-5" /> : <Volume2 className="size-5" />}
-      </button>
-
-      {/* 3. La Barre de Progression (au bas) */}
-      <div 
-        onClick={handleProgressClick} 
-        // Positionné en bas (bottom-0)
-        className="absolute bottom-0 left-0 w-full h-1 bg-black bg-opacity-30 cursor-pointer"
-      >
-        <div 
-          className="h-full bg-white transition-all duration-100 ease-linear" // Couleur blanche pour un look épuré (comme TikTok)
-          style={{ width: `${progress}%` }} 
-        />
-      </div>
-
+      
+      {/* Nous avons retiré le bouton de son personnalisé pour éviter le triple contrôle du volume. */}
  </div>
   );
 };
