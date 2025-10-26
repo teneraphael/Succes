@@ -6,6 +6,7 @@ import { cn, formatRelativeDate } from "@/lib/utils";
 import { Media } from "@prisma/client";
 import { MessageSquare } from "lucide-react";
 import Image from "next/image";
+import VideoPost from "../VideoPost"
 import Link from "next/link";
 import { useState } from "react";
 import Comments from "../comments/Comments";
@@ -133,13 +134,10 @@ function MediaPreview({ media }: MediaPreviewProps) {
 
   if (media.type === "VIDEO") {
     return (
-      <div>
-        <video
+      <VideoPost
           src={media.url}
-          controls
-          className="mx-auto size-fit max-h-[30rem] rounded-2xl"
+          className="mx-auto  max-h-[30rem] rounded-2xl"
         />
-      </div>
     );
   }
 
