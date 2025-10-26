@@ -1,15 +1,19 @@
 import { validateRequest } from "@/auth";
 import prisma from "@/lib/prisma";
 import { LikeInfo } from "@/lib/types";
+// 🚨 Import de la nouvelle fonction d'envoi
+import { sendNotificationToUser } from "@/lib/notifications"; 
 
+// -------------------------------------------------------------------
+// FONCTION GET (Vérification du statut Like)
+// -------------------------------------------------------------------
 export async function GET(
   req: Request,
   { params: { postId } }: { params: { postId: string } },
 ) {
   try {
     const { user: loggedInUser } = await validateRequest();
-
-    if (!loggedInUser) {
+if (!loggedInUser) {
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -17,17 +21,11 @@ export async function GET(
       where: { id: postId },
       select: {
         likes: {
-          where: {
-            userId: loggedInUser.id,
-          },
-          select: {
-            userId: true,
-          },
+          where: { userId: loggedInUser.id },
+          select: { userId: true },
         },
         _count: {
-          select: {
-            likes: true,
-          },
+          select: { likes: true },
         },
       },
     });
@@ -38,7 +36,7 @@ export async function GET(
 
     const data: LikeInfo = {
       likes: post._count.likes,
-      isLikedByUser: !!post.likes.length,
+ isLikedByUser: !!post.likes.length,
     };
 
     return Response.json(data);
@@ -48,6 +46,9 @@ export async function GET(
   }
 }
 
+// -------------------------------------------------------------------
+// FONCTION POST (Création du Like et Envoi du Push)
+// -------------------------------------------------------------------
 export async function POST(
   req: Request,
   { params: { postId } }: { params: { postId: string } },
@@ -59,17 +60,29 @@ export async function POST(
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Récupération de l'ID du propriétaire du post ET de ses infos (fcmToken, displayName)
     const post = await prisma.post.findUnique({
       where: { id: postId },
-      select: {
-        userId: true,
+select: {
+        userId: true, // ID du destinataire
+        user: { // Relation pour accéder aux données du propriétaire
+            select: { 
+                fcmToken: true, // OK, ce champ est dans le schéma
+                // 🚨 CORRECTION ICI : Utilisation de displayName à la place de name
+                displayName: true
+            } 
+        }
       },
     });
 
-    if (!post) {
-      return Response.json({ error: "Post not found" }, { status: 404 });
+    if (!post || !post.user) {
+      return Response.json({ error: "Post not found or user data missing" }, { status: 404 });
     }
 
+const postOwnerId = post.userId;
+    const isSelfLike = loggedInUser.id === postOwnerId;
+
+    // 1. Transaction Prisma pour le Like et l'enregistrement dans la table Notification
     await prisma.$transaction([
       prisma.like.upsert({
         where: {
@@ -82,14 +95,14 @@ export async function POST(
           userId: loggedInUser.id,
           postId,
         },
-        update: {},
+ update: {},
       }),
-      ...(loggedInUser.id !== post.userId
+      ...(!isSelfLike
         ? [
             prisma.notification.create({
               data: {
                 issuerId: loggedInUser.id,
-                recipientId: post.userId,
+                recipientId: postOwnerId,
                 postId,
                 type: "LIKE",
               },
@@ -98,13 +111,32 @@ export async function POST(
         : []),
     ]);
 
-    return new Response();
+    // 2. Envoi de la notification PUSH FCM
+    if (!isSelfLike) {
+        const recipientToken = post.user.fcmToken;
+        // Le nom de l'émetteur (la personne qui a liké)
+        const likerDisplayName = loggedInUser.displayName;
+ if (recipientToken) {
+            await sendNotificationToUser(
+                recipientToken, 
+                "Nouveau J'aime (Like) !",
+                // Utilisation du displayName de l'utilisateur connecté
+                `${likerDisplayName || 'Un utilisateur'} a aimé votre publication.`,
+                `/posts/${postId}` 
+            );
+        }
+    }
+    
+    return new Response(null, { status: 200 });
   } catch (error) {
     console.error(error);
     return Response.json({ error: "Internal server error" }, { status: 500 });
   }
 }
 
+
+// // FONCTION DELETE (Suppression du Like)
+// -------------------------------------------------------------------
 export async function DELETE(
   req: Request,
   { params: { postId } }: { params: { postId: string } },
@@ -118,15 +150,14 @@ export async function DELETE(
 
     const post = await prisma.post.findUnique({
       where: { id: postId },
-      select: {
-        userId: true,
-      },
+      select: { userId: true },
     });
 
     if (!post) {
-      return Response.json({ error: "Post not found" }, { status: 404 });
+ return Response.json({ error: "Post not found" }, { status: 404 });
     }
 
+    // Suppression du Like et de l'entrée Notification associée
     await prisma.$transaction([
       prisma.like.deleteMany({
         where: {
@@ -144,9 +175,9 @@ export async function DELETE(
       }),
     ]);
 
-    return new Response();
+    return new Response(null, { status: 200 });
   } catch (error) {
-    console.error(error);
+console.error(error);
     return Response.json({ error: "Internal server error" }, { status: 500 });
   }
 }
