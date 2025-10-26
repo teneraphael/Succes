@@ -136,7 +136,7 @@ function MediaPreview({ media }: MediaPreviewProps) {
     return (
       <VideoPost
           src={media.url}
-          className="mx-auto  max-h-[30rem] rounded-2xl"
+          className="mx-auto size-fit  max-h-[30rem] rounded-2xl"
         />
     );
   }
