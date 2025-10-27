@@ -37,7 +37,6 @@ model User {
   createdAt DateTime @default(now())
 
   @@map("users")
-
 }
 
 model Session {
