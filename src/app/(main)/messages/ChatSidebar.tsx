@@ -15,13 +15,12 @@ import NewChatDialog from "./NewChatDialog";
 interface ChatSidebarProps {
   open: boolean;
   onClose: () => void;
+  onSelectUser?: (userId: string) => void;
 }
 
-export default function ChatSidebar({ open, onClose }: ChatSidebarProps) {
+export default function ChatSidebar({ open, onClose, onSelectUser }: ChatSidebarProps) {
   const { user } = useSession();
-
   const queryClient = useQueryClient();
-
   const { channel } = useChatContext();
 
   useEffect(() => {
@@ -30,18 +29,40 @@ export default function ChatSidebar({ open, onClose }: ChatSidebarProps) {
     }
   }, [channel?.id, queryClient]);
 
-  const ChannelPreviewCustom = useCallback(
-    (props: ChannelPreviewUIComponentProps) => (
-      <ChannelPreviewMessenger
-        {...props}
-        onSelect={() => {
-          props.setActiveChannel?.(props.channel, props.watchers);
-          onClose();
-        }}
-      />
-    ),
-    [onClose],
-  );
+const ChannelPreviewCustom = useCallback(
+  (props: ChannelPreviewUIComponentProps) => (
+    <ChannelPreviewMessenger
+      {...props}
+      onSelect={() => {
+        props.setActiveChannel?.(props.channel, props.watchers);
+        onClose();
+
+        if (!onSelectUser) return;
+
+        // members peut être un objet indexé ; on le convertit en array et on le typed comme any[]
+        const members = Object.values(props.channel.state.members) as any[];
+
+        // trouve le membre autre que l'utilisateur courant
+        const otherMember = members.find((m) => {
+          // m.user_id (stream v1) ou m.user?.id (stream v2)
+          const id1 = m?.user_id;
+          const id2 = m?.user?.id;
+          return (id1 && id1 !== user.id) || (id2 && id2 !== user.id);
+        });
+
+        // normalise l'ID (priorise user_id)
+        const otherUserId: string | undefined =
+          (otherMember && (otherMember.user_id ?? otherMember.user?.id)) ?? undefined;
+
+        if (otherUserId) {
+          onSelectUser(otherUserId);
+        }
+      }}
+    />
+  ),
+  [onClose, onSelectUser, user.id],
+);
+
 
   return (
     <div
@@ -52,20 +73,13 @@ export default function ChatSidebar({ open, onClose }: ChatSidebarProps) {
     >
       <MenuHeader onClose={onClose} />
       <ChannelList
-        filters={{
-          type: "messaging",
-          members: { $in: [user.id] },
-        }}
+        filters={{ type: "messaging", members: { $in: [user.id] } }}
         showChannelSearch
         options={{ state: true, presence: true, limit: 8 }}
         sort={{ last_message_at: -1 }}
         additionalChannelSearchProps={{
           searchForChannels: true,
-          searchQueryParams: {
-            channelFilters: {
-              filters: { members: { $in: [user.id] } },
-            },
-          },
+          searchQueryParams: { channelFilters: { filters: { members: { $in: [user.id] } } } },
         }}
         Preview={ChannelPreviewCustom}
       />

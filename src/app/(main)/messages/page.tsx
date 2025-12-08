@@ -1,10 +1,19 @@
-import { Metadata } from "next";
-import Chat from "./Chat";
+"use client";
 
-export const metadata: Metadata = {
-  title: "Messages",
-};
+import { useSearchParams } from "next/navigation";
+import Chat from "./Chat";
+import Head from "next/head";
 
 export default function Page() {
-  return <Chat />;
+  const searchParams = useSearchParams();
+  const selectedUserId = searchParams.get("userId");
+
+  return (
+    <>
+      <Head>
+        <title>Messages</title>
+      </Head>
+      <Chat initialSelectedUserId={selectedUserId || null} />
+    </>
+  );
 }
