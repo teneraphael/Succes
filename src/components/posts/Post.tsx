@@ -6,7 +6,7 @@ import { cn, formatRelativeDate } from "@/lib/utils";
 import { Media } from "@prisma/client";
 import { MessageSquare } from "lucide-react";
 import Image from "next/image";
-import VideoPost from "../VideoPost"
+import VideoPost from "../VideoPost";
 import Link from "next/link";
 import { useState } from "react";
 import Comments from "../comments/Comments";
@@ -28,6 +28,7 @@ export default function Post({ post }: PostProps) {
 
   return (
     <article className="group/post space-y-3 rounded-2xl bg-card p-5 shadow-sm">
+      {/* --- Header --- */}
       <div className="flex justify-between gap-3">
         <div className="flex flex-wrap gap-3">
           <UserTooltip user={post.user}>
@@ -60,25 +61,20 @@ export default function Post({ post }: PostProps) {
           />
         )}
       </div>
+
+      {/* --- Contenu du post --- */}
       <Linkify>
         <div className="whitespace-pre-line break-words">{post.content}</div>
       </Linkify>
+
+      {/* --- Média --- */}
       {!!post.attachments.length && (
-        <MediaPreviews attachments={post.attachments} />
+        <MediaPreviews attachments={post.attachments} postUserId={post.user.id} />
       )}
 
-
-      {/* --- DIV CLIQUABLE “Discuter” --- */}
-      <div
-        onClick={() =>  (window.location.href = `/messages?userId=${post.user.id}`)}
-        className="w-full py-3 text-center text-sm font-semibold 
-                   bg-black/30 text-white rounded-xl mt-2
-                   hover:bg-black/50 transition cursor-pointer"
-      >
-        Discuter
-      </div>
-
       <hr className="text-muted-foreground" />
+
+      {/* --- Like / Comment / Bookmark --- */}
       <div className="flex justify-between gap-5">
         <div className="flex items-center gap-5">
           <LikeButton
@@ -97,11 +93,13 @@ export default function Post({ post }: PostProps) {
           postId={post.id}
           initialState={{
             isBookmarkedByUser: post.bookmarks.some(
-              (bookmark) => bookmark.userId === user.id,
+              (bookmark) => bookmark.userId === user.id
             ),
           }}
         />
       </div>
+
+      {/* --- Comments --- */}
       {showComments && <Comments post={post} />}
     </article>
   );
@@ -109,18 +107,19 @@ export default function Post({ post }: PostProps) {
 
 interface MediaPreviewsProps {
   attachments: Media[];
+  postUserId: string;
 }
 
-function MediaPreviews({ attachments }: MediaPreviewsProps) {
+function MediaPreviews({ attachments, postUserId }: MediaPreviewsProps) {
   return (
     <div
       className={cn(
         "flex flex-col gap-3",
-        attachments.length > 1 && "sm:grid sm:grid-cols-2",
+        attachments.length > 1 && "sm:grid sm:grid-cols-2"
       )}
     >
       {attachments.map((m) => (
-        <MediaPreview key={m.id} media={m} />
+        <MediaPreview key={m.id} media={m} postUserId={postUserId} />
       ))}
     </div>
   );
@@ -128,28 +127,43 @@ function MediaPreviews({ attachments }: MediaPreviewsProps) {
 
 interface MediaPreviewProps {
   media: Media;
+  postUserId: string;
 }
 
-function MediaPreview({ media }: MediaPreviewProps) {
-   if (media.type === "IMAGE") {
+function MediaPreview({ media, postUserId }: MediaPreviewProps) {
+  const redirectToChat = () => {
+    window.location.href = `/messages?userId=${postUserId}`;
+  };
+
+  const buttonClasses =
+    "absolute bottom-0 left-0 w-full text-center bg-black/50 text-white py-3 font-semibold cursor-pointer hover:bg-black/70 transition";
+
+  if (media.type === "IMAGE") {
     return (
-      <Image
-        src={media.url}
-        alt={`Image attachment ${media.id}`}
-        width={500}
-        height={500}
-        className="mx-auto size-fit max-h-[30rem] rounded-2xl"
-        loading="lazy"
-      />
+      <div className="relative">
+        <Image
+          src={media.url}
+          alt={`Image attachment ${media.id}`}
+          width={500}
+          height={500}
+          className="mx-auto size-fit"
+          loading="lazy"
+        />
+        <div onClick={redirectToChat} className={buttonClasses}>
+          Discuter
+        </div>
+      </div>
     );
   }
 
   if (media.type === "VIDEO") {
     return (
-      <VideoPost
-          src={media.url}
-          className="mx-auto size-fit  rounded-2xl"
-        />
+      <div className="relative">
+        <VideoPost src={media.url} className="mx-auto size-fit" />
+        <div onClick={redirectToChat} className={buttonClasses}>
+          Discuter
+        </div>
+      </div>
     );
   }
 
