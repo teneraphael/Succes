@@ -6,7 +6,7 @@ import { cn, formatRelativeDate } from "@/lib/utils";
 import { Media } from "@prisma/client";
 import { MessageSquare } from "lucide-react";
 import Image from "next/image";
-import VideoPost from "../VideoPost";
+import VideoPost from "../VideoPost"
 import Link from "next/link";
 import { useState } from "react";
 import Comments from "../comments/Comments";
@@ -23,6 +23,7 @@ interface PostProps {
 
 export default function Post({ post }: PostProps) {
   const { user } = useSession();
+
   const [showComments, setShowComments] = useState(false);
 
   return (
@@ -43,7 +44,6 @@ export default function Post({ post }: PostProps) {
                 {post.user.displayName}
               </Link>
             </UserTooltip>
-
             <Link
               href={`/posts/${post.id}`}
               className="block text-sm text-muted-foreground hover:underline"
@@ -53,7 +53,6 @@ export default function Post({ post }: PostProps) {
             </Link>
           </div>
         </div>
-
         {post.user.id === user.id && (
           <PostMoreButton
             post={post}
@@ -61,14 +60,13 @@ export default function Post({ post }: PostProps) {
           />
         )}
       </div>
-
       <Linkify>
         <div className="whitespace-pre-line break-words">{post.content}</div>
       </Linkify>
-
       {!!post.attachments.length && (
         <MediaPreviews attachments={post.attachments} />
       )}
+
 
       {/* --- DIV CLIQUABLE “Discuter” --- */}
       <div
@@ -81,7 +79,6 @@ export default function Post({ post }: PostProps) {
       </div>
 
       <hr className="text-muted-foreground" />
-
       <div className="flex justify-between gap-5">
         <div className="flex items-center gap-5">
           <LikeButton
@@ -91,23 +88,20 @@ export default function Post({ post }: PostProps) {
               isLikedByUser: post.likes.some((like) => like.userId === user.id),
             }}
           />
-
           <CommentButton
             post={post}
             onClick={() => setShowComments(!showComments)}
           />
         </div>
-
         <BookmarkButton
           postId={post.id}
           initialState={{
             isBookmarkedByUser: post.bookmarks.some(
-              (bookmark) => bookmark.userId === user.id
+              (bookmark) => bookmark.userId === user.id,
             ),
           }}
         />
       </div>
-
       {showComments && <Comments post={post} />}
     </article>
   );
@@ -122,7 +116,7 @@ function MediaPreviews({ attachments }: MediaPreviewsProps) {
     <div
       className={cn(
         "flex flex-col gap-3",
-        attachments.length > 1 && "sm:grid sm:grid-cols-2"
+        attachments.length > 1 && "sm:grid sm:grid-cols-2",
       )}
     >
       {attachments.map((m) => (
@@ -137,7 +131,7 @@ interface MediaPreviewProps {
 }
 
 function MediaPreview({ media }: MediaPreviewProps) {
-  if (media.type === "IMAGE") {
+   if (media.type === "IMAGE") {
     return (
       <Image
         src={media.url}
@@ -153,9 +147,9 @@ function MediaPreview({ media }: MediaPreviewProps) {
   if (media.type === "VIDEO") {
     return (
       <VideoPost
-        src={media.url}
-        className="mx-auto size-fit rounded-2xl"
-      />
+          src={media.url}
+          className="mx-auto size-fit  rounded-2xl"
+        />
     );
   }
 
@@ -172,7 +166,8 @@ function CommentButton({ post, onClick }: CommentButtonProps) {
     <button onClick={onClick} className="flex items-center gap-2">
       <MessageSquare className="size-5" />
       <span className="text-sm font-medium tabular-nums">
-        {post._count.comments} <span className="hidden sm:inline">comments</span>
+        {post._count.comments}{" "}
+        <span className="hidden sm:inline">comments</span>
       </span>
     </button>
   );
