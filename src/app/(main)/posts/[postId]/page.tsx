@@ -57,7 +57,7 @@ export default async function Page({ params: { postId } }: PageProps) {
   const post = await getPost(postId, user.id);
 
   return (
-    <main className="flex w-full min-w-0 gap-2">
+    <main className="flex w-full min-w-0 gap-5">
       <div className="w-full min-w-0 space-y-5">
         <Post post={post} />
       </div>

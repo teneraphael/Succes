@@ -59,4 +59,4 @@ video.play().catch(error => console.warn("Erreur de lecture:", error));
   );
 };
 
-export default VideoPost;
+export default VideoPost; 

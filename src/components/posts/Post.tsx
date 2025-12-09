@@ -27,9 +27,9 @@ export default function Post({ post }: PostProps) {
   const [showComments, setShowComments] = useState(false);
 
   return (
-    <article className="group/post space-y-3  bg-card  p-5 shadow-sm">
-      <div className="flex justify-between  gap-3 ">
-        <div className="flex flex-wrap  gap-3">
+    <article className="group/post space-y-3 rounded-2xl bg-card p-5 shadow-sm">
+      <div className="flex justify-between gap-3">
+        <div className="flex flex-wrap gap-3">
           <UserTooltip user={post.user}>
             <Link href={`/users/${post.user.username}`}>
               <UserAvatar avatarUrl={post.user.avatarUrl} />
@@ -108,7 +108,7 @@ function MediaPreviews({ attachments, postUserId }: MediaPreviewsProps) {
   return (
     <div
       className={cn(
-        "flex flex-col gap-1 ",
+        "flex flex-col gap-3",
         attachments.length > 1 && "sm:grid sm:grid-cols-2"
       )}
     >
@@ -136,13 +136,13 @@ function MediaPreview({ media, postUserId }: MediaPreviewProps) {
 
   if (media.type === "IMAGE") {
     return (
-      <div className="relative ">
+      <div className="relative">
         <Image
           src={media.url}
           alt={`Image attachment ${media.id}`}
-          width={900}
-          height={1200}
-          className="mx-auto   size-fit"
+          width={500}
+          height={500}
+          className="mx-auto size-fit"
           loading="lazy"
         />
         <div onClick={redirectToChat} className={imageButtonClasses}>
