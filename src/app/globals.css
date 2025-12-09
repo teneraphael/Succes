@@ -117,3 +117,31 @@
 .str-chat__channel-search-bar-button--exit-search {
   display: none;
 }
+
+/* styles.css */
+body, html {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+}
+
+main {
+    width: 100%;
+    display: flex;
+    flex-direction: column; /* Empile verticalement sur mobile */
+}
+
+.flex-grow {
+    flex-grow: 1; /* Permet à cette section de prendre toute la largeur */
+}
+
+.tabs-content {
+    width: 100%; /* Tout le contenu des onglets s'étend sur toute la largeur */
+}
+
+/* Ajout de styles optionnels pour plus de confort */
+.post-editor, .post {
+    width: 100%; /* Tous les posts remplissent l'espace disponible */
+    margin-bottom: 1rem; /* Espace entre les posts */
+}
