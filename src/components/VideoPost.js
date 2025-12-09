@@ -5,9 +5,10 @@ import { cn } from "@/lib/utils";
 const VideoPost = ({ src, className }) => {
   const videoRef = useRef(null);
   const [isMuted, setIsMuted] = useState(true);
+  const [userInteracted, setUserInteracted] = useState(false);
 
   // Lecture automatique quand visible
-  useAutoplayOnVisible(videoRef, 0.5);
+  useAutoplayOnVisible(videoRef, 0.5, userInteracted);
 
   // Quand isMuted change, appliquer directement au DOM
   useEffect(() => {
@@ -19,6 +20,8 @@ const VideoPost = ({ src, className }) => {
   const handleClick = () => {
     const video = videoRef.current;
     if (!video) return;
+
+    setUserInteracted(true); // Empêche le hook de contrôler après clic
 
     // Toggle Play/Pause
     if (video.paused) {
@@ -42,7 +45,7 @@ const VideoPost = ({ src, className }) => {
         loop
         playsInline
         muted={isMuted}   // rendu React
-        controls          // pas de conflit maintenant
+        controls          // contrôle visible pour mobile
         onClick={handleClick}
       >
         Votre navigateur ne supporte pas la vidéo.
