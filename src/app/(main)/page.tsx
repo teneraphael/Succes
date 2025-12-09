@@ -6,7 +6,7 @@ import ForYouFeed from "./ForYouFeed";
 
 export default function Home() {
   return (
-    <main className="flex w-full min-w-0 gap-5">
+    <main className="flex w-full min-w-0 gap-1 ">
       <div className="w-full min-w-0 space-y-5">
         <PostEditor />
         <Tabs defaultValue="for-you">
