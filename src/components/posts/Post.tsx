@@ -28,7 +28,7 @@ export default function Post({ post }: PostProps) {
 
   return (
     <article className="group/post space-y-3  bg-card  p-5 shadow-sm">
-      <div className="flex justify-between  gap-3">
+      <div className="flex justify-between  gap-3 ">
         <div className="flex flex-wrap  gap-3">
           <UserTooltip user={post.user}>
             <Link href={`/users/${post.user.username}`}>
@@ -108,7 +108,7 @@ function MediaPreviews({ attachments, postUserId }: MediaPreviewsProps) {
   return (
     <div
       className={cn(
-        "flex flex-col gap-3",
+        "flex flex-col gap-1 ",
         attachments.length > 1 && "sm:grid sm:grid-cols-2"
       )}
     >
@@ -136,13 +136,13 @@ function MediaPreview({ media, postUserId }: MediaPreviewProps) {
 
   if (media.type === "IMAGE") {
     return (
-      <div className="relative">
+      <div className="relative ">
         <Image
           src={media.url}
           alt={`Image attachment ${media.id}`}
-          width={700}
-          height={1000}
-          className="mx-auto  size-fit"
+          width={900}
+          height={1200}
+          className="mx-auto   size-fit"
           loading="lazy"
         />
         <div onClick={redirectToChat} className={imageButtonClasses}>

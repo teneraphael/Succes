@@ -39,7 +39,7 @@ video.play().catch(error => console.warn("Erreur de lecture:", error));
  <video
         ref={videoRef}
         src={src}
-        className="w-full h-full object-cover block rounded-2xl" 
+        className="w-full h-full object-cover block" 
         loop 
         // L'état 'isMuted' contrôle le statut muet
         muted={isMuted} 

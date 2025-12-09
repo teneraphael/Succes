@@ -6,13 +6,13 @@ import ForYouFeed from "./ForYouFeed";
 
 export default function Home() {
   return (
-    <main className="flex flex-col w-full gap-0 md:flex-row">
-      <div className="flex-grow w-full p-2"> {/* Utilise padding pour éviter que le contenu touche les bords */}
+    <main className="flex w-full min-w-0 gap-5 ">
+      <div className="w-full min-w-0 space-y-5 ">
         <PostEditor />
         <Tabs defaultValue="for-you">
-          <TabsList className="flex gap-2 mb-2"> {/* Ajoute un espace entre les onglets */}
-            <TabsTrigger value="for-you" className="flex-1">For you</TabsTrigger>
-            <TabsTrigger value="following" className="flex-1">Following</TabsTrigger>
+          <TabsList>
+            <TabsTrigger value="for-you">For you</TabsTrigger>
+            <TabsTrigger value="following">Following</TabsTrigger>
           </TabsList>
           <TabsContent value="for-you">
             <ForYouFeed />
@@ -22,9 +22,7 @@ export default function Home() {
           </TabsContent>
         </Tabs>
       </div>
-      <div className="hidden md:block flex-none w-1/4"> {/* Sidebar visible seulement sur les écrans moyens et plus */}
-        <TrendsSidebar />
-      </div>
+      <TrendsSidebar />
     </main>
   );
 }

@@ -77,14 +77,14 @@ export default function PostEditor() {
   }
 
   return (
-    <div className="flex flex-col gap-5 rounded-2xl bg-card p-5 shadow-sm">
+    <div className="flex flex-col gap-5 bg-card p-5 shadow-sm">
       <div className="flex gap-5">
         <UserAvatar avatarUrl={user.avatarUrl} className="hidden sm:inline" />
         <div {...rootProps} className="w-full">
           <EditorContent
             editor={editor}
             className={cn(
-              "max-h-[20rem] w-full overflow-y-auto rounded-2xl bg-background px-5 py-3",
+              "max-h-[50rem] w-full overflow-y-auto  bg-background px-5 py-3",
               isDragActive && "outline-dashed",
             )}
             onPaste={onPaste}
@@ -208,12 +208,12 @@ function AttachmentPreview({
         <Image
           src={src}
           alt="Attachment preview"
-          width={800}
-          height={500}
-          className="size-fit max-h-[30rem] rounded-2xl"
+          width={1000}
+          height={800}
+          className="size-fit max-h-[50rem]"
         />
       ) : (
-        <video controls className="size-fit max-h-[30rem] rounded-2xl">
+        <video controls className="size-fit max-h-[80rem] ">
           <source src={src} type={file.type} />
         </video>
       )}
