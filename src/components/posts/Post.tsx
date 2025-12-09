@@ -140,8 +140,8 @@ function MediaPreview({ media, postUserId }: MediaPreviewProps) {
         <Image
           src={media.url}
           alt={`Image attachment ${media.id}`}
-          width={500}
-          height={500}
+          width={700}
+          height={1000}
           className="mx-auto  size-fit"
           loading="lazy"
         />
