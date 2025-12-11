@@ -1,5 +1,8 @@
+"use client";
+
+import { useChatContext } from "stream-chat-react";
 import { useEffect, useState } from "react";
-import { Channel, ChannelHeader, MessageInput, MessageList, Window } from "stream-chat-react";
+import { Channel, ChannelHeader, MessageList, MessageInput, Window } from "stream-chat-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Menu } from "lucide-react";
@@ -7,44 +10,47 @@ import { Menu } from "lucide-react";
 interface ChatChannelProps {
   open: boolean;
   openSidebar: () => void;
-  channel: any; 
   selectedUserId: string;
 }
 
 export default function ChatChannel({ open, openSidebar, selectedUserId }: ChatChannelProps) {
+  const { client, setActiveChannel } = useChatContext();
   const [channel, setChannel] = useState<any>(null);
-  const currentUserId = "User_Id"; // remplacer par ton utilisateur courant
+  const currentUserId = client.user?.id;
 
   useEffect(() => {
     async function initChannel() {
-      const newChannel = window.streamClient!.channel("messaging", {
+      if (!client || !selectedUserId) return;
+
+      const newChannel = client.channel("messaging", {
         members: [currentUserId, selectedUserId],
       });
-      await newChannel.watch();
-      setChannel(newChannel);
-    }
-    if (selectedUserId) initChannel();
-  }, [selectedUserId]);
 
+      await newChannel.watch();
+
+      setChannel(newChannel);
+      setActiveChannel(newChannel);
+    }
+
+    initChannel();
+  }, [client, selectedUserId]);
 
   return (
     <div className={cn("w-full md:block", !open && "hidden")}>
-      <Channel channel={channel}>
-        <Window>
-          <CustomChannelHeader openSidebar={openSidebar} />
-          <MessageList />
-          <MessageInput />
-        </Window>
-      </Channel>
+      {channel && (
+        <Channel channel={channel}>
+          <Window>
+            <CustomChannelHeader openSidebar={openSidebar} />
+            <MessageList />
+            <MessageInput />
+          </Window>
+        </Channel>
+      )}
     </div>
   );
 }
 
-interface CustomChannelHeaderProps {
-  openSidebar: () => void;
-}
-
-function CustomChannelHeader({ openSidebar }: CustomChannelHeaderProps) {
+function CustomChannelHeader({ openSidebar }: { openSidebar: () => void }) {
   return (
     <div className="flex items-center gap-3">
       <div className="h-full p-2 md:hidden">
