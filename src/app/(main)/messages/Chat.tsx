@@ -65,4 +65,4 @@ export default function Chat({ initialSelectedUserId }: ChatProps) {
       </div>
     </main>
   );
-}
+}  
