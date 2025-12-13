@@ -1,42 +1,50 @@
 'use client';
 
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
+import { cn } from "@/lib/utils";
 
-
-export default function VideoPost({ src }) {
+const VideoPost = ({ src, className }) => {
   const videoRef = useRef(null);
-  const [started, setStarted] = useState(false);
+  const [isMuted, setIsMuted] = useState(true);
+  const [userInteracted, setUserInteracted] = useState(false);
 
-  const startVideo = () => {
+  // Autoplay DESKTOP uniquement
+  useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
 
-    video.muted = false;
+    const isMobile = /iPhone|iPad|Android/i.test(navigator.userAgent);
+    if (isMobile) return;
+
     video.play().catch(() => {});
-    setStarted(true);
+  }, []);
+
+  const handleClick = () => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    setUserInteracted(true);
+    video.muted = false;
+    setIsMuted(false);
+
+    video.play().catch(() => {});
   };
 
   return (
-    <div className="relative">
+    <div className={cn("relative overflow-hidden", className)}>
       <video
         ref={videoRef}
         src={src}
-        muted
+        muted={isMuted}
         playsInline
         loop
         preload="metadata"
-        className="w-full"
-        controls={started}
+        onClick={handleClick}
+        className="w-full h-full object-cover"
+        controls
       />
-
-      {!started && (
-        <button
-          onClick={startVideo}
-          className="absolute inset-0 flex items-center justify-center bg-black/40 text-white text-xl"
-        >
-          ▶️ Play
-        </button>
-      )}
     </div>
   );
-}
+};
+
+export default VideoPost;
