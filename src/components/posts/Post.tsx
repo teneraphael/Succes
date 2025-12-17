@@ -106,30 +106,37 @@ interface MediaPreviewsProps {
 
 function MediaPreviews({ attachments, postUserId }: MediaPreviewsProps) {
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [isSwiping, setIsSwiping] = useState(false);
+  const totalImages = attachments.length;
 
   const handlePrev = () => {
-    setSelectedIndex((prev) => (prev > 0 ? prev - 1 : attachments.length - 1));
+    if (!isSwiping && selectedIndex > 0) {  // Condition pour éviter de balayer dès la première image
+      setIsSwiping(true);
+      setSelectedIndex(selectedIndex - 1);
+      setTimeout(() => setIsSwiping(false), 500); // Délai de 500ms
+    }
   };
 
   const handleNext = () => {
-    setSelectedIndex((prev) => (prev < attachments.length - 1 ? prev + 1 : 0));
+    if (!isSwiping && selectedIndex < totalImages - 1) {  // Condition pour éviter de balayer dès la dernière image
+      setIsSwiping(true);
+      setSelectedIndex(selectedIndex + 1);
+      setTimeout(() => setIsSwiping(false), 500); // Délai de 500ms
+    }
   };
 
   const handlers = useSwipeable({
-    onSwipedLeft: () => handleNext(),
-    onSwipedRight: () => handlePrev(),
+    onSwipedLeft: handleNext,
+    onSwipedRight: handlePrev,
     preventDefaultTouchmoveEvent: true,
-    trackMouse: true, // Permet aux événements souris de fonctionner
+    trackMouse: true, // Permet les événements souris
   });
 
   return (
-    <div className="relative" {...handlers}>
-      <div className="flex overflow-hidden">
+    <div className="relative overflow-hidden" {...handlers}>
+      <div className="flex transition-transform duration-500" style={{ transform: `translateX(-${selectedIndex * 100}%)` }}>
         {attachments.map((media, index) => (
-          <div
-            key={media.id}
-            className={`transition-transform duration-500 ease-in-out ${index === selectedIndex ? 'block' : 'hidden'}`}
-          >
+          <div key={media.id} className="min-w-full flex-shrink-0">
             {media.type === "IMAGE" ? (
               <Image
                 src={media.url}
