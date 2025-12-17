@@ -128,7 +128,7 @@ function MediaPreviews({ attachments, postUserId }: MediaPreviewsProps) {
     <div className="relative overflow-hidden" {...handlers}>
       <div className="flex transition-transform duration-500" style={{ transform: `translateX(-${selectedIndex * 100}%)` }}>
         {attachments.map((media) => (
-          <div key={media.id} className="min-w-full flex-shrink-0">
+          <div key={media.id} className="w-full flex-shrink-0">
             {media.type === "IMAGE" ? (
               <Image
                 src={media.url}
