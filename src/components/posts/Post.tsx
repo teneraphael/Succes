@@ -106,43 +106,36 @@ interface MediaPreviewsProps {
 
 function MediaPreviews({ attachments, postUserId }: MediaPreviewsProps) {
   const [selectedIndex, setSelectedIndex] = useState(0);
-  const [isSwiping, setIsSwiping] = useState(false); 
-  const totalImages = attachments.length;
 
   const handlePrev = () => {
-    if (!isSwiping) {
-      setIsSwiping(true);
-      setSelectedIndex((prev) => (prev > 0 ? prev - 1 : totalImages - 1));
-      setTimeout(() => setIsSwiping(false), 500); // Délai de 500ms
-    }
+    setSelectedIndex((prev) => (prev > 0 ? prev - 1 : attachments.length - 1));
   };
 
   const handleNext = () => {
-    if (!isSwiping) {
-      setIsSwiping(true);
-      setSelectedIndex((prev) => (prev < totalImages - 1 ? prev + 1 : 0));
-      setTimeout(() => setIsSwiping(false), 500); // Délai de 500ms
-    }
+    setSelectedIndex((prev) => (prev < attachments.length - 1 ? prev + 1 : 0));
   };
 
   const handlers = useSwipeable({
-    onSwipedLeft: handleNext,
-    onSwipedRight: handlePrev,
+    onSwipedLeft: () => handleNext(),
+    onSwipedRight: () => handlePrev(),
     preventDefaultTouchmoveEvent: true,
-    trackMouse: true, 
+    trackMouse: true, // Permet aux événements souris de fonctionner
   });
 
   return (
-    <div className="relative overflow-hidden" {...handlers}>
-      <div className="flex transition-transform duration-500" style={{ transform: `translateX(-${selectedIndex * 100}%)` }}>
+    <div className="relative" {...handlers}>
+      <div className="flex overflow-hidden">
         {attachments.map((media, index) => (
-          <div key={media.id} className="min-w-full flex-shrink-0">
+          <div
+            key={media.id}
+            className={`transition-transform duration-500 ease-in-out ${index === selectedIndex ? 'block' : 'hidden'}`}
+          >
             {media.type === "IMAGE" ? (
               <Image
                 src={media.url}
                 alt={`Image attachment ${media.id}`}
-                width={500}
-                height={500}
+                width={500} // Ajustez selon vos besoins
+                height={500} // Ajustez selon vos besoins
                 className="object-cover mx-auto"
                 loading="lazy"
               />
