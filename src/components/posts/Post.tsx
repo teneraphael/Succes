@@ -6,7 +6,7 @@ import { cn, formatRelativeDate } from "@/lib/utils";
 import { Media } from "@prisma/client";
 import { MessageSquare } from "lucide-react";
 import Image from "next/image";
-import VideoPost from "../VideoPost"; // Assurez-vous que ce composant est bien défini.
+import VideoPost from "../VideoPost";
 import Link from "next/link";
 import { useState } from "react";
 import Comments from "../comments/Comments";
@@ -16,7 +16,7 @@ import UserTooltip from "../UserTooltip";
 import BookmarkButton from "./BookmarkButton";
 import LikeButton from "./LikeButton";
 import PostMoreButton from "./PostMoreButton";
-import { useSwipeable } from 'react-swipeable';
+import { useSwipeable } from 'react-swipeable'; // Import de la bibliothèque
 
 interface PostProps {
   post: PostData;
@@ -69,12 +69,6 @@ export default function Post({ post }: PostProps) {
         <MediaPreviews attachments={post.attachments} postUserId={post.user.id} />
       )}
 
-      <div className="flex justify-center mt-2">
-        <button onClick={() => redirectToChat(post.user.id)} className="w-full text-center bg-black/30 text-white py-3 font-semibold cursor-pointer hover:bg-black/50 transition">
-          Discuter
-        </button>
-      </div>
-
       <hr className="text-muted-foreground" />
       <div className="flex justify-between gap-5">
         <div className="flex items-center gap-5">
@@ -103,10 +97,6 @@ export default function Post({ post }: PostProps) {
       {showComments && <Comments post={post} />}
     </article>
   );
-
-  function redirectToChat(postUserId: string) {
-    window.location.href = `/messages?userId=${postUserId}&postId=${post.id}`;
-  }
 }
 
 interface MediaPreviewsProps {
@@ -116,19 +106,36 @@ interface MediaPreviewsProps {
 
 function MediaPreviews({ attachments, postUserId }: MediaPreviewsProps) {
   const [selectedIndex, setSelectedIndex] = useState(0);
-  const totalMedia = attachments.length;
+  const [isSwiping, setIsSwiping] = useState(false); 
+  const totalImages = attachments.length;
+
+  const handlePrev = () => {
+    if (!isSwiping) {
+      setIsSwiping(true);
+      setSelectedIndex((prev) => (prev > 0 ? prev - 1 : totalImages - 1));
+      setTimeout(() => setIsSwiping(false), 500); // Délai de 500ms
+    }
+  };
+
+  const handleNext = () => {
+    if (!isSwiping) {
+      setIsSwiping(true);
+      setSelectedIndex((prev) => (prev < totalImages - 1 ? prev + 1 : 0));
+      setTimeout(() => setIsSwiping(false), 500); // Délai de 500ms
+    }
+  };
 
   const handlers = useSwipeable({
-    onSwipedLeft: () => setSelectedIndex((prev) => Math.min(prev + 1, totalMedia - 1)),
-    onSwipedRight: () => setSelectedIndex((prev) => Math.max(prev - 1, 0)),
+    onSwipedLeft: handleNext,
+    onSwipedRight: handlePrev,
     preventDefaultTouchmoveEvent: true,
-    trackMouse: true,
+    trackMouse: true, 
   });
 
   return (
     <div className="relative overflow-hidden" {...handlers}>
       <div className="flex transition-transform duration-500" style={{ transform: `translateX(-${selectedIndex * 100}%)` }}>
-        {attachments.map((media) => (
+        {attachments.map((media, index) => (
           <div key={media.id} className="min-w-full flex-shrink-0">
             {media.type === "IMAGE" ? (
               <Image
@@ -140,7 +147,7 @@ function MediaPreviews({ attachments, postUserId }: MediaPreviewsProps) {
                 loading="lazy"
               />
             ) : media.type === "VIDEO" ? (
-              <VideoPost src={media.url} className="mx-auto" />
+              <VideoPost src={media.url} />
             ) : (
               <p className="text-destructive">Unsupported media type</p>
             )}
