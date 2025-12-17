@@ -136,7 +136,7 @@ function MediaPreviews({ attachments }: MediaPreviewsProps) {
   });
 
   return (
-    <div className="relative w-full h-[400px] sm:h-[600px] overflow-hidden" {...handlers}>
+    <div className="relative w-full h-[400px] sm:h-[750px] overflow-hidden" {...handlers}>
       <div
         className="flex transition-transform duration-500 h-full"
         style={{ transform: `translateX(-${selectedIndex * 100}%)` }}
