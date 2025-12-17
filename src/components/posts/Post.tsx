@@ -121,7 +121,6 @@ function MediaPreviews({ attachments, postUserId }: MediaPreviewsProps) {
   const handlers = useSwipeable({
     onSwipedLeft: () => setSelectedIndex((prev) => Math.min(prev + 1, totalMedia - 1)),
     onSwipedRight: () => setSelectedIndex((prev) => Math.max(prev - 1, 0)),
-    preventDefaultTouchmoveEvent: true,
     trackMouse: true,
   });
 
