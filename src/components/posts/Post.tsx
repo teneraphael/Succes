@@ -6,7 +6,7 @@ import { cn, formatRelativeDate } from "@/lib/utils";
 import { Media } from "@prisma/client";
 import { MessageSquare } from "lucide-react";
 import Image from "next/image";
-import VideoPost from "../VideoPost";
+import VideoPost from "../VideoPost"; // Assurez-vous que ce composant est bien défini.
 import Link from "next/link";
 import { useState } from "react";
 import Comments from "../comments/Comments";
@@ -16,6 +16,7 @@ import UserTooltip from "../UserTooltip";
 import BookmarkButton from "./BookmarkButton";
 import LikeButton from "./LikeButton";
 import PostMoreButton from "./PostMoreButton";
+import { useSwipeable } from 'react-swipeable';
 
 interface PostProps {
   post: PostData;
@@ -68,6 +69,12 @@ export default function Post({ post }: PostProps) {
         <MediaPreviews attachments={post.attachments} postUserId={post.user.id} />
       )}
 
+      <div className="flex justify-center mt-2">
+        <button onClick={() => redirectToChat(post.user.id)} className="w-full text-center bg-black/30 text-white py-3 font-semibold cursor-pointer hover:bg-black/50 transition">
+          Discuter
+        </button>
+      </div>
+
       <hr className="text-muted-foreground" />
       <div className="flex justify-between gap-5">
         <div className="flex items-center gap-5">
@@ -96,6 +103,10 @@ export default function Post({ post }: PostProps) {
       {showComments && <Comments post={post} />}
     </article>
   );
+
+  function redirectToChat(postUserId: string) {
+    window.location.href = `/messages?userId=${postUserId}&postId=${post.id}`;
+  }
 }
 
 interface MediaPreviewsProps {
@@ -105,47 +116,35 @@ interface MediaPreviewsProps {
 
 function MediaPreviews({ attachments, postUserId }: MediaPreviewsProps) {
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const totalMedia = attachments.length;
 
-  const handlePrev = () => {
-    setSelectedIndex((prev) => (prev > 0 ? prev - 1 : attachments.length - 1));
-  };
-
-  const handleNext = () => {
-    setSelectedIndex((prev) => (prev < attachments.length - 1 ? prev + 1 : 0));
-  };
+  const handlers = useSwipeable({
+    onSwipedLeft: () => setSelectedIndex((prev) => Math.min(prev + 1, totalMedia - 1)),
+    onSwipedRight: () => setSelectedIndex((prev) => Math.max(prev - 1, 0)),
+    trackMouse: true,
+  });
 
   return (
-    <div className="relative">
-      <div className="flex overflow-hidden">
-        {attachments.map((media, index) => (
-          <div
-            key={media.id}
-            className={`transition-transform duration-500 ease-in-out ${index === selectedIndex ? 'block' : 'hidden'}`}
-          >
+    <div className="relative overflow-hidden" {...handlers}>
+      <div className="flex transition-transform duration-500" style={{ transform: `translateX(-${selectedIndex * 100}%)` }}>
+        {attachments.map((media) => (
+          <div key={media.id} className="min-w-full flex-shrink-0">
             {media.type === "IMAGE" ? (
               <Image
                 src={media.url}
                 alt={`Image attachment ${media.id}`}
-                width={500} // Ajustez selon vos besoins
-                height={500} // Ajustez selon vos besoins
-                className="object-cover mx-auto" // Style pour un bon rendu
+                width={500}
+                height={500}
+                className="object-cover mx-auto"
                 loading="lazy"
               />
             ) : media.type === "VIDEO" ? (
-              <VideoPost src={media.url} />
+              <VideoPost src={media.url} className="mx-auto" />
             ) : (
               <p className="text-destructive">Unsupported media type</p>
             )}
           </div>
         ))}
-      </div>
-
-      {/* Contrôles pour naviguer entre les images */}
-      <div className="absolute top-1/2 left-0 transform -translate-y-1/2 cursor-pointer" onClick={handlePrev}>
-        &#10094; {/* Flèche gauche */}
-      </div>
-      <div className="absolute top-1/2 right-0 transform -translate-y-1/2 cursor-pointer" onClick={handleNext}>
-        &#10095; {/* Flèche droite */}
       </div>
 
       {/* Indicateurs de pagination */}
@@ -176,4 +175,4 @@ function CommentButton({ post, onClick }: CommentButtonProps) {
       </span>
     </button>
   );
-}
+} 
