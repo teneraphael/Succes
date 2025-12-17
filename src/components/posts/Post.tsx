@@ -16,7 +16,6 @@ import UserTooltip from "../UserTooltip";
 import BookmarkButton from "./BookmarkButton";
 import LikeButton from "./LikeButton";
 import PostMoreButton from "./PostMoreButton";
-import { useSwipeable } from 'react-swipeable'; // Import de la bibliothèque
 
 interface PostProps {
   post: PostData;
@@ -115,15 +114,8 @@ function MediaPreviews({ attachments, postUserId }: MediaPreviewsProps) {
     setSelectedIndex((prev) => (prev < attachments.length - 1 ? prev + 1 : 0));
   };
 
-  const handlers = useSwipeable({
-    onSwipedLeft: () => handleNext(),
-    onSwipedRight: () => handlePrev(),
-    preventDefaultTouchmoveEvent: true,
-    trackMouse: true, // Permet aux événements souris de fonctionner
-  });
-
   return (
-    <div className="relative" {...handlers}>
+    <div className="relative">
       <div className="flex overflow-hidden">
         {attachments.map((media, index) => (
           <div
@@ -136,7 +128,7 @@ function MediaPreviews({ attachments, postUserId }: MediaPreviewsProps) {
                 alt={`Image attachment ${media.id}`}
                 width={500} // Ajustez selon vos besoins
                 height={500} // Ajustez selon vos besoins
-                className="object-cover mx-auto"
+                className="object-cover mx-auto" // Style pour un bon rendu
                 loading="lazy"
               />
             ) : media.type === "VIDEO" ? (
@@ -146,6 +138,14 @@ function MediaPreviews({ attachments, postUserId }: MediaPreviewsProps) {
             )}
           </div>
         ))}
+      </div>
+
+      {/* Contrôles pour naviguer entre les images */}
+      <div className="absolute top-1/2 left-0 transform -translate-y-1/2 cursor-pointer" onClick={handlePrev}>
+        &#10094; {/* Flèche gauche */}
+      </div>
+      <div className="absolute top-1/2 right-0 transform -translate-y-1/2 cursor-pointer" onClick={handleNext}>
+        &#10095; {/* Flèche droite */}
       </div>
 
       {/* Indicateurs de pagination */}
