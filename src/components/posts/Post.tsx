@@ -6,7 +6,7 @@ import { cn, formatRelativeDate } from "@/lib/utils";
 import { Media } from "@prisma/client";
 import { MessageSquare } from "lucide-react";
 import Image from "next/image";
-import VideoPost from "../VideoPost"; // Assurez-vous que ce composant est bien défini.
+import VideoPost from "../VideoPost";
 import Link from "next/link";
 import { useState } from "react";
 import Comments from "../comments/Comments";
@@ -16,7 +16,7 @@ import UserTooltip from "../UserTooltip";
 import BookmarkButton from "./BookmarkButton";
 import LikeButton from "./LikeButton";
 import PostMoreButton from "./PostMoreButton";
-import { useSwipeable } from 'react-swipeable';
+import { useSwipeable } from "react-swipeable";
 
 interface PostProps {
   post: PostData;
@@ -28,6 +28,7 @@ export default function Post({ post }: PostProps) {
 
   return (
     <article className="group/post space-y-3 rounded-2xl bg-card p-5 shadow-sm">
+      {/* Header utilisateur */}
       <div className="flex justify-between gap-3">
         <div className="flex flex-wrap gap-3">
           <UserTooltip user={post.user}>
@@ -61,21 +62,29 @@ export default function Post({ post }: PostProps) {
         )}
       </div>
 
+      {/* Contenu du post */}
       <Linkify>
         <div className="whitespace-pre-line break-words">{post.content}</div>
       </Linkify>
 
-      {!!post.attachments.length && (
-        <MediaPreviews attachments={post.attachments} postUserId={post.user.id} />
+      {/* Media */}
+      {post.attachments.length > 0 && (
+        <MediaPreviews attachments={post.attachments} />
       )}
 
+      {/* Bouton discuter */}
       <div className="flex justify-center mt-2">
-        <button onClick={() => redirectToChat(post.user.id)} className="w-full text-center bg-black/30 text-white py-3 font-semibold cursor-pointer hover:bg-black/50 transition">
+        <button
+          onClick={() => redirectToChat(post.user.id)}
+          className="w-full text-center bg-black/30 text-white py-3 font-semibold cursor-pointer hover:bg-black/50 transition"
+        >
           Discuter
         </button>
       </div>
 
       <hr className="text-muted-foreground" />
+
+      {/* Actions */}
       <div className="flex justify-between gap-5">
         <div className="flex items-center gap-5">
           <LikeButton
@@ -111,36 +120,39 @@ export default function Post({ post }: PostProps) {
 
 interface MediaPreviewsProps {
   attachments: Media[];
-  postUserId: string;
 }
 
-function MediaPreviews({ attachments, postUserId }: MediaPreviewsProps) {
+function MediaPreviews({ attachments }: MediaPreviewsProps) {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const totalMedia = attachments.length;
 
   const handlers = useSwipeable({
-    onSwipedLeft: () => setSelectedIndex((prev) => Math.min(prev + 1, totalMedia - 1)),
-    onSwipedRight: () => setSelectedIndex((prev) => Math.max(prev - 1, 0)),
+    onSwipedLeft: () =>
+      setSelectedIndex((prev) => Math.min(prev + 1, totalMedia - 1)),
+    onSwipedRight: () =>
+      setSelectedIndex((prev) => Math.max(prev - 1, 0)),
     preventDefaultTouchmoveEvent: true,
     trackMouse: true,
   });
 
   return (
-    <div className="relative overflow-hidden" {...handlers}>
-      <div className="flex transition-transform duration-500" style={{ transform: `translateX(-${selectedIndex * 100}%)` }}>
+    <div className="relative w-full h-[400px] sm:h-[600px] overflow-hidden" {...handlers}>
+      <div
+        className="flex transition-transform duration-500 h-full"
+        style={{ transform: `translateX(-${selectedIndex * 100}%)` }}
+      >
         {attachments.map((media) => (
-          <div key={media.id} className="min-w-full flex-shrink-0">
+          <div key={media.id} className="min-w-full flex-shrink-0 h-full relative">
             {media.type === "IMAGE" ? (
               <Image
                 src={media.url}
                 alt={`Image attachment ${media.id}`}
-                width={500}
-                height={500}
-                className="object-cover mx-auto"
-                loading="lazy"
+                fill
+                className="object-cover"
+                draggable={false}
               />
             ) : media.type === "VIDEO" ? (
-              <VideoPost src={media.url} className="mx-auto" />
+              <VideoPost src={media.url} className="w-full h-full" />
             ) : (
               <p className="text-destructive">Unsupported media type</p>
             )}
@@ -148,12 +160,14 @@ function MediaPreviews({ attachments, postUserId }: MediaPreviewsProps) {
         ))}
       </div>
 
-      {/* Indicateurs de pagination */}
-      <div className="flex justify-center mt-2">
+      {/* Pagination bullets */}
+      <div className="absolute bottom-3 left-0 right-0 flex justify-center">
         {attachments.map((_, index) => (
           <div
             key={index}
-            className={`h-2 w-2 rounded-full mx-1 cursor-pointer ${index === selectedIndex ? 'bg-blue-500' : 'bg-gray-300'}`}
+            className={`h-2 w-2 rounded-full mx-1 cursor-pointer ${
+              index === selectedIndex ? "bg-blue-500" : "bg-gray-300"
+            }`}
             onClick={() => setSelectedIndex(index)}
           />
         ))}
