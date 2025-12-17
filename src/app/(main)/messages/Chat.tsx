@@ -18,6 +18,17 @@ export default function Chat({ initialSelectedUserId }: ChatProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(initialSelectedUserId);
   const [channel, setChannel] = useState<any>(null);
+  const [postPreview, setPostPreview] = useState<{ postId: string } | null>(null);
+
+  useEffect(() => {
+    // Récupérer les détails du post à partir des paramètres d'URL
+    const params = new URLSearchParams(window.location.search);
+    const postId = params.get('postId');
+
+    if (postId) {
+      setPostPreview({ postId });
+    }
+  }, []);
 
   // Crée ou récupère le channel
   useEffect(() => {
@@ -58,11 +69,12 @@ export default function Chat({ initialSelectedUserId }: ChatProps) {
               open={!sidebarOpen}
               openSidebar={() => setSidebarOpen(true)}
               selectedUserId={selectedUserId!}
-              channel={channel} // ✅ passe le channel, pas juste l'ID
+              channel={channel}
+              postId={postPreview?.postId} // Passage uniquement de postId
             />
           )}
         </StreamChat>
       </div>
     </main>
   );
-}  
+}

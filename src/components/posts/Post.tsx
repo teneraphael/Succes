@@ -23,7 +23,6 @@ interface PostProps {
 
 export default function Post({ post }: PostProps) {
   const { user } = useSession();
-
   const [showComments, setShowComments] = useState(false);
 
   return (
@@ -105,65 +104,62 @@ interface MediaPreviewsProps {
 }
 
 function MediaPreviews({ attachments, postUserId }: MediaPreviewsProps) {
-  return (
-    <div
-      className={cn(
-        "flex flex-col gap-3",
-        attachments.length > 1 && "sm:grid sm:grid-cols-2"
-      )}
-    >
-      {attachments.map((m) => (
-        <MediaPreview key={m.id} media={m} postUserId={postUserId} />
-      ))}
-    </div>
-  );
-}
+  const [selectedIndex, setSelectedIndex] = useState(0);
 
-interface MediaPreviewProps {
-  media: Media;
-  postUserId: string;
-}
-
-function MediaPreview({ media, postUserId }: MediaPreviewProps) {
-  const redirectToChat = () => {
-    window.location.href = `/messages?userId=${postUserId}`;
+  const handlePrev = () => {
+    setSelectedIndex((prev) => (prev > 0 ? prev - 1 : attachments.length - 1));
   };
 
-  const imageButtonClasses =
-    "absolute bottom-0 left-0 w-full text-center bg-black/50 text-white py-3 font-semibold cursor-pointer hover:bg-black/70 transition";
-  const videoButtonClasses =
-    "w-full text-center bg-black/30 text-white py-3 font-semibold cursor-pointer hover:bg-black/50 transition mt-2";
+  const handleNext = () => {
+    setSelectedIndex((prev) => (prev < attachments.length - 1 ? prev + 1 : 0));
+  };
 
-  if (media.type === "IMAGE") {
-    return (
-      <div className="relative">
-        <Image
-          src={media.url}
-          alt={`Image attachment ${media.id}`}
-          width={500}
-          height={500}
-          className="mx-auto size-fit"
-          loading="lazy"
-        />
-        <div onClick={redirectToChat} className={imageButtonClasses}>
-          Discuter
-        </div>
+  return (
+    <div className="relative">
+      <div className="flex overflow-hidden">
+        {attachments.map((media, index) => (
+          <div
+            key={media.id}
+            className={`transition-transform duration-500 ease-in-out ${index === selectedIndex ? 'block' : 'hidden'}`}
+          >
+            {media.type === "IMAGE" ? (
+              <Image
+                src={media.url}
+                alt={`Image attachment ${media.id}`}
+                width={500} // Ajustez selon vos besoins
+                height={500} // Ajustez selon vos besoins
+                className="object-cover mx-auto" // Style pour un bon rendu
+                loading="lazy"
+              />
+            ) : media.type === "VIDEO" ? (
+              <VideoPost src={media.url} />
+            ) : (
+              <p className="text-destructive">Unsupported media type</p>
+            )}
+          </div>
+        ))}
       </div>
-    );
-  }
 
-  if (media.type === "VIDEO") {
-    return (
-      <div className="flex flex-col gap-1">
-        <VideoPost src={media.url} className="mx-auto size-fit" />
-        <div onClick={redirectToChat} className={videoButtonClasses}>
-          Discuter
-        </div>
+      {/* Contrôles pour naviguer entre les images */}
+      <div className="absolute top-1/2 left-0 transform -translate-y-1/2 cursor-pointer" onClick={handlePrev}>
+        &#10094; {/* Flèche gauche */}
       </div>
-    );
-  }
+      <div className="absolute top-1/2 right-0 transform -translate-y-1/2 cursor-pointer" onClick={handleNext}>
+        &#10095; {/* Flèche droite */}
+      </div>
 
-  return <p className="text-destructive">Unsupported media type</p>;
+      {/* Indicateurs de pagination */}
+      <div className="flex justify-center mt-2">
+        {attachments.map((_, index) => (
+          <div
+            key={index}
+            className={`h-2 w-2 rounded-full mx-1 cursor-pointer ${index === selectedIndex ? 'bg-blue-500' : 'bg-gray-300'}`}
+            onClick={() => setSelectedIndex(index)}
+          />
+        ))}
+      </div>
+    </div>
+  );
 }
 
 interface CommentButtonProps {
