@@ -9,19 +9,28 @@ export default function LayoutClientWrapper({ children, navbar, menuBar, mobileM
 
   return (
     <div className={cn(
-      "flex flex-col w-full",
-      // On fixe la hauteur à l'écran UNIQUEMENT pour le chat
+      "flex w-full flex-col",
       isChatPage ? "h-screen overflow-hidden" : "min-h-screen"
     )}>
+      
+      {/* Navbar : on la garde sur Home, mais elle doit être responsive */}
       {!isChatPage && navbar}
 
       <div className={cn(
         "flex w-full grow", 
+        // MODIFICATION ICI : 
+        // Sur mobile (max-md), on met p-0 et max-w-none pour tout le site
         isChatPage 
           ? "max-w-none p-0 m-0 overflow-hidden" 
-          : "mx-auto max-w-7xl p-5 gap-5" // Le style normal revient pour Home
+          : "mx-auto max-w-7xl p-0 md:p-5 gap-0 md:gap-5" 
       )}>
-        {!isChatPage && menuBar}
+        
+        {/* Menu latéral caché sur mobile */}
+        {!isChatPage && (
+          <div className="hidden md:block">
+            {menuBar}
+          </div>
+        )}
         
         <main className={cn(
           "min-w-0 flex-1",

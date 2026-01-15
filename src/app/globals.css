@@ -56,6 +56,7 @@
     @apply border-border;
   }
   body {
+    /* min-h-screen sans overflow hidden pour permettre le scroll des posts */
     @apply bg-background text-foreground min-h-screen;
   }
 }
@@ -80,7 +81,7 @@
   --str-chat__cta-button-border-radius: var(--radius);
 }
 
-/* --- NETTOYAGE INTERFACE --- */
+/* --- NETTOYAGE INTERFACE CHAT --- */
 .str-chat-channel-list {
   border-right: none;
 }
@@ -89,19 +90,14 @@
   padding-bottom: 0;
 }
 
-.str-chat__channel-search-bar-button--exit-search {
-  display: none;
-}
-
-/* --- CORRECTIF SUPERPOSITION (FLÈCHE) --- */
-/* Cache les flèches de retour natives pour utiliser uniquement la tienne */
+/* Supprime les flèches natives de Stream pour éviter la superposition */
 .str-chat__header-back-button,
 .str-chat__back-button,
 .str-chat__channel-header__back-button {
   display: none !important;
 }
 
-/* --- CORRECTIF FORCE HAUTEUR & SCROLL INTERNE --- */
+/* --- FORCE HAUTEUR CHAT & SCROLL --- */
 .str-chat {
   height: 100% !important;
 }
@@ -115,10 +111,9 @@
   display: flex !important;
   flex-direction: column !important;
   flex: 1 !important;
-  min-height: 0 !important; /* Crucial pour le scroll */
+  min-height: 0 !important;
 }
 
-/* Gestion de la liste des messages */
 .str-chat__list {
   flex: 1 1 auto !important;
   overflow-y: auto !important;
@@ -126,17 +121,27 @@
   flex-direction: column !important;
 }
 
-/* Gestion du header et de l'input */
-.str-chat__channel-header {
-  width: 100% !important;
-  padding: 0 !important;
-}
-
 .str-chat__input-flat {
   margin-top: auto !important;
-  background-color: var(--str-chat__background-color) !important;
 }
 
-.str-chat__main-panel {
-  border: none !important;
+/* --- CORRECTIF PLEIN ÉCRAN MOBILE (POSTS & LAYOUT) --- */
+@media (max-width: 768px) {
+  /* Supprime les marges du conteneur principal sur mobile */
+  .container, 
+  main {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    max-width: 100% !important;
+  }
+
+  /* Force les posts à toucher les bords */
+  article {
+    border-radius: 0 !important;
+    border-left: none !important;
+    border-right: none !important;
+    width: 100% !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
 }

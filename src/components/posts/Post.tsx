@@ -6,7 +6,7 @@ import { cn, formatRelativeDate } from "@/lib/utils";
 import { Media } from "@prisma/client";
 import { MessageSquare } from "lucide-react";
 import Image from "next/image";
-import VideoPost from "../VideoPost"; // Assurez-vous que ce composant est bien défini.
+import VideoPost from "../VideoPost";
 import Link from "next/link";
 import { useState } from "react";
 import Comments from "../comments/Comments";
@@ -27,7 +27,13 @@ export default function Post({ post }: PostProps) {
   const [showComments, setShowComments] = useState(false);
 
   return (
-    <article className="group/post space-y-3 rounded-2xl bg-card p-5 shadow-sm">
+    /* CORRECTION PLEIN ÉCRAN MOBILE :
+       - rounded-none md:rounded-2xl : Carré sur mobile, arrondi sur PC.
+       - border-x-0 md:border : Pas de bordures latérales sur mobile.
+       - shadow-none md:shadow-sm : Pas d'ombre sur mobile pour un look "App".
+       - w-full : Utilise toute la largeur disponible.
+    */
+    <article className="group/post w-full space-y-3 bg-card p-4 md:p-5 shadow-none md:shadow-sm rounded-none md:rounded-2xl border-x-0 md:border border-y md:border-y-0 border-border transition-colors">
       <div className="flex justify-between gap-3">
         <div className="flex flex-wrap gap-3">
           <UserTooltip user={post.user}>
@@ -62,21 +68,27 @@ export default function Post({ post }: PostProps) {
       </div>
 
       <Linkify>
-        <div className="whitespace-pre-line break-words">{post.content}</div>
+        <div className="whitespace-pre-line break-words px-1 md:px-0">
+          {post.content}
+        </div>
       </Linkify>
 
       {!!post.attachments.length && (
         <MediaPreviews attachments={post.attachments} postUserId={post.user.id} />
       )}
 
-      <div className="flex justify-center mt-2">
-        <button onClick={() => redirectToChat(post.user.id)} className="w-full text-center bg-black/30 text-white py-3 font-semibold cursor-pointer hover:bg-black/50 transition">
+      <div className="flex justify-center mt-2 px-1 md:px-0">
+        <button 
+          onClick={() => redirectToChat(post.user.id)} 
+          className="w-full text-center bg-primary/10 text-primary py-3 rounded-xl font-semibold cursor-pointer hover:bg-primary/20 transition-colors"
+        >
           Discuter
         </button>
       </div>
 
-      <hr className="text-muted-foreground" />
-      <div className="flex justify-between gap-5">
+      <hr className="text-muted-foreground/20 mx-1 md:mx-0" />
+      
+      <div className="flex justify-between gap-5 px-1 md:px-0">
         <div className="flex items-center gap-5">
           <LikeButton
             postId={post.id}
@@ -100,13 +112,16 @@ export default function Post({ post }: PostProps) {
         />
       </div>
 
-      {showComments && <Comments post={post} />}
+      {showComments && (
+        <div className="pt-2">
+           <Comments post={post} />
+        </div>
+      )}
     </article>
   );
 
   function redirectToChat(postUserId: string) {
      const postLink = `${window.location.origin}/posts/${post.id}`;
-
      window.location.href = `/messages?userId=${postUserId}&sharedPost=${encodeURIComponent(postLink)}`;
   }
 }
@@ -123,59 +138,61 @@ function MediaPreviews({ attachments, postUserId }: MediaPreviewsProps) {
   const handlers = useSwipeable({
     onSwipedLeft: () => setSelectedIndex((prev) => Math.min(prev + 1, totalMedia - 1)),
     onSwipedRight: () => setSelectedIndex((prev) => Math.max(prev - 1, 0)),
-    preventScrollOnSwipe:true,
+    preventScrollOnSwipe: true,
     trackMouse: true,
   });
 
   return (
-    <div className="relative overflow-hidden" {...handlers}>
-      <div className="flex transition-transform duration-500" style={{ transform: `translateX(-${selectedIndex * 100}%)` }}>
+    /* h-auto md:max-h-[30rem] pour limiter la hauteur sur PC */
+    <div className="relative -mx-4 md:mx-0 overflow-hidden bg-black/5" {...handlers}>
+      <div 
+        className="flex transition-transform duration-500 ease-out" 
+        style={{ transform: `translateX(-${selectedIndex * 100}%)` }}
+      >
         {attachments.map((media) => (
-          <div key={media.id} className="w-full flex-shrink-0">
+          <div key={media.id} className="w-full flex-shrink-0 flex items-center justify-center bg-black/5">
             {media.type === "IMAGE" ? (
               <Image
                 src={media.url}
-                alt={`Image attachment ${media.id}`}
-                width={500}
-                height={500}
-                className="object-cover mx-auto"
+                alt="Attachment"
+                width={800}
+                height={800}
+                className="w-full h-auto object-contain max-h-[70vh] md:max-h-[30rem]"
                 loading="lazy"
               />
             ) : media.type === "VIDEO" ? (
-              <VideoPost src={media.url} className="mx-auto" />
+              <VideoPost src={media.url} className="w-full max-h-[70vh] md:max-h-[30rem]" />
             ) : (
-              <p className="text-destructive">Unsupported media type</p>
+              <p className="p-4 text-destructive">Format non supporté</p>
             )}
           </div>
         ))}
       </div>
 
-      {/* Indicateurs de pagination */}
-      <div className="flex justify-center mt-2">
-        {attachments.map((_, index) => (
-          <div
-            key={index}
-            className={`h-2 w-2 rounded-full mx-1 cursor-pointer ${index === selectedIndex ? 'bg-blue-500' : 'bg-gray-300'}`}
-            onClick={() => setSelectedIndex(index)}
-          />
-        ))}
-      </div>
+      {totalMedia > 1 && (
+        <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 gap-1.5 bg-black/20 px-2 py-1 rounded-full backdrop-blur-sm">
+          {attachments.map((_, index) => (
+            <div
+              key={index}
+              className={cn(
+                "h-1.5 w-1.5 rounded-full transition-colors",
+                index === selectedIndex ? "bg-white" : "bg-white/50"
+              )}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
 
-interface CommentButtonProps {
-  post: PostData;
-  onClick: () => void;
-}
-
-function CommentButton({ post, onClick }: CommentButtonProps) {
+function CommentButton({ post, onClick }: { post: PostData; onClick: () => void }) {
   return (
-    <button onClick={onClick} className="flex items-center gap-2">
+    <button onClick={onClick} className="flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors">
       <MessageSquare className="size-5" />
       <span className="text-sm font-medium tabular-nums">
-        {post._count.comments} <span className="hidden sm:inline">comments</span>
+        {post._count.comments} <span className="hidden sm:inline">commentaires</span>
       </span>
     </button>
   );
-} 
+}
