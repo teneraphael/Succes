@@ -25,6 +25,11 @@ interface PostProps {
 export default function Post({ post }: PostProps) {
   const { user } = useSession();
   const [showComments, setShowComments] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  // Seuil pour le bouton "Voir plus"
+  const charLimit = 250;
+  const isLongText = post.content.length > charLimit;
 
   return (
     <article className="group/post w-full space-y-3 bg-card p-4 md:p-5 shadow-none md:shadow-sm rounded-none md:rounded-2xl border-x-0 md:border border-y md:border-y-0 border-border transition-colors">
@@ -63,7 +68,17 @@ export default function Post({ post }: PostProps) {
 
       <Linkify>
         <div className="whitespace-pre-line break-words px-1 md:px-0">
-          {post.content}
+          {/* LOGIQUE VOIR PLUS / VOIR MOINS */}
+          {isExpanded ? post.content : post.content.substring(0, charLimit)}
+          
+          {isLongText && (
+            <button
+              onClick={() => setIsExpanded(!isExpanded)}
+              className="ml-1 text-primary font-semibold hover:underline"
+            >
+              {isExpanded ? "... Voir moins" : "... Voir plus"}
+            </button>
+          )}
         </div>
       </Linkify>
 
@@ -137,7 +152,6 @@ function MediaPreviews({ attachments, postUserId }: MediaPreviewsProps) {
   });
 
   return (
-    /* h-auto pour ne pas couper le contenu */
     <div className="relative -mx-4 md:mx-0 overflow-hidden bg-black/5" {...handlers}>
       <div 
         className="flex transition-transform duration-500 ease-out" 
@@ -153,7 +167,7 @@ function MediaPreviews({ attachments, postUserId }: MediaPreviewsProps) {
                 height={800}
                 className="w-full h-auto object-contain"
                 loading="lazy"
-                unoptimized // Optionnel : utile si les images sont de tailles très variées
+                unoptimized
               />
             ) : media.type === "VIDEO" ? (
               <div className="w-full h-auto">
