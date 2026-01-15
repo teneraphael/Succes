@@ -1,11 +1,9 @@
 "use client";
 
-import { Loader2, ArrowLeft } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useState, useEffect } from "react";
 import { Chat as StreamChat } from "stream-chat-react";
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
 import ChatChannel from "./ChatChannel";
 import ChatSidebar from "./ChatSidebar";
 import useInitializeChatClient from "./useInitializeChatClient";
@@ -57,20 +55,7 @@ export default function Chat({ initialSelectedUserId }: ChatProps) {
   }
 
   return (
-    <main className="relative flex h-full w-full overflow-hidden bg-background">
-      {/* BOUTON RETOUR FIXE EN HAUT À GAUCHE */}
-      <div className="absolute left-4 top-3 z-50">
-        <Link href="/">
-          <Button 
-            size="icon" 
-            variant="ghost" 
-            className="rounded-full bg-background/80 shadow-sm backdrop-blur-md hover:bg-accent"
-          >
-            <ArrowLeft className="size-5" />
-          </Button>
-        </Link>
-      </div>
-
+    <main className="flex h-full w-full overflow-hidden bg-background">
       <div className="flex h-full w-full overflow-hidden">
         <StreamChat
           client={chatClient}
@@ -80,29 +65,26 @@ export default function Chat({ initialSelectedUserId }: ChatProps) {
               : "str-chat__theme-light"
           }
         >
-          {/* On ajoute une petite marge à gauche du Sidebar si besoin pour ne pas chevaucher la flèche */}
-          <div className="flex h-full w-full pt-2"> 
-             <ChatSidebar
-                open={sidebarOpen}
-                onClose={() => setSidebarOpen(false)}
-                onSelectUser={(userId: string) => {
-                  setSelectedUserId(userId);
-                  setSidebarOpen(false);
-                }}
-              />
+          <ChatSidebar
+            open={sidebarOpen}
+            onClose={() => setSidebarOpen(false)}
+            onSelectUser={(userId: string) => {
+              setSelectedUserId(userId);
+              setSidebarOpen(false);
+            }}
+          />
 
-              {channel && (
-                <div className="flex-1 h-full flex flex-col min-h-0">
-                  <ChatChannel
-                    open={!sidebarOpen}
-                    openSidebar={() => setSidebarOpen(true)}
-                    selectedUserId={selectedUserId!}
-                    channel={channel}
-                    postId={postPreview?.postId}
-                  />
-                </div>
-              )}
-          </div>
+          {channel && (
+            <div className="flex-1 h-full flex flex-col min-h-0">
+              <ChatChannel
+                open={!sidebarOpen}
+                openSidebar={() => setSidebarOpen(true)}
+                selectedUserId={selectedUserId!}
+                channel={channel}
+                postId={postPreview?.postId}
+              />
+            </div>
+          )}
         </StreamChat>
       </div>
     </main>

@@ -24,7 +24,6 @@ interface ChatChannelProps {
 export default function ChatChannel({
   open,
   openSidebar,
-  selectedUserId,
   channel,
   postId,
 }: ChatChannelProps) {
@@ -32,25 +31,17 @@ export default function ChatChannel({
 
   useEffect(() => {
     if (!postId || postSent || !channel) return;
-
     const sendPostMessage = async () => {
       try {
         await channel.watch();
         const res = await fetch(`/api/posts/${postId}`);
-        if (!res.ok) throw new Error("Impossible de récupérer le post");
+        if (!res.ok) throw new Error("Erreur post");
         const post = await res.json();
-        if (!post || !post.content) return;
-
-        const content = `
-**Post de ${post.user.displayName || "Utilisateur"}**:
-${post.content}
-${post.attachments?.length > 0 ? post.attachments.map((m: any) => `![Image](${m.url})`).join("\n") : ""}
-[Voir le post ici](/posts/${postId})`;
-
+        const content = `**Post de ${post.user.displayName}**:\n\n${post.content}\n\n[Voir le post](/posts/${postId})`;
         await channel.sendMessage({ text: content });
         setPostSent(true);
       } catch (err) {
-        console.error("Erreur lors de l'envoi du post:", err);
+        console.error(err);
       }
     };
     sendPostMessage();
@@ -71,15 +62,10 @@ ${post.attachments?.length > 0 ? post.attachments.map((m: any) => `![Image](${m.
   );
 }
 
-interface CustomChannelHeaderProps {
-  openSidebar: () => void;
-}
-
-function CustomChannelHeader({ openSidebar }: CustomChannelHeaderProps) {
+function CustomChannelHeader({ openSidebar }: { openSidebar: () => void }) {
   return (
-    <div className="flex items-center justify-between gap-3 border-b p-2 bg-card">
+    <div className="flex items-center justify-between border-b p-2 bg-card">
       <div className="flex items-center gap-2">
-        {/* FLÈCHE RETOUR : Toujours à gauche */}
         <Link href="/">
           <Button size="icon" variant="ghost">
             <ArrowLeft className="size-5" />
@@ -87,8 +73,6 @@ function CustomChannelHeader({ openSidebar }: CustomChannelHeaderProps) {
         </Link>
         <ChannelHeader />
       </div>
-
-      {/* BOUTON MENU : À DROITE sur mobile uniquement */}
       <div className="md:hidden">
         <Button size="icon" variant="ghost" onClick={openSidebar}>
           <Menu className="size-5" />
