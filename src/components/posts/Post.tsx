@@ -105,7 +105,9 @@ export default function Post({ post }: PostProps) {
   );
 
   function redirectToChat(postUserId: string) {
-    window.location.href = `/messages?userId=${postUserId}&postId=${post.id}`;
+     const postLink = `${window.location.origin}/posts/${post.id}`;
+
+     window.location.href = `/messages?userId=${postUserId}&sharedPost=${encodeURIComponent(postLink)}`;
   }
 }
 
@@ -121,6 +123,7 @@ function MediaPreviews({ attachments, postUserId }: MediaPreviewsProps) {
   const handlers = useSwipeable({
     onSwipedLeft: () => setSelectedIndex((prev) => Math.min(prev + 1, totalMedia - 1)),
     onSwipedRight: () => setSelectedIndex((prev) => Math.max(prev - 1, 0)),
+    preventScrollOnSwipe:true,
     trackMouse: true,
   });
 

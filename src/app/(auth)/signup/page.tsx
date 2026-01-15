@@ -1,37 +1,44 @@
-import signupImage from "@/assets/signup-image.jpg";
 import { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
 import SignUpForm from "./SignUpForm";
 
 export const metadata: Metadata = {
-  title: "Sign Up",
+  title: "Créer un compte - DealCity",
 };
 
 export default function Page() {
   return (
-    <main className="flex h-screen items-center justify-center p-5">
-      <div className="flex h-full max-h-[40rem] w-full max-w-[64rem] overflow-hidden rounded-2xl bg-card shadow-2xl">
-        <div className="w-full space-y-10 overflow-y-auto p-10 md:w-1/2">
-          <div className="space-y-1 text-center">
-            <h1 className="text-3xl font-bold">Sign up to e-mark</h1>
-            <p className="text-muted-foreground">
-              A place where even <span className="italic">you</span> can find a
-              friend.
-            </p>
+    <main className="flex min-h-screen flex-col items-center justify-center bg-[#f0f7ff] p-6 font-sans">
+      <div className="w-full max-w-[400px] flex flex-col items-center">
+        
+        {/* Logo DealCity */}
+        <div className="flex items-end gap-2 mb-12">
+          <div className="flex items-end gap-[4px]">
+            <div className="w-[7px] h-6 bg-[#4a90e2] rounded-full"></div>
+            <div className="w-[7px] h-10 bg-[#4a90e2] rounded-full"></div>
+            <div className="w-[7px] h-12 bg-[#4a90e2] rounded-full"></div>
+            <div className="w-[7px] h-8 bg-[#4a90e2] rounded-full"></div>
           </div>
-          <div className="space-y-5">
-            <SignUpForm />
-            <Link href="/login" className="block text-center hover:underline">
-              Already have an account? Log in
-            </Link>
-          </div>
+          <span className="text-4xl font-bold text-[#6ab344] tracking-tight">DealCity</span>
         </div>
-        <Image
-          src={signupImage}
-          alt=""
-          className="hidden w-1/2 object-cover md:block"
-        />
+
+        {/* Titre Créer un compte */}
+        <h1 className="text-[#4a90e2] text-[26px] font-bold mb-10 text-center">
+          Créer un compte
+        </h1>
+
+        {/* Le formulaire */}
+        <div className="w-full mb-10">
+          <SignUpForm />
+        </div>
+
+        {/* Lien de pied de page */}
+        <p className="text-[#4b5563] text-sm">
+          Vous avez déjà un compte ?{" "}
+          <Link href="/login" className="text-[#4a90e2] font-bold hover:underline">
+            Se connecter
+          </Link>
+        </p>
       </div>
     </main>
   );

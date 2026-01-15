@@ -15,30 +15,48 @@ interface ChatProps {
 export default function Chat({ initialSelectedUserId }: ChatProps) {
   const chatClient = useInitializeChatClient();
   const { resolvedTheme } = useTheme();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [selectedUserId, setSelectedUserId] = useState<string | null>(initialSelectedUserId);
-  const [channel, setChannel] = useState<any>(null);
-  const [postPreview, setPostPreview] = useState<{ postId: string } | null>(null);
 
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(
+    initialSelectedUserId
+  );
+  const [channel, setChannel] = useState<any>(null);
+  const [postPreview, setPostPreview] = useState<{ postId: string } | null>(
+    null
+  );
+
+  // 🔗 Récupération du postId depuis l'URL (?postId=xxx)
   useEffect(() => {
-    // Récupérer les détails du post à partir des paramètres d'URL
     const params = new URLSearchParams(window.location.search);
-    const postId = params.get('postId');
+    const postId = params.get("postId");
 
     if (postId) {
       setPostPreview({ postId });
     }
   }, []);
 
-  // Crée ou récupère le channel
+  // ✅ Création / récupération du channel (SANS doublons)
   useEffect(() => {
     if (!selectedUserId || !chatClient) return;
 
     const initChannel = async () => {
+      const currentUserId = chatClient.userID!;
+      
+      // ❗ Protection anti chat avec soi-même
+      if (currentUserId === selectedUserId) {
+        console.warn("Chat avec soi-même interdit");
+        return;
+      }
+
+      const members = Array.from(
+        new Set([currentUserId, selectedUserId])
+      );
+
       const ch = chatClient.channel("messaging", {
-        members: [chatClient.userID!, selectedUserId],
+        members,
       });
-      await ch.watch(); // permet de récupérer les messages
+
+      await ch.watch();
       setChannel(ch);
     };
 
@@ -54,7 +72,11 @@ export default function Chat({ initialSelectedUserId }: ChatProps) {
       <div className="absolute bottom-0 top-0 flex w-full">
         <StreamChat
           client={chatClient}
-          theme={resolvedTheme === "dark" ? "str-chat__theme-dark" : "str-chat__theme-light"}
+          theme={
+            resolvedTheme === "dark"
+              ? "str-chat__theme-dark"
+              : "str-chat__theme-light"
+          }
         >
           <ChatSidebar
             open={sidebarOpen}
@@ -64,13 +86,14 @@ export default function Chat({ initialSelectedUserId }: ChatProps) {
               setSidebarOpen(false);
             }}
           />
+
           {channel && (
             <ChatChannel
               open={!sidebarOpen}
               openSidebar={() => setSidebarOpen(true)}
               selectedUserId={selectedUserId!}
               channel={channel}
-              postId={postPreview?.postId} // Passage uniquement de postId
+              postId={postPreview?.postId}
             />
           )}
         </StreamChat>
