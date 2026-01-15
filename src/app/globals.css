@@ -52,52 +52,36 @@
 }
 
 @layer base {
-  * {
-    @apply border-border;
-  }
+  * { @apply border-border; }
   body {
-    /* min-h-screen au lieu de h-screen pour permettre le défilement des posts */
-    @apply bg-background text-foreground min-h-screen h-auto overflow-y-auto;
+    @apply bg-background text-foreground min-h-screen;
   }
 }
 
 /* --- CONFIGURATION STREAM CHAT --- */
 .str-chat {
-  --str-chat__font-family: inherit;
   --str-chat__primary-color: theme(colors.primary.DEFAULT);
-  --str-chat__on-primary-color: theme(colors.primary.foreground);
   --str-chat__background-color: theme(colors.card.DEFAULT);
-  --str-chat__secondary-background-color: theme(colors.card.DEFAULT);
   --str-chat__cta-button-border-radius: var(--radius);
 }
 
-/* --- NETTOYAGE INTERFACE CHAT --- */
-.str-chat-channel-list {
-  border-right: none;
-}
-
-/* Cache les flèches natives de Stream pour éviter la superposition */
+/* Cache les flèches natives */
 .str-chat__header-back-button,
 .str-chat__back-button,
 .str-chat__channel-header__back-button {
   display: none !important;
 }
 
-/* --- CONFIGURATION CHAT (UNIQUEMENT QUAND IL EST PRÉSENT) --- */
-.str-chat {
-  height: 100% !important;
-}
-
+/* --- FORCE HAUTEUR CHAT --- */
+/* On cible l'élément racine du chat pour qu'il remplisse son parent (main) */
+.str-chat,
+.str-chat-container,
 .str-chat__main-panel,
-.str-chat-channel,
-.str-chat-channel-messenger,
-.str-chat__container,
-.str-chat__main-panel-inner {
+.str-chat-channel {
   height: 100% !important;
   display: flex !important;
   flex-direction: column !important;
   flex: 1 !important;
-  min-height: 0 !important;
 }
 
 .str-chat__list {
@@ -105,38 +89,43 @@
   overflow-y: auto !important;
 }
 
-.str-chat__input-flat {
-  margin-top: auto !important;
-}
-
-/* --- CORRECTIF PLEIN ÉCRAN MOBILE & LONGUEUR DES POSTS --- */
+/* --- CORRECTIFS SPÉCIFIQUES MOBILE --- */
 @media (max-width: 768px) {
-  /* On s'assure que le conteneur principal laisse passer tout le contenu */
-  main {
-    padding-left: 0 !important;
-    padding-right: 0 !important;
-    max-width: 100% !important;
-    height: auto !important; 
-    overflow: visible !important;
+  /* 1. Si on est sur la page chat, on bloque le défilement du body */
+  body:has(.str-chat) {
+    position: fixed;
+    width: 100%;
+    height: 100dvh;
+    overflow: hidden;
   }
 
-  /* Force les posts à toucher les bords sans limiter leur hauteur */
+  /* 2. On s'assure que le main prend toute la hauteur dynamique */
+  main {
+    padding: 0 !important;
+    max-width: 100% !important;
+    height: 100% !important;
+  }
+
+  /* 3. Les posts sur l'accueil restent normaux */
   article {
     border-radius: 0 !important;
     border-left: none !important;
     border-right: none !important;
-    width: 100% !important;
-    margin-left: 0 !important;
-    margin-right: 0 !important;
-    height: auto !important; /* Libère la hauteur pour les vidéos/images */
+    height: auto !important;
     max-height: none !important;
     overflow: visible !important;
   }
 
-  /* Empêche les vidéos/images de dépasser mais les laisse prendre leur place */
   article video, 
   article img {
     height: auto !important;
     max-height: none !important;
+    object-fit: contain;
   }
+}
+
+/* Correction pour que l'input du chat reste au dessus du clavier mobile */
+.str-chat__input-flat {
+  flex-shrink: 0 !important;
+  z-index: 10;
 }
