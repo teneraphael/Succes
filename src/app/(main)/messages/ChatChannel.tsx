@@ -34,17 +34,14 @@ export default function ChatChannel({
 
     const sendPostMessage = async () => {
       try {
-        // Attendre que le channel soit prêt
         await channel.watch();
 
-        // Récupérer le post
         const res = await fetch(`/api/posts/${postId}`);
         if (!res.ok) throw new Error("Impossible de récupérer le post");
 
         const post = await res.json();
         if (!post || !post.content) return;
 
-        // Créer le contenu du message
         const content = `
 **Post de ${post.user.displayName || "Utilisateur"}**:
 
@@ -59,9 +56,7 @@ ${
 [Voir le post ici](/posts/${postId})
 `;
 
-        // Envoyer le message normalement
         await channel.sendMessage({ text: content });
-
         setPostSent(true);
       } catch (err) {
         console.error("Erreur lors de l'envoi du post:", err);
@@ -72,13 +67,17 @@ ${
   }, [postId, channel, postSent]);
 
   return (
-    <div className={cn("w-full md:block", !open && "hidden")}>
+    // AJOUT : h-full, flex et flex-col pour occuper toute la hauteur
+    <div className={cn("w-full h-full flex flex-col md:block", !open && "hidden")}>
       <Channel channel={channel}>
-        <Window>
-          <CustomChannelHeader openSidebar={openSidebar} />
-          <MessageList />
-          <MessageInput focus />
-        </Window>
+        {/* AJOUT : Une div wrapper avec h-full pour forcer Window à s'étirer */}
+        <div className="flex flex-col h-full overflow-hidden">
+          <Window>
+            <CustomChannelHeader openSidebar={openSidebar} />
+            <MessageList />
+            <MessageInput focus />
+          </Window>
+        </div>
       </Channel>
     </div>
   );

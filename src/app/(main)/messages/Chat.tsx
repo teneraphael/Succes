@@ -25,7 +25,6 @@ export default function Chat({ initialSelectedUserId }: ChatProps) {
     null
   );
 
-  // 🔗 Récupération du postId depuis l'URL (?postId=xxx)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const postId = params.get("postId");
@@ -35,14 +34,12 @@ export default function Chat({ initialSelectedUserId }: ChatProps) {
     }
   }, []);
 
-  // ✅ Création / récupération du channel (SANS doublons)
   useEffect(() => {
     if (!selectedUserId || !chatClient) return;
 
     const initChannel = async () => {
       const currentUserId = chatClient.userID!;
       
-      // ❗ Protection anti chat avec soi-même
       if (currentUserId === selectedUserId) {
         console.warn("Chat avec soi-même interdit");
         return;
@@ -64,12 +61,17 @@ export default function Chat({ initialSelectedUserId }: ChatProps) {
   }, [selectedUserId, chatClient]);
 
   if (!chatClient || (selectedUserId && !channel)) {
-    return <Loader2 className="mx-auto my-3 animate-spin" />;
+    return (
+      <div className="flex h-full w-full items-center justify-center">
+        <Loader2 className="animate-spin" />
+      </div>
+    );
   }
 
   return (
-    <main className="relative w-full overflow-hidden rounded-2xl bg-card shadow-sm">
-      <div className="absolute bottom-0 top-0 flex w-full">
+    // h-full et suppression de rounded-2xl/shadow-sm pour le plein écran
+    <main className="flex h-full w-full overflow-hidden bg-background">
+      <div className="flex h-full w-full overflow-hidden">
         <StreamChat
           client={chatClient}
           theme={
@@ -88,13 +90,16 @@ export default function Chat({ initialSelectedUserId }: ChatProps) {
           />
 
           {channel && (
-            <ChatChannel
-              open={!sidebarOpen}
-              openSidebar={() => setSidebarOpen(true)}
-              selectedUserId={selectedUserId!}
-              channel={channel}
-              postId={postPreview?.postId}
-            />
+            // flex-1 et h-full forcent la partie droite à descendre
+            <div className="flex-1 h-full flex flex-col min-h-0">
+              <ChatChannel
+                open={!sidebarOpen}
+                openSidebar={() => setSidebarOpen(true)}
+                selectedUserId={selectedUserId!}
+                channel={channel}
+                postId={postPreview?.postId}
+              />
+            </div>
           )}
         </StreamChat>
       </div>

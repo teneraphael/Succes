@@ -118,4 +118,33 @@
   display: none;
 }
 
+/* --- CORRECTIF FINAL DE HAUTEUR --- */
 
+/* 1. On force le conteneur racine de la bibliothèque */
+.str-chat {
+  height: 100% !important;
+  min-height: 100% !important;
+}
+
+/* 2. On force TOUS les conteneurs intermédiaires du panneau de droite */
+.str-chat__main-panel,
+.str-chat-channel,
+.str-chat-channel-messenger,
+.str-chat__container,
+.str-chat__main-panel-inner {
+  height: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 !important;
+}
+
+/* 3. On force la liste des messages à s'étendre pour occuper le vide */
+.str-chat__list {
+  flex-grow: 1 !important;
+  height: 100% !important;
+}
+
+/* 4. On s'assure que l'input reste en bas */
+.str-chat__input-flat {
+  margin-top: auto !important;
+}
