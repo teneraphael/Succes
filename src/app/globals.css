@@ -65,33 +65,62 @@
   --str-chat__cta-button-border-radius: var(--radius);
 }
 
-/* Cache les flèches natives */
+/* Cache les éléments inutiles */
 .str-chat__header-back-button,
 .str-chat__back-button,
 .str-chat__channel-header__back-button {
   display: none !important;
 }
 
-/* --- FORCE HAUTEUR CHAT --- */
-/* On cible l'élément racine du chat pour qu'il remplisse son parent (main) */
+/* --- FORCE LA STRUCTURE PLEIN ÉCRAN --- */
 .str-chat,
 .str-chat-container,
 .str-chat__main-panel,
-.str-chat-channel {
+.str-chat-channel,
+.str-chat__container {
   height: 100% !important;
+  width: 100% !important;
+  max-width: 100% !important;
   display: flex !important;
   flex-direction: column !important;
-  flex: 1 !important;
+  align-items: stretch !important; /* Force l'étirement horizontal */
+  margin: 0 !important;
+  padding: 0 !important;
 }
 
+/* --- LISTE DES MESSAGES --- */
 .str-chat__list {
   flex: 1 1 auto !important;
-  overflow-y: auto !important;
+  width: 100% !important;
+  padding: 0 !important;
 }
 
-/* --- CORRECTIFS SPÉCIFIQUES MOBILE --- */
+/* --- CORRECTIF BARRE DE MESSAGE (INPUT) --- */
+.str-chat__input-flat {
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+  padding: 10px !important; /* Espace autour du champ */
+  background-color: transparent !important;
+  flex-shrink: 0 !important;
+}
+
+.str-chat__input-flat-wrapper {
+  display: flex !important;
+  width: 100% !important;
+  align-items: center !important;
+  gap: 10px;
+}
+
+/* On force le champ de saisie à s'étendre au maximum */
+.str-chat__message-input {
+  flex-grow: 1 !important;
+  width: 100% !important;
+}
+
+/* --- MOBILE SPECIFIQUE --- */
 @media (max-width: 768px) {
-  /* 1. Si on est sur la page chat, on bloque le défilement du body */
+  /* Bloque le défilement du fond pour que seul le chat défile */
   body:has(.str-chat) {
     position: fixed;
     width: 100%;
@@ -99,33 +128,18 @@
     overflow: hidden;
   }
 
-  /* 2. On s'assure que le main prend toute la hauteur dynamique */
   main {
     padding: 0 !important;
+    margin: 0 !important;
     max-width: 100% !important;
     height: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
   }
 
-  /* 3. Les posts sur l'accueil restent normaux */
-  article {
-    border-radius: 0 !important;
-    border-left: none !important;
-    border-right: none !important;
-    height: auto !important;
-    max-height: none !important;
-    overflow: visible !important;
+  /* Force le panneau de chat à coller aux bords de l'écran */
+  .str-chat__main-panel-inner {
+    width: 100% !important;
+    padding: 0 !important;
   }
-
-  article video, 
-  article img {
-    height: auto !important;
-    max-height: none !important;
-    object-fit: contain;
-  }
-}
-
-/* Correction pour que l'input du chat reste au dessus du clavier mobile */
-.str-chat__input-flat {
-  flex-shrink: 0 !important;
-  z-index: 10;
 }
