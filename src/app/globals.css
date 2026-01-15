@@ -73,10 +73,12 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground;
+    /* Suppression du overflow-hidden pour permettre le scroll sur Home */
+    @apply bg-background text-foreground min-h-screen;
   }
 }
 
+/* --- CONFIGURATION STREAM CHAT --- */
 .str-chat {
   --str-chat__font-family: inherit;
   --str-chat__primary-color: theme(colors.primary.DEFAULT);
@@ -118,15 +120,14 @@
   display: none;
 }
 
-/* --- CORRECTIF FINAL DE HAUTEUR --- */
+/* --- CORRECTIF FORCE HAUTEUR & SCROLL INTERNE --- */
 
-/* 1. On force le conteneur racine de la bibliothèque */
+/* Force le conteneur Stream à 100% de son parent (le main du layout) */
 .str-chat {
   height: 100% !important;
-  min-height: 100% !important;
 }
 
-/* 2. On force TOUS les conteneurs intermédiaires du panneau de droite */
+/* Force les panneaux de droite à être flexibles sans bloquer le contenu */
 .str-chat__main-panel,
 .str-chat-channel,
 .str-chat-channel-messenger,
@@ -136,15 +137,25 @@
   display: flex !important;
   flex-direction: column !important;
   flex: 1 !important;
+  min-height: 0 !important; /* Permet aux enfants de scroller */
 }
 
-/* 3. On force la liste des messages à s'étendre pour occuper le vide */
+/* Active le scroll UNIQUEMENT sur la liste des messages */
 .str-chat__list {
-  flex-grow: 1 !important;
-  height: 100% !important;
+  flex: 1 1 auto !important;
+  overflow-y: auto !important;
+  height: auto !important;
+  display: flex !important;
+  flex-direction: column !important;
 }
 
-/* 4. On s'assure que l'input reste en bas */
+/* Pousse la barre de saisie tout en bas */
 .str-chat__input-flat {
   margin-top: auto !important;
+  background-color: var(--str-chat__background-color) !important;
+}
+
+/* Retire les bordures inutiles en mode plein écran */
+.str-chat__main-panel {
+  border: none !important;
 }

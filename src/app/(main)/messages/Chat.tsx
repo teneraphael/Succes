@@ -1,9 +1,11 @@
 "use client";
 
-import { Loader2 } from "lucide-react";
+import { Loader2, ArrowLeft } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useState, useEffect } from "react";
 import { Chat as StreamChat } from "stream-chat-react";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 import ChatChannel from "./ChatChannel";
 import ChatSidebar from "./ChatSidebar";
 import useInitializeChatClient from "./useInitializeChatClient";
@@ -28,10 +30,7 @@ export default function Chat({ initialSelectedUserId }: ChatProps) {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const postId = params.get("postId");
-
-    if (postId) {
-      setPostPreview({ postId });
-    }
+    if (postId) setPostPreview({ postId });
   }, []);
 
   useEffect(() => {
@@ -39,24 +38,13 @@ export default function Chat({ initialSelectedUserId }: ChatProps) {
 
     const initChannel = async () => {
       const currentUserId = chatClient.userID!;
-      
-      if (currentUserId === selectedUserId) {
-        console.warn("Chat avec soi-même interdit");
-        return;
-      }
+      if (currentUserId === selectedUserId) return;
 
-      const members = Array.from(
-        new Set([currentUserId, selectedUserId])
-      );
-
-      const ch = chatClient.channel("messaging", {
-        members,
-      });
-
+      const members = Array.from(new Set([currentUserId, selectedUserId]));
+      const ch = chatClient.channel("messaging", { members });
       await ch.watch();
       setChannel(ch);
     };
-
     initChannel();
   }, [selectedUserId, chatClient]);
 
@@ -69,8 +57,20 @@ export default function Chat({ initialSelectedUserId }: ChatProps) {
   }
 
   return (
-    // h-full et suppression de rounded-2xl/shadow-sm pour le plein écran
-    <main className="flex h-full w-full overflow-hidden bg-background">
+    <main className="relative flex h-full w-full overflow-hidden bg-background">
+      {/* BOUTON RETOUR FIXE EN HAUT À GAUCHE */}
+      <div className="absolute left-4 top-3 z-50">
+        <Link href="/">
+          <Button 
+            size="icon" 
+            variant="ghost" 
+            className="rounded-full bg-background/80 shadow-sm backdrop-blur-md hover:bg-accent"
+          >
+            <ArrowLeft className="size-5" />
+          </Button>
+        </Link>
+      </div>
+
       <div className="flex h-full w-full overflow-hidden">
         <StreamChat
           client={chatClient}
@@ -80,27 +80,29 @@ export default function Chat({ initialSelectedUserId }: ChatProps) {
               : "str-chat__theme-light"
           }
         >
-          <ChatSidebar
-            open={sidebarOpen}
-            onClose={() => setSidebarOpen(false)}
-            onSelectUser={(userId: string) => {
-              setSelectedUserId(userId);
-              setSidebarOpen(false);
-            }}
-          />
-
-          {channel && (
-            // flex-1 et h-full forcent la partie droite à descendre
-            <div className="flex-1 h-full flex flex-col min-h-0">
-              <ChatChannel
-                open={!sidebarOpen}
-                openSidebar={() => setSidebarOpen(true)}
-                selectedUserId={selectedUserId!}
-                channel={channel}
-                postId={postPreview?.postId}
+          {/* On ajoute une petite marge à gauche du Sidebar si besoin pour ne pas chevaucher la flèche */}
+          <div className="flex h-full w-full pt-2"> 
+             <ChatSidebar
+                open={sidebarOpen}
+                onClose={() => setSidebarOpen(false)}
+                onSelectUser={(userId: string) => {
+                  setSelectedUserId(userId);
+                  setSidebarOpen(false);
+                }}
               />
-            </div>
-          )}
+
+              {channel && (
+                <div className="flex-1 h-full flex flex-col min-h-0">
+                  <ChatChannel
+                    open={!sidebarOpen}
+                    openSidebar={() => setSidebarOpen(true)}
+                    selectedUserId={selectedUserId!}
+                    channel={channel}
+                    postId={postPreview?.postId}
+                  />
+                </div>
+              )}
+          </div>
         </StreamChat>
       </div>
     </main>
