@@ -56,8 +56,8 @@
     @apply border-border;
   }
   body {
-    /* min-h-screen sans overflow hidden pour permettre le scroll des posts */
-    @apply bg-background text-foreground min-h-screen;
+    /* min-h-screen au lieu de h-screen pour permettre le défilement des posts */
+    @apply bg-background text-foreground min-h-screen h-auto overflow-y-auto;
   }
 }
 
@@ -66,18 +66,8 @@
   --str-chat__font-family: inherit;
   --str-chat__primary-color: theme(colors.primary.DEFAULT);
   --str-chat__on-primary-color: theme(colors.primary.foreground);
-  --str-chat__active-primary-color: theme(colors.primary.foreground);
-  --str-chat__primary-color-low-emphasis: color-mix(in hsl, hsl(var(--primary)) 10%, transparent);
   --str-chat__background-color: theme(colors.card.DEFAULT);
   --str-chat__secondary-background-color: theme(colors.card.DEFAULT);
-  --str-chat__message-textarea-background-color: theme(colors.background);
-  --str-chat__channel-preview-active-background-color: theme(colors.accent.DEFAULT);
-  --str-chat__channel-preview-hover-background-color: var(--str-chat__channel-preview-active-background-color);
-  --str-chat__secondary-surface-color: theme(colors.muted.DEFAULT);
-  --str-chat__own-message-bubble-color: theme(colors.primary.foreground);
-  --str-chat__primary-surface-color: theme(colors.primary.DEFAULT);
-  --str-chat__primary-surface-color-low-emphasis: var(--str-chat__primary-color-low-emphasis);
-  --str-chat__disabled-color: theme(colors.muted.DEFAULT);
   --str-chat__cta-button-border-radius: var(--radius);
 }
 
@@ -86,18 +76,14 @@
   border-right: none;
 }
 
-.str-chat__channel-list-react .str-chat__channel-list-messenger-react {
-  padding-bottom: 0;
-}
-
-/* Supprime les flèches natives de Stream pour éviter la superposition */
+/* Cache les flèches natives de Stream pour éviter la superposition */
 .str-chat__header-back-button,
 .str-chat__back-button,
 .str-chat__channel-header__back-button {
   display: none !important;
 }
 
-/* --- FORCE HAUTEUR CHAT & SCROLL --- */
+/* --- CONFIGURATION CHAT (UNIQUEMENT QUAND IL EST PRÉSENT) --- */
 .str-chat {
   height: 100% !important;
 }
@@ -117,25 +103,24 @@
 .str-chat__list {
   flex: 1 1 auto !important;
   overflow-y: auto !important;
-  display: flex !important;
-  flex-direction: column !important;
 }
 
 .str-chat__input-flat {
   margin-top: auto !important;
 }
 
-/* --- CORRECTIF PLEIN ÉCRAN MOBILE (POSTS & LAYOUT) --- */
+/* --- CORRECTIF PLEIN ÉCRAN MOBILE & LONGUEUR DES POSTS --- */
 @media (max-width: 768px) {
-  /* Supprime les marges du conteneur principal sur mobile */
-  .container, 
+  /* On s'assure que le conteneur principal laisse passer tout le contenu */
   main {
     padding-left: 0 !important;
     padding-right: 0 !important;
     max-width: 100% !important;
+    height: auto !important; 
+    overflow: visible !important;
   }
 
-  /* Force les posts à toucher les bords */
+  /* Force les posts à toucher les bords sans limiter leur hauteur */
   article {
     border-radius: 0 !important;
     border-left: none !important;
@@ -143,5 +128,15 @@
     width: 100% !important;
     margin-left: 0 !important;
     margin-right: 0 !important;
+    height: auto !important; /* Libère la hauteur pour les vidéos/images */
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  /* Empêche les vidéos/images de dépasser mais les laisse prendre leur place */
+  article video, 
+  article img {
+    height: auto !important;
+    max-height: none !important;
   }
 }

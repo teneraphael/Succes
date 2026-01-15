@@ -27,12 +27,6 @@ export default function Post({ post }: PostProps) {
   const [showComments, setShowComments] = useState(false);
 
   return (
-    /* CORRECTION PLEIN ÉCRAN MOBILE :
-       - rounded-none md:rounded-2xl : Carré sur mobile, arrondi sur PC.
-       - border-x-0 md:border : Pas de bordures latérales sur mobile.
-       - shadow-none md:shadow-sm : Pas d'ombre sur mobile pour un look "App".
-       - w-full : Utilise toute la largeur disponible.
-    */
     <article className="group/post w-full space-y-3 bg-card p-4 md:p-5 shadow-none md:shadow-sm rounded-none md:rounded-2xl border-x-0 md:border border-y md:border-y-0 border-border transition-colors">
       <div className="flex justify-between gap-3">
         <div className="flex flex-wrap gap-3">
@@ -143,7 +137,7 @@ function MediaPreviews({ attachments, postUserId }: MediaPreviewsProps) {
   });
 
   return (
-    /* h-auto md:max-h-[30rem] pour limiter la hauteur sur PC */
+    /* h-auto pour ne pas couper le contenu */
     <div className="relative -mx-4 md:mx-0 overflow-hidden bg-black/5" {...handlers}>
       <div 
         className="flex transition-transform duration-500 ease-out" 
@@ -157,11 +151,14 @@ function MediaPreviews({ attachments, postUserId }: MediaPreviewsProps) {
                 alt="Attachment"
                 width={800}
                 height={800}
-                className="w-full h-auto object-contain max-h-[70vh] md:max-h-[30rem]"
+                className="w-full h-auto object-contain"
                 loading="lazy"
+                unoptimized // Optionnel : utile si les images sont de tailles très variées
               />
             ) : media.type === "VIDEO" ? (
-              <VideoPost src={media.url} className="w-full max-h-[70vh] md:max-h-[30rem]" />
+              <div className="w-full h-auto">
+                <VideoPost src={media.url} className="w-full h-auto" />
+              </div>
             ) : (
               <p className="p-4 text-destructive">Format non supporté</p>
             )}
