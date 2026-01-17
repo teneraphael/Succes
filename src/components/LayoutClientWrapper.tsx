@@ -20,7 +20,7 @@ export default function LayoutClientWrapper({ children, navbar, menuBar, mobileM
         "flex w-full grow min-h-0", // min-h-0 est vital pour le scroll flex
         isChatPage 
           ? "max-w-none p-0 m-0 h-full" 
-          : "mx-auto max-w-7xl p-0 md:p-5" 
+          : "mx-auto max-w-7xl p-0 md:p-5 gap-5" 
       )}>
         
         {!isChatPage && (

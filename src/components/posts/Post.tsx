@@ -131,7 +131,7 @@ export default function Post({ post }: PostProps) {
 
   function redirectToChat(postUserId: string) {
      const postLink = `${window.location.origin}/posts/${post.id}`;
-     window.location.href = `/messages?userId=${postUserId}&sharedPost=${encodeURIComponent(postLink)}`;
+   window.location.href = `/messages?userId=${postUserId}&postId=${post.id}`;
   }
 }
 

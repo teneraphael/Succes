@@ -9,54 +9,43 @@ const VideoPost = ({ src, className }) => {
   // Hook pour la lecture/pause au défilement
   useAutoplayOnVisible(videoRef, 0.5); 
 
-  // La fonction handleClick est conservée pour le clic Play/Pause et le démutage
   const handleClick = (e) => {
     const video = videoRef.current;
     if (video) {
-      
-      // La vérification e.target.closest('div[controls]') est complexe en React.
-      // Le plus simple est de laisser le Play/Pause s'appliquer MAIS de gérer le mute.
-      
       if (video.paused) {
-video.play().catch(error => console.warn("Erreur de lecture:", error));
+        video.play().catch(error => console.warn("Erreur de lecture:", error));
       } else {
         video.pause();
       }
 
-      // UX Améliorée : Si l'utilisateur clique, cela signifie qu'il veut interagir,
-      // donc on peut supposer qu'il veut le son s'il est muet.
       if (isMuted) {
           setIsMuted(false);
-          // Le DOM sera mis à jour via le setMuted dans le render suivant.
       }
     }
   };
-  
-  // Note: Nous n'avons pas besoin de toggleMute car les contrôles natifs gèrent le son.
 
   return (
-    <div className={cn("relative overflow-hidden", className)}> 
- <video
+    <div className={cn("relative overflow-hidden bg-black", className)}> 
+      <video
         ref={videoRef}
-        src={src}
         className="w-full h-full object-cover block" 
         loop 
-        // L'état 'isMuted' contrôle le statut muet
         muted={isMuted} 
         playsInline 
-        
-        // CONFLICTUEL MAIS MAINTENU : Gère le Play/Pause au clic n'importe où
         onClick={handleClick}
-        
-        // CONTRÔLES NATIFS : Affiche la barre de progression
         controls 
+        preload="metadata"
+        // Ajout de crossOrigin pour aider le chargement PC depuis des serveurs tiers
+        crossOrigin="anonymous" 
       >
+        {/* Correction MIME : On spécifie le type mp4 pour le navigateur PC */}
+        <source src={src} type="video/mp4" />
+        {/* Alternative pour les formats enregistrés sur Android/Samsung/iPhone */}
+        <source src={src} type="video/webm" /> 
         Votre navigateur ne supporte pas la balise vidéo.
       </video>
-      
-      {/* Nous avons retiré le bouton de son personnalisé pour éviter le triple contrôle du volume. */}
- </div>
+    </div>
   );
 };
 
-export default VideoPost; 
+export default VideoPost;
