@@ -16,7 +16,8 @@ export default function Chat({ initialSelectedUserId }: ChatProps) {
   const chatClient = useInitializeChatClient();
   const { resolvedTheme } = useTheme();
 
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  // On initialise la sidebar ouverte si on n'a pas d'utilisateur sélectionné (cas de l'icône message)
+  const [sidebarOpen, setSidebarOpen] = useState(!initialSelectedUserId);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(
     initialSelectedUserId
   );
@@ -32,7 +33,10 @@ export default function Chat({ initialSelectedUserId }: ChatProps) {
   }, []);
 
   useEffect(() => {
-    if (!selectedUserId || !chatClient) return;
+    if (!selectedUserId || !chatClient) {
+      setChannel(null); // Reset si aucun utilisateur
+      return;
+    }
 
     const initChannel = async () => {
       const currentUserId = chatClient.userID!;
@@ -42,11 +46,13 @@ export default function Chat({ initialSelectedUserId }: ChatProps) {
       const ch = chatClient.channel("messaging", { members });
       await ch.watch();
       setChannel(ch);
+      // Sur mobile, quand on a un canal, on ferme la sidebar
+      setSidebarOpen(false);
     };
     initChannel();
   }, [selectedUserId, chatClient]);
 
-  if (!chatClient || (selectedUserId && !channel)) {
+  if (!chatClient) {
     return (
       <div className="flex h-full w-full items-center justify-center">
         <Loader2 className="animate-spin" />
@@ -65,6 +71,7 @@ export default function Chat({ initialSelectedUserId }: ChatProps) {
               : "str-chat__theme-light"
           }
         >
+          {/* Sidebar : affichée si sidebarOpen est vrai */}
           <ChatSidebar
             open={sidebarOpen}
             onClose={() => setSidebarOpen(false)}
@@ -74,8 +81,9 @@ export default function Chat({ initialSelectedUserId }: ChatProps) {
             }}
           />
 
-          {channel && (
-            <div className="flex-1 h-full flex flex-col min-h-0">
+          {/* Zone de Chat : affichée si on a un canal ET que la sidebar est fermée sur mobile */}
+          {channel ? (
+            <div className={cn("flex-1 h-full flex flex-col min-h-0", sidebarOpen && "hidden md:flex")}>
               <ChatChannel
                 open={!sidebarOpen}
                 openSidebar={() => setSidebarOpen(true)}
@@ -84,9 +92,19 @@ export default function Chat({ initialSelectedUserId }: ChatProps) {
                 postId={postPreview?.postId}
               />
             </div>
+          ) : (
+            // Écran d'attente quand aucun message n'est sélectionné (évite l'écran vide)
+            <div className={cn("flex-1 flex items-center justify-center text-muted-foreground", sidebarOpen && "hidden md:flex")}>
+              <p>Sélectionnez une discussion pour commencer</p>
+            </div>
           )}
         </StreamChat>
       </div>
     </main>
   );
+}
+
+// Petit utilitaire pour les classes si tu ne l'as pas importé
+function cn(...inputs: any[]) {
+  return inputs.filter(Boolean).join(" ");
 }

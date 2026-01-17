@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Menu, ArrowLeft, X } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation"; // Importation du router
 import Link from "next/link";
 import Image from "next/image";
 
@@ -80,7 +81,6 @@ export default function ChatChannel({
             <CustomChannelHeader openSidebar={openSidebar} />
             <MessageList />
             
-            {/* APERÇU CLIQUABLE RENDU AVEC UN LIEN */}
             {postToReply && (
               <div className="reply-preview-container flex items-center justify-between group">
                 <Link 
@@ -95,7 +95,6 @@ export default function ChatChannel({
                         fill
                         className="object-cover"
                         sizes="48px"
-                        unoptimized
                       />
                     </div>
                   )}
@@ -116,7 +115,7 @@ export default function ChatChannel({
                   variant="ghost" 
                   className="h-8 w-8 shrink-0 hover:bg-background/50 rounded-full ml-2" 
                   onClick={(e) => {
-                    e.preventDefault(); // Important : empêche le lien du parent de s'activer
+                    e.preventDefault();
                     setPostToReply(null);
                   }}
                 >
@@ -134,14 +133,19 @@ export default function ChatChannel({
 }
 
 function CustomChannelHeader({ openSidebar }: { openSidebar: () => void }) {
+  const router = useRouter(); // Initialisation du router pour le retour
+
   return (
     <div className="flex items-center justify-between border-b p-2 bg-card">
       <div className="flex items-center gap-2">
-        <Link href="/messages">
-          <Button size="icon" variant="ghost">
-            <ArrowLeft className="size-5" />
-          </Button>
-        </Link>
+        {/* Remplacement du Link par router.push pour forcer le retour */}
+        <Button 
+          size="icon" 
+          variant="ghost" 
+          onClick={() => router.push("/")}
+        >
+          <ArrowLeft className="size-5" />
+        </Button>
         <ChannelHeader />
       </div>
       <div className="md:hidden">
