@@ -10,9 +10,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Menu, ArrowLeft, X } from "lucide-react";
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation"; // Importation du router
-import Link from "next/link";
+import { useEffect, useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 
 interface ChatChannelProps {
@@ -31,100 +30,96 @@ export default function ChatChannel({
 }: ChatChannelProps) {
   const [postToReply, setPostToReply] = useState<any>(null);
 
+  const clearPostFromUrl = useCallback(() => {
+    const url = new URL(window.location.href);
+    if (url.searchParams.has("postId")) {
+      url.searchParams.delete("postId");
+      window.history.replaceState({}, '', url.pathname);
+    }
+  }, []);
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const urlPostId = initialPostId || params.get("postId");
 
     if (urlPostId) {
-      const fetchPost = async () => {
-        try {
-          const res = await fetch(`/api/posts/${urlPostId}`);
-          if (res.ok) {
-            const data = await res.json();
-            setPostToReply(data);
-          }
-        } catch (err) {
-          console.error("Erreur API:", err);
-        }
-      };
-      fetchPost();
+      fetch(`/api/posts/${urlPostId}`)
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => { if (data) setPostToReply(data); });
     }
-  }, [initialPostId, channel]);
+  }, [initialPostId, channel?.id]);
 
+  // LE HANDLER QUI VA FIXER TON AFFICHAGE
   const customSubmitHandler = async (message: any) => {
-    let attachments = [];
-    
-    if (postToReply) {
-      attachments.push({
-        type: "post-reply",
-        post_id: postToReply.id,
-        text: postToReply.content || "Voir le post",
-        title_link: `/posts/${postToReply.id}`,
-        image_url: postToReply.attachments?.[0]?.url || null, 
+    try {
+      // 1. On prépare l'attachment (l'aperçu visuel)
+      const attachments = [];
+      if (postToReply) {
+        attachments.push({
+          type: "image", // Type "image" pour un rendu propre
+          title: `Post de ${postToReply.user?.displayName || "l'utilisateur"}`,
+          title_link: `/posts/${postToReply.id}`,
+          image_url: postToReply.attachments?.[0]?.url || null,
+          text: postToReply.content, // Texte interne au post ("Lookk")
+        });
+      }
+
+      // 2. ENVOI : message.text contient "regarde ça" (ta flèche jaune)
+      await channel.sendMessage({
+        text: message.text, 
+        attachments: attachments,
       });
+
+      // 3. ON NETTOIE SEULEMENT APRÈS L'ENVOI RÉUSSI
+      setPostToReply(null);
+      clearPostFromUrl();
+
+    } catch (err) {
+      console.error("Erreur d'envoi:", err);
     }
-
-    await channel.sendMessage({
-      text: message.text,
-      attachments: attachments,
-    });
-
-    setPostToReply(null);
-    window.history.replaceState({}, '', window.location.pathname);
   };
+
+  if (!channel) return null;
 
   return (
     <div className={cn("w-full h-full flex flex-col min-h-0", !open && "hidden")}>
-      <Channel channel={channel}>
+      <Channel channel={channel} key={channel.cid}> 
         <div className="flex flex-col h-full overflow-hidden">
-          <Window>
+          <Window key={`window-${channel.id}`}>
             <CustomChannelHeader openSidebar={openSidebar} />
             <MessageList />
             
+            {/* APERÇU AVANT ENVOI (Ton bandeau bleu actuel) */}
             {postToReply && (
-              <div className="reply-preview-container flex items-center justify-between group">
-                <Link 
-                  href={`/posts/${postToReply.id}`}
-                  className="flex items-center gap-3 overflow-hidden flex-1 hover:opacity-80 transition-opacity"
-                >
+              <div className="flex items-center justify-between p-3 bg-blue-50 dark:bg-slate-900 border-t border-b border-blue-100">
+                <div className="flex items-center gap-3 overflow-hidden flex-1">
                   {postToReply.attachments?.[0]?.url && (
-                    <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-md border bg-black/5">
+                    <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded border bg-white">
                       <Image 
                         src={postToReply.attachments[0].url} 
-                        alt="Miniature post"
+                        alt="Aperçu"
                         fill
                         className="object-cover"
-                        sizes="48px"
+                        unoptimized
                       />
                     </div>
                   )}
-                  
-                  <div className="flex flex-col overflow-hidden">
-                    <span className="text-[10px] font-bold uppercase text-primary tracking-tighter">
-                      Réponse au post de {postToReply.user?.displayName}
-                    </span>
-                    <p className="text-xs text-muted-foreground italic truncate max-w-[180px]">
-                      {postToReply.content || "Image / Vidéo"}
-                    </p>
+                  <div className="flex flex-col overflow-hidden text-sm">
+                    <span className="font-bold text-blue-600">RÉPONSE AU POST DE {postToReply.user?.displayName?.toUpperCase()}</span>
+                    <p className="truncate italic">&quot;{postToReply.content}&quot;</p>
                   </div>
-                </Link>
-
-                <Button 
-                  type="button"
-                  size="icon" 
-                  variant="ghost" 
-                  className="h-8 w-8 shrink-0 hover:bg-background/50 rounded-full ml-2" 
-                  onClick={(e) => {
-                    e.preventDefault();
-                    setPostToReply(null);
-                  }}
-                >
+                </div>
+                <Button size="icon" variant="ghost" onClick={() => { setPostToReply(null); clearPostFromUrl(); }}>
                   <X className="size-4" />
                 </Button>
               </div>
             )}
 
-            <MessageInput focus overrideSubmitHandler={customSubmitHandler as any} />
+            {/* Utilisation du handler personnalisé quand un post est présent */}
+            <MessageInput 
+              focus 
+              overrideSubmitHandler={postToReply ? (customSubmitHandler as any) : undefined} 
+            />
           </Window>
         </div>
       </Channel>
@@ -133,17 +128,11 @@ export default function ChatChannel({
 }
 
 function CustomChannelHeader({ openSidebar }: { openSidebar: () => void }) {
-  const router = useRouter(); // Initialisation du router pour le retour
-
+  const router = useRouter();
   return (
     <div className="flex items-center justify-between border-b p-2 bg-card">
       <div className="flex items-center gap-2">
-        {/* Remplacement du Link par router.push pour forcer le retour */}
-        <Button 
-          size="icon" 
-          variant="ghost" 
-          onClick={() => router.push("/")}
-        >
+        <Button size="icon" variant="ghost" onClick={() => router.push("/")}>
           <ArrowLeft className="size-5" />
         </Button>
         <ChannelHeader />

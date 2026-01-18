@@ -33,7 +33,7 @@ model User {
   comments              Comment[]
   receivedNotifications Notification[] @relation("Recipient")
   issuedNotifications   Notification[] @relation("Issuer")
-
+  fcmToken  String?  @map("fcm_token")
   conversations Conversation[] @relation("ConversationParticipants")
   messagesSent  Message[]      @relation("UserMessagesSent")
 

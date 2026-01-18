@@ -1,6 +1,7 @@
 import { validateRequest } from "@/auth";
 import prisma from "@/lib/prisma";
 import { LikeInfo } from "@/lib/types";
+import { sendPushNotification } from "@/lib/push-notifications"; // 1. Import de ta nouvelle fonction
 
 export async function GET(
   req: Request,
@@ -63,6 +64,7 @@ export async function POST(
       where: { id: postId },
       select: {
         userId: true,
+        content: true, // On récupère le début du texte pour la notification
       },
     });
 
@@ -97,6 +99,16 @@ export async function POST(
           ]
         : []),
     ]);
+
+    // --- 2. ENVOI DE LA NOTIFICATION PUSH ---
+    if (loggedInUser.id !== post.userId) {
+      // On lance l'envoi sans 'await' pour ne pas faire attendre l'utilisateur
+      sendPushNotification(
+        post.userId,
+        "Nouveau Like ! ❤️",
+        `${loggedInUser.displayName} a aimé votre post : "${post.content.slice(0, 30)}..."`
+      );
+    }
 
     return new Response();
   } catch (error) {

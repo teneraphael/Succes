@@ -4,6 +4,7 @@ import { validateRequest } from "@/auth";
 import prisma from "@/lib/prisma";
 import { getCommentDataInclude, PostData } from "@/lib/types";
 import { createCommentSchema } from "@/lib/validation";
+import { sendPushNotification } from "@/lib/push-notifications"; // 1. Import de la fonction
 
 export async function submitComment({
   post,
@@ -40,6 +41,16 @@ export async function submitComment({
         ]
       : []),
   ]);
+
+  // 2. ENVOI DE LA NOTIFICATION PUSH
+  // On vérifie que ce n'est pas l'auteur qui commente son propre post
+  if (post.user.id !== user.id) {
+    sendPushNotification(
+      post.user.id, // Le destinataire (auteur du post)
+      "Nouveau commentaire ! 💬",
+      `${user.displayName} a commenté votre post : "${contentValidated.slice(0, 30)}..."`
+    );
+  }
 
   return newComment;
 }

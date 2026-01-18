@@ -4,6 +4,7 @@ import MenuBar from "./MenuBar";
 import Navbar from "./Navbar";
 import SessionProvider from "./SessionProvider";
 import LayoutClientWrapper from "@/components/LayoutClientWrapper";
+import NotificationHandler from "@/components/NotificationHandler"; // 1. Import ici
 
 export default async function Layout({
   children,
@@ -16,6 +17,9 @@ export default async function Layout({
 
   return (
     <SessionProvider value={session}>
+      {/* 2. Place-le ICI : il est bien ENTOURÉ par SessionProvider */}
+      <NotificationHandler />
+      
       <LayoutClientWrapper
         navbar={<Navbar />}
         menuBar={

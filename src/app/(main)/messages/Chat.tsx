@@ -16,7 +16,6 @@ export default function Chat({ initialSelectedUserId }: ChatProps) {
   const chatClient = useInitializeChatClient();
   const { resolvedTheme } = useTheme();
 
-  // On initialise la sidebar ouverte si on n'a pas d'utilisateur sélectionné (cas de l'icône message)
   const [sidebarOpen, setSidebarOpen] = useState(!initialSelectedUserId);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(
     initialSelectedUserId
@@ -26,29 +25,48 @@ export default function Chat({ initialSelectedUserId }: ChatProps) {
     null
   );
 
+  // 1. Synchroniser selectedUserId si la prop initiale change (ex: navigation via URL)
+  useEffect(() => {
+    if (initialSelectedUserId) {
+      setSelectedUserId(initialSelectedUserId);
+    }
+  }, [initialSelectedUserId]);
+
+  // 2. Gestion du postId dans l'URL
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const postId = params.get("postId");
-    if (postId) setPostPreview({ postId });
-  }, []);
+    if (postId) {
+      setPostPreview({ postId });
+    } else {
+      setPostPreview(null);
+    }
+  }, [selectedUserId]); // Se relance quand on change d'utilisateur
 
+  // 3. Initialisation du canal
   useEffect(() => {
     if (!selectedUserId || !chatClient) {
-      setChannel(null); // Reset si aucun utilisateur
+      setChannel(null);
       return;
     }
 
     const initChannel = async () => {
-      const currentUserId = chatClient.userID!;
-      if (currentUserId === selectedUserId) return;
+      try {
+        const currentUserId = chatClient.userID!;
+        if (currentUserId === selectedUserId) return;
 
-      const members = Array.from(new Set([currentUserId, selectedUserId]));
-      const ch = chatClient.channel("messaging", { members });
-      await ch.watch();
-      setChannel(ch);
-      // Sur mobile, quand on a un canal, on ferme la sidebar
-      setSidebarOpen(false);
+        const members = [currentUserId, selectedUserId];
+        const ch = chatClient.channel("messaging", { members });
+        
+        // IMPORTANT: On attend que le canal soit prêt et on le surveille
+        await ch.watch(); 
+        setChannel(ch);
+        setSidebarOpen(false);
+      } catch (err) {
+        console.error("Erreur initialisation canal:", err);
+      }
     };
+
     initChannel();
   }, [selectedUserId, chatClient]);
 
@@ -71,20 +89,25 @@ export default function Chat({ initialSelectedUserId }: ChatProps) {
               : "str-chat__theme-light"
           }
         >
-          {/* Sidebar : affichée si sidebarOpen est vrai */}
           <ChatSidebar
             open={sidebarOpen}
             onClose={() => setSidebarOpen(false)}
             onSelectUser={(userId: string) => {
-              setSelectedUserId(userId);
-              setSidebarOpen(false);
+              // Si on clique sur le même utilisateur, on ferme juste la sidebar
+              if (userId === selectedUserId) {
+                setSidebarOpen(false);
+              } else {
+                setChannel(null); // Force le rechargement du nouveau canal
+                setSelectedUserId(userId);
+              }
             }}
           />
 
-          {/* Zone de Chat : affichée si on a un canal ET que la sidebar est fermée sur mobile */}
           {channel ? (
             <div className={cn("flex-1 h-full flex flex-col min-h-0", sidebarOpen && "hidden md:flex")}>
+              {/* Ajout d'une key unique basée sur le canal pour forcer React à rafraîchir le composant */}
               <ChatChannel
+                key={channel.cid} 
                 open={!sidebarOpen}
                 openSidebar={() => setSidebarOpen(true)}
                 selectedUserId={selectedUserId!}
@@ -93,7 +116,6 @@ export default function Chat({ initialSelectedUserId }: ChatProps) {
               />
             </div>
           ) : (
-            // Écran d'attente quand aucun message n'est sélectionné (évite l'écran vide)
             <div className={cn("flex-1 flex items-center justify-center text-muted-foreground", sidebarOpen && "hidden md:flex")}>
               <p>Sélectionnez une discussion pour commencer</p>
             </div>
@@ -104,7 +126,6 @@ export default function Chat({ initialSelectedUserId }: ChatProps) {
   );
 }
 
-// Petit utilitaire pour les classes si tu ne l'as pas importé
 function cn(...inputs: any[]) {
   return inputs.filter(Boolean).join(" ");
 }

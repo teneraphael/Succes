@@ -7,6 +7,7 @@ import { extractRouterConfig } from "uploadthing/server";
 import { fileRouter } from "./api/uploadthing/core";
 import "./globals.css";
 import ReactQueryProvider from "./ReactQueryProvider";
+import NotificationHandler from "@/components/NotificationHandler";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -43,6 +44,7 @@ export default function RootLayout({
           >
             {children}
           </ThemeProvider>
+          handlePermission(currentUser.id);
         </ReactQueryProvider>
         <Toaster />
       </body>

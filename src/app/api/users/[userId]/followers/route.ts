@@ -1,6 +1,7 @@
 import { validateRequest } from "@/auth";
 import prisma from "@/lib/prisma";
 import { FollowerInfo } from "@/lib/types";
+import { sendPushNotification } from "@/lib/push-notifications"; // 1. On importe la fonction d'envoi
 
 export async function GET(
   req: Request,
@@ -59,6 +60,11 @@ export async function POST(
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // On ne s'auto-suit pas, mais on vérifie quand même pour éviter l'envoi de notification inutile
+    if (loggedInUser.id === userId) {
+        return Response.json({ error: "Cannot follow yourself" }, { status: 400 });
+    }
+
     await prisma.$transaction([
       prisma.follow.upsert({
         where: {
@@ -81,6 +87,14 @@ export async function POST(
         },
       }),
     ]);
+
+    // --- 2. ENVOI DE LA NOTIFICATION PUSH FIREBASE ---
+    // On notifie l'utilisateur qui vient de gagner un follower (userId)
+    sendPushNotification(
+      userId,
+      "Nouveau follower ! 👤",
+      `${loggedInUser.displayName} commence à vous suivre.`
+    );
 
     return new Response();
   } catch (error) {
