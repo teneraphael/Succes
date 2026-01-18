@@ -1,7 +1,14 @@
 "use client";
 
-import { Session, User } from "lucia";
+import { Session, User as LuciaUser } from "lucia"; // On renomme pour plus de clarté
 import React, { createContext, useContext } from "react";
+
+// On définit notre propre type User qui inclut isSeller
+interface User extends LuciaUser {
+  isSeller: boolean;
+  businessName?: string | null;
+  // Ajoute les autres champs business si tu en as besoin côté client
+}
 
 interface SessionContext {
   user: User;

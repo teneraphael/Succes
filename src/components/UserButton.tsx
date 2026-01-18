@@ -4,7 +4,8 @@ import { logout } from "@/app/(auth)/actions";
 import { useSession } from "@/app/(main)/SessionProvider";
 import { cn } from "@/lib/utils";
 import { useQueryClient } from "@tanstack/react-query";
-import { Check, LogOutIcon, Monitor, Moon, Sun, UserIcon } from "lucide-react";
+// Ajout de l'icône Store ici
+import { Check, LogOutIcon, Monitor, Moon, Sun, UserIcon, Store } from "lucide-react";
 import { useTheme } from "next-themes";
 import Link from "next/link";
 import {
@@ -27,9 +28,7 @@ interface UserButtonProps {
 
 export default function UserButton({ className }: UserButtonProps) {
   const { user } = useSession();
-
   const { theme, setTheme } = useTheme();
-
   const queryClient = useQueryClient();
 
   return (
@@ -42,12 +41,25 @@ export default function UserButton({ className }: UserButtonProps) {
       <DropdownMenuContent>
         <DropdownMenuLabel>Logged in as @{user.username}</DropdownMenuLabel>
         <DropdownMenuSeparator />
+        
         <Link href={`/users/${user.username}`}>
           <DropdownMenuItem>
             <UserIcon className="mr-2 size-4" />
             Profile
           </DropdownMenuItem>
         </Link>
+
+        {/* --- DÉBUT DE L'AJOUT DEVENIR VENDEUR --- */}
+        {!user.isSeller && (
+          <Link href="/become-seller">
+            <DropdownMenuItem>
+              <Store className="mr-2 size-4 text-[#83c5be]" />
+              Become Seller
+            </DropdownMenuItem>
+          </Link>
+        )}
+        {/* --- FIN DE L'AJOUT --- */}
+
         <DropdownMenuSub>
           <DropdownMenuSubTrigger>
             <Monitor className="mr-2 size-4" />
@@ -73,6 +85,7 @@ export default function UserButton({ className }: UserButtonProps) {
             </DropdownMenuSubContent>
           </DropdownMenuPortal>
         </DropdownMenuSub>
+        
         <DropdownMenuSeparator />
         <DropdownMenuItem
           onClick={() => {
