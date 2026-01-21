@@ -10,7 +10,7 @@ import Placeholder from "@tiptap/extension-placeholder";
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { useDropzone } from "@uploadthing/react";
-import { ImageIcon, Loader2, X, Tag, Banknote, ShoppingBag } from "lucide-react";
+import { Camera, Loader2, X, Tag, Banknote, ShoppingBag } from "lucide-react";
 import Image from "next/image";
 import { ClipboardEvent, useRef, useState } from "react";
 import { useSubmitPostMutation } from "./mutations";
@@ -21,7 +21,6 @@ export default function PostEditor() {
   const { user } = useSession();
   const mutation = useSubmitPostMutation();
 
-  // États pour forcer le contenu commercial
   const [productName, setProductName] = useState("");
   const [price, setPrice] = useState("");
 
@@ -57,13 +56,11 @@ export default function PostEditor() {
     blockSeparator: "\n",
   }) || "";
 
-  // Validation : Tous les champs doivent être remplis
   const isFormValid = productName.trim() !== "" && price.trim() !== "" && description.trim() !== "";
 
   function onSubmit() {
     if (!isFormValid) return;
 
-    // Formatage forcé pour la Marketplace avec l'unité FCFA
     const formattedContent = `🛍️ PRODUIT : ${productName}\n💰 PRIX : ${price} FCFA\n\n📝 DESCRIPTION :\n${description}`;
     
     mutation.mutate(
@@ -100,7 +97,6 @@ export default function PostEditor() {
         <UserAvatar avatarUrl={user.avatarUrl} className="hidden sm:inline" />
         <div className="flex w-full flex-col gap-4">
           
-          {/* Formulaire de vente obligatoire */}
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="relative">
               <Tag className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -112,7 +108,6 @@ export default function PostEditor() {
               />
             </div>
             <div className="relative">
-              {/* Remplacement de DollarSign par Banknote pour le contexte FCFA */}
               <Banknote className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 placeholder="Prix"
@@ -127,7 +122,6 @@ export default function PostEditor() {
             </div>
           </div>
 
-          {/* Zone de description Tiptap */}
           <div {...rootProps} className="w-full">
             <EditorContent
               editor={editor}
@@ -193,30 +187,67 @@ interface AddAttachmentsButtonProps {
 function AddAttachmentsButton({ onFilesSelected, disabled }: AddAttachmentsButtonProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+
+    const MAX_SIZE_MB = 50; 
+    const MAX_VIDEO_DURATION = 60; 
+
+    const validatedFiles: File[] = [];
+
+    files.forEach((file) => {
+      // 1. Vérification de la taille
+      const fileSizeMB = file.size / (1024 * 1024);
+      if (fileSizeMB > MAX_SIZE_MB) {
+        alert(`Le fichier ${file.name} est trop lourd (max ${MAX_SIZE_MB}Mo).`);
+        return;
+      }
+
+      // 2. Vérification de la durée pour les vidéos
+      if (file.type.startsWith("video/")) {
+        const video = document.createElement("video");
+        video.preload = "metadata";
+        video.onloadedmetadata = () => {
+          window.URL.revokeObjectURL(video.src);
+          if (video.duration > MAX_VIDEO_DURATION) {
+            alert(`La vidéo ${file.name} est trop longue (max ${MAX_VIDEO_DURATION}s).`);
+          } else {
+            onFilesSelected([file]);
+          }
+        };
+        video.src = URL.createObjectURL(file);
+      } else {
+        validatedFiles.push(file);
+      }
+    });
+
+    if (validatedFiles.length) {
+      onFilesSelected(validatedFiles);
+    }
+
+    e.target.value = ""; 
+  };
+
   return (
     <>
       <Button
         variant="ghost"
         size="icon"
-        className="text-primary hover:bg-primary/10"
+        className="text-primary hover:bg-primary/10 transition-transform active:scale-90"
         disabled={disabled}
+        title="Prendre une photo/vidéo ou choisir un fichier"
         onClick={() => fileInputRef.current?.click()}
       >
-        <ImageIcon size={22} />
+        <Camera size={26} />
       </Button>
       <input
         type="file"
-        accept="image/*, video/*"
+        accept="image/*,video/*"
         multiple
         ref={fileInputRef}
-        className="sr-only hidden"
-        onChange={(e) => {
-          const files = Array.from(e.target.files || []);
-          if (files.length) {
-            onFilesSelected(files);
-            e.target.value = "";
-          }
-        }}
+        className="hidden"
+        onChange={handleFileChange}
       />
     </>
   );
@@ -260,7 +291,7 @@ function AttachmentPreview({ attachment: { file, isUploading }, onRemoveClick }:
           className="size-fit max-h-[25rem] rounded-2xl object-cover"
         />
       ) : (
-        <video controls className="size-fit max-h-[25rem] rounded-2xl">
+        <video controls className="size-fit max-h-[25rem] rounded-2xl shadow-lg">
           <source src={src} type={file.type} />
         </video>
       )}

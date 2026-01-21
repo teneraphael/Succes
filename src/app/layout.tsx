@@ -44,7 +44,6 @@ export default function RootLayout({
           >
             {children}
           </ThemeProvider>
-          handlePermission(currentUser.id);
         </ReactQueryProvider>
         <Toaster />
       </body>
