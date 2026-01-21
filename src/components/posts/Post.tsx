@@ -4,7 +4,7 @@ import { useSession } from "@/app/(main)/SessionProvider";
 import { PostData } from "@/lib/types";
 import { cn, formatRelativeDate } from "@/lib/utils";
 import { Media } from "@prisma/client";
-import { MessageSquare } from "lucide-react";
+import { MessageSquare, CheckCircle2 } from "lucide-react";
 import Image from "next/image";
 import VideoPost from "../VideoPost";
 import Link from "next/link";
@@ -20,6 +20,35 @@ import { useSwipeable } from 'react-swipeable';
 
 interface PostProps {
   post: PostData;
+}
+
+/**
+ * Composant pour afficher le badge de certification du vendeur
+ * La couleur change selon le nombre d'abonnés
+ */
+function SellerBadge({ followerCount, isSeller }: { followerCount: number; isSeller: boolean }) {
+  if (!isSeller) return null;
+
+  // Définition des paliers de couleurs
+  let badgeColor = "text-slate-500"; // Gris (Standard < 100)
+  let badgeTitle = "Vendeur Standard";
+
+  if (followerCount >= 2000) {
+    badgeColor = "text-yellow-400"; // Or (+2000)
+    badgeTitle = "Vendeur Or";
+  } else if (followerCount >= 500) {
+    badgeColor = "text-slate-300"; // Argent (+500)
+    badgeTitle = "Vendeur Argent";
+  } else if (followerCount >= 100) {
+    badgeColor = "text-amber-600"; // Bronze (+100)
+    badgeTitle = "Vendeur Bronze";
+  }
+
+  return (
+    <span title={badgeTitle} className="inline-flex items-center">
+      <CheckCircle2 className={cn("size-4 fill-current", badgeColor)} />
+    </span>
+  );
 }
 
 export default function Post({ post }: PostProps) {
@@ -41,14 +70,21 @@ export default function Post({ post }: PostProps) {
             </Link>
           </UserTooltip>
           <div>
-            <UserTooltip user={post.user}>
-              <Link
-                href={`/users/${post.user.username}`}
-                className="block font-medium hover:underline"
-              >
-                {post.user.displayName}
-              </Link>
-            </UserTooltip>
+            <div className="flex items-center gap-1.5">
+              <UserTooltip user={post.user}>
+                <Link
+                  href={`/users/${post.user.username}`}
+                  className="block font-medium hover:underline"
+                >
+                  {post.user.displayName}
+                </Link>
+              </UserTooltip>
+              {/* Badge de certification dynamique selon followers */}
+              <SellerBadge 
+                isSeller={post.user.isSeller} 
+                followerCount={post.user._count.followers} 
+              />
+            </div>
             <Link
               href={`/posts/${post.id}`}
               className="block text-sm text-muted-foreground hover:underline"
@@ -58,17 +94,16 @@ export default function Post({ post }: PostProps) {
             </Link>
           </div>
         </div>
-        {post.user.id === user.id && (
-          <PostMoreButton
-            post={post}
-            className="opacity-0 transition-opacity group-hover/post:opacity-100"
-          />
-        )}
+
+        {/* Bouton de menu visible par tous pour permettre le signalement */}
+        <PostMoreButton
+          post={post}
+          className="opacity-100 md:opacity-0 transition-opacity group-hover/post:opacity-100"
+        />
       </div>
 
       <Linkify>
         <div className="whitespace-pre-line break-words px-1 md:px-0">
-          {/* LOGIQUE VOIR PLUS / VOIR MOINS */}
           {isExpanded ? post.content : post.content.substring(0, charLimit)}
           
           {isLongText && (
@@ -103,7 +138,7 @@ export default function Post({ post }: PostProps) {
             postId={post.id}
             initialState={{
               likes: post._count.likes,
-              isLikedByUser: post.likes.some((like) => like.userId === user.id),
+              isLikedByUser: post.likes.some((like) => like.userId === user?.id),
             }}
           />
           <CommentButton
@@ -115,7 +150,7 @@ export default function Post({ post }: PostProps) {
           postId={post.id}
           initialState={{
             isBookmarkedByUser: post.bookmarks.some(
-              (bookmark) => bookmark.userId === user.id
+              (bookmark) => bookmark.userId === user?.id
             ),
           }}
         />
@@ -130,8 +165,7 @@ export default function Post({ post }: PostProps) {
   );
 
   function redirectToChat(postUserId: string) {
-     const postLink = `${window.location.origin}/posts/${post.id}`;
-   window.location.href = `/messages?userId=${postUserId}&postId=${post.id}`;
+    window.location.href = `/messages?userId=${postUserId}&postId=${post.id}`;
   }
 }
 

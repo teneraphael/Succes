@@ -4,22 +4,26 @@ import { useSession } from "@/app/(main)/SessionProvider";
 import LoadingButton from "@/components/LoadingButton";
 import { Button } from "@/components/ui/button";
 import UserAvatar from "@/components/UserAvatar";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import Placeholder from "@tiptap/extension-placeholder";
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { useDropzone } from "@uploadthing/react";
-import { ImageIcon, Loader2, X } from "lucide-react";
+import { ImageIcon, Loader2, X, Tag, Banknote, ShoppingBag } from "lucide-react";
 import Image from "next/image";
-import { ClipboardEvent, useRef } from "react";
+import { ClipboardEvent, useRef, useState } from "react";
 import { useSubmitPostMutation } from "./mutations";
 import "./styles.css";
 import useMediaUpload, { Attachment } from "./useMediaUpload";
 
 export default function PostEditor() {
   const { user } = useSession();
-
   const mutation = useSubmitPostMutation();
+
+  // États pour forcer le contenu commercial
+  const [productName, setProductName] = useState("");
+  const [price, setPrice] = useState("");
 
   const {
     startUpload,
@@ -43,26 +47,35 @@ export default function PostEditor() {
         italic: false,
       }),
       Placeholder.configure({
-        placeholder: "What's crack-a-lackin'?",
+        placeholder: "Détails de l'offre (état, stock, livraison...)",
       }),
     ],
-     immediatelyRender: false,
+    immediatelyRender: false,
   });
 
-  const input =
-    editor?.getText({
-      blockSeparator: "\n",
-    }) || "";
+  const description = editor?.getText({
+    blockSeparator: "\n",
+  }) || "";
+
+  // Validation : Tous les champs doivent être remplis
+  const isFormValid = productName.trim() !== "" && price.trim() !== "" && description.trim() !== "";
 
   function onSubmit() {
+    if (!isFormValid) return;
+
+    // Formatage forcé pour la Marketplace avec l'unité FCFA
+    const formattedContent = `🛍️ PRODUIT : ${productName}\n💰 PRIX : ${price} FCFA\n\n📝 DESCRIPTION :\n${description}`;
+    
     mutation.mutate(
       {
-        content: input,
+        content: formattedContent,
         mediaIds: attachments.map((a) => a.mediaId).filter(Boolean) as string[],
       },
       {
         onSuccess: () => {
           editor?.commands.clearContent();
+          setProductName("");
+          setPrice("");
           resetMediaUploads();
         },
       },
@@ -77,60 +90,107 @@ export default function PostEditor() {
   }
 
   return (
-    <div className="flex flex-col gap-5 rounded-2xl bg-card p-5 shadow-sm">
+    <div className="flex flex-col gap-5 rounded-2xl bg-card p-5 shadow-sm border-2 border-[#4a90e2]/10">
+      <div className="flex items-center gap-2 pb-2 border-b border-border/50">
+        <ShoppingBag className="size-5 text-[#6ab344]" />
+        <h3 className="font-bold text-[#4a90e2] text-sm uppercase tracking-wider">Créer une annonce</h3>
+      </div>
+
       <div className="flex gap-5">
         <UserAvatar avatarUrl={user.avatarUrl} className="hidden sm:inline" />
-        <div {...rootProps} className="w-full">
-          <EditorContent
-            editor={editor}
-            className={cn(
-              "max-h-[20rem] w-full overflow-y-auto rounded-2xl bg-background px-5 py-3",
-              isDragActive && "outline-dashed",
-            )}
-            onPaste={onPaste}
-          />
-          <input {...getInputProps()} />
+        <div className="flex w-full flex-col gap-4">
+          
+          {/* Formulaire de vente obligatoire */}
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="relative">
+              <Tag className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Nom de l'article"
+                value={productName}
+                onChange={(e) => setProductName(e.target.value)}
+                className="bg-background pl-10 border-none ring-1 ring-primary/20 focus-visible:ring-[#4a90e2]"
+              />
+            </div>
+            <div className="relative">
+              {/* Remplacement de DollarSign par Banknote pour le contexte FCFA */}
+              <Banknote className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Prix"
+                type="number"
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+                className="bg-background pl-10 pr-16 border-none ring-1 ring-primary/20 focus-visible:ring-[#4a90e2]"
+              />
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] font-bold text-[#6ab344]">
+                FCFA
+              </span>
+            </div>
+          </div>
+
+          {/* Zone de description Tiptap */}
+          <div {...rootProps} className="w-full">
+            <EditorContent
+              editor={editor}
+              className={cn(
+                "max-h-[20rem] w-full overflow-y-auto rounded-2xl bg-background px-5 py-3 ring-1 ring-primary/10",
+                isDragActive && "outline-dashed outline-[#4a90e2]",
+              )}
+              onPaste={onPaste}
+            />
+            <input {...getInputProps()} />
+          </div>
         </div>
       </div>
+
       {!!attachments.length && (
         <AttachmentPreviews
           attachments={attachments}
           removeAttachment={removeAttachment}
         />
       )}
-      <div className="flex items-center justify-end gap-3">
-        {isUploading && (
-          <>
-            <span className="text-sm">{uploadProgress ?? 0}%</span>
-            <Loader2 className="size-5 animate-spin text-primary" />
-          </>
-        )}
-        <AddAttachmentsButton
-          onFilesSelected={startUpload}
-          disabled={isUploading || attachments.length >= 5}
-        />
-        <LoadingButton
-          onClick={onSubmit}
-          loading={mutation.isPending}
-          disabled={!input.trim() || isUploading}
-          className="min-w-20"
-        >
-          Post
-        </LoadingButton>
+
+      <div className="flex items-center justify-between gap-3 border-t border-border/50 pt-3">
+        <div className="flex items-center gap-3">
+          <AddAttachmentsButton
+            onFilesSelected={startUpload}
+            disabled={isUploading || attachments.length >= 5}
+          />
+          {isUploading && (
+            <div className="flex items-center gap-2">
+              <Loader2 className="size-4 animate-spin text-primary" />
+              <span className="text-xs font-medium text-muted-foreground">{uploadProgress ?? 0}%</span>
+            </div>
+          )}
+        </div>
+
+        <div className="flex items-center gap-3">
+          {!isFormValid && (
+            <span className="hidden text-[11px] font-medium text-destructive/80 sm:inline">
+              Veuillez remplir tous les champs
+            </span>
+          )}
+          <LoadingButton
+            onClick={onSubmit}
+            loading={mutation.isPending}
+            disabled={!isFormValid || isUploading}
+            className="min-w-32 rounded-full font-bold bg-[#6ab344] hover:bg-[#5a9c39] text-white"
+          >
+            Mettre en vente
+          </LoadingButton>
+        </div>
       </div>
     </div>
   );
 }
+
+// --- SOUS-COMPOSANTS ---
 
 interface AddAttachmentsButtonProps {
   onFilesSelected: (files: File[]) => void;
   disabled: boolean;
 }
 
-function AddAttachmentsButton({
-  onFilesSelected,
-  disabled,
-}: AddAttachmentsButtonProps) {
+function AddAttachmentsButton({ onFilesSelected, disabled }: AddAttachmentsButtonProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   return (
@@ -138,11 +198,11 @@ function AddAttachmentsButton({
       <Button
         variant="ghost"
         size="icon"
-        className="text-primary hover:text-primary"
+        className="text-primary hover:bg-primary/10"
         disabled={disabled}
         onClick={() => fileInputRef.current?.click()}
       >
-        <ImageIcon size={20} />
+        <ImageIcon size={22} />
       </Button>
       <input
         type="file"
@@ -167,17 +227,9 @@ interface AttachmentPreviewsProps {
   removeAttachment: (fileName: string) => void;
 }
 
-function AttachmentPreviews({
-  attachments,
-  removeAttachment,
-}: AttachmentPreviewsProps) {
+function AttachmentPreviews({ attachments, removeAttachment }: AttachmentPreviewsProps) {
   return (
-    <div
-      className={cn(
-        "flex flex-col gap-3",
-        attachments.length > 1 && "sm:grid sm:grid-cols-2",
-      )}
-    >
+    <div className={cn("flex flex-col gap-3", attachments.length > 1 && "sm:grid sm:grid-cols-2")}>
       {attachments.map((attachment) => (
         <AttachmentPreview
           key={attachment.file.name}
@@ -194,35 +246,30 @@ interface AttachmentPreviewProps {
   onRemoveClick: () => void;
 }
 
-function AttachmentPreview({
-  attachment: { file, mediaId, isUploading },
-  onRemoveClick,
-}: AttachmentPreviewProps) {
+function AttachmentPreview({ attachment: { file, isUploading }, onRemoveClick }: AttachmentPreviewProps) {
   const src = URL.createObjectURL(file);
 
   return (
-    <div
-      className={cn("relative mx-auto size-fit", isUploading && "opacity-50")}
-    >
+    <div className={cn("relative mx-auto size-fit", isUploading && "opacity-50")}>
       {file.type.startsWith("image") ? (
         <Image
           src={src}
-          alt="Attachment preview"
+          alt="Preview"
           width={500}
           height={500}
-          className="size-fit max-h-[30rem] rounded-2xl"
+          className="size-fit max-h-[25rem] rounded-2xl object-cover"
         />
       ) : (
-        <video controls className="size-fit max-h-[30rem] rounded-2xl">
+        <video controls className="size-fit max-h-[25rem] rounded-2xl">
           <source src={src} type={file.type} />
         </video>
       )}
       {!isUploading && (
         <button
           onClick={onRemoveClick}
-          className="absolute right-3 top-3 rounded-full bg-foreground p-1.5 text-background transition-colors hover:bg-foreground/60"
+          className="absolute right-3 top-3 rounded-full bg-foreground/80 p-1.5 text-background backdrop-blur-sm transition-colors hover:bg-foreground"
         >
-          <X size={20} />
+          <X size={18} />
         </button>
       )}
     </div>

@@ -1,9 +1,6 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider        = "prisma-client-js"
   previewFeatures = ["fullTextSearch"]
@@ -15,32 +12,48 @@ datasource db {
   directUrl = env("POSTGRES_URL_NON_POOLING") // uses a direct connection
 }
 
+model Report {
+  id     String @id @default(cuid())
+  userId String
+  postId String
+  reason String @default("NON_COMMERCIAL")
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId]) // Empêche un utilisateur de signaler plusieurs fois le même post
+}
+
 model User {
-  id                    String         @id
-  username              String         @unique
-  displayName           String
-  email                 String?        @unique
-  passwordHash          String?
-  googleId              String?        @unique
-  avatarUrl             String?
-  bio                   String?
-  sessions              Session[]
-  posts                 Post[]
-  following             Follow[]       @relation("Following")
-  followers             Follow[]       @relation("Followers")
-  likes                 Like[]
-  bookmarks             Bookmark[]
-  comments              Comment[]
-  isSeller      Boolean   @default(false)
-  businessName  String?
-  businessDomain String?
-  businessEmail String?
+  id              String         @id
+  username        String         @unique
+  displayName     String
+  email           String?        @unique
+  passwordHash    String?
+  googleId        String?        @unique
+  avatarUrl       String?
+  bio             String?
+  sessions        Session[]
+  posts           Post[]
+  following       Follow[]       @relation("Following")
+  followers       Follow[]       @relation("Followers")
+  likes           Like[]
+  bookmarks       Bookmark[]
+  comments        Comment[]
+  
+  // RELATION AJOUTÉE POUR LES SIGNALEMENTS
+  reports         Report[]       
+
+  isSeller         Boolean        @default(false)
+  businessName     String?
+  businessDomain   String?
+  businessEmail    String?
   businessProducts String?
   receivedNotifications Notification[] @relation("Recipient")
   issuedNotifications   Notification[] @relation("Issuer")
-  fcmToken  String?  @map("fcm_token")
-  conversations Conversation[] @relation("ConversationParticipants")
-  messagesSent  Message[]      @relation("UserMessagesSent")
+  fcmToken         String?        @map("fcm_token")
+  conversations    Conversation[] @relation("ConversationParticipants")
+  messagesSent     Message[]      @relation("UserMessagesSent")
 
   createdAt DateTime @default(now())
 
@@ -97,6 +110,9 @@ model Post {
   bookmarks           Bookmark[]
   comments            Comment[]
   linkedNotifications Notification[]
+  
+  // RELATION AJOUTÉE POUR LES SIGNALEMENTS
+  reports             Report[]       
 
   createdAt DateTime @default(now())
 
@@ -104,13 +120,12 @@ model Post {
 }
 
 model Media {
-  id     String    @id @default(cuid())
-  postId String?
-  post   Post?     @relation(fields: [postId], references: [id], onDelete: SetNull)
-  type   MediaType
-  url    String
-
-  createdAt DateTime @default(now())
+  id        String    @id @default(cuid())
+  postId    String?
+  post      Post?     @relation(fields: [postId], references: [id], onDelete: SetNull)
+  type      MediaType
+  url       String
+  createdAt DateTime  @default(now())
 
   @@map("post_media")
 }
@@ -121,13 +136,12 @@ enum MediaType {
 }
 
 model Comment {
-  id      String @id @default(cuid())
-  content String
-  userId  String
-  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  postId  String
-  post    Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
-
+  id        String   @id @default(cuid())
+  content   String
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
 
   @@map("comments")
@@ -144,12 +158,11 @@ model Like {
 }
 
 model Bookmark {
-  id     String @id @default(cuid())
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  postId String
-  post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
-
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
 
   @@unique([userId, postId])
@@ -166,8 +179,7 @@ model Notification {
   post        Post?            @relation(fields: [postId], references: [id], onDelete: Cascade)
   type        NotificationType
   read        Boolean          @default(false)
-
-  createdAt DateTime @default(now())
+  createdAt   DateTime         @default(now())
 
   @@map("notifications")
 }
@@ -176,4 +188,5 @@ enum NotificationType {
   LIKE
   FOLLOW
   COMMENT
+  REPORT_DELETION
 }
