@@ -11,8 +11,8 @@ interface User extends LuciaUser {
 }
 
 interface SessionContext {
-  user: User;
-  session: Session;
+  user: User | null;    // Ajoute "| null" ici
+  session: Session | null; // Ajoute "| null" ici
 }
 
 const SessionContext = createContext<SessionContext | null>(null);
