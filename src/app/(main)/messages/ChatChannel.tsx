@@ -49,28 +49,24 @@ export default function ChatChannel({
     }
   }, [initialPostId, channel?.id]);
 
-  // LE HANDLER QUI VA FIXER TON AFFICHAGE
   const customSubmitHandler = async (message: any) => {
     try {
-      // 1. On prépare l'attachment (l'aperçu visuel)
       const attachments = [];
       if (postToReply) {
         attachments.push({
-          type: "image", // Type "image" pour un rendu propre
+          type: "image",
           title: `Post de ${postToReply.user?.displayName || "l'utilisateur"}`,
           title_link: `/posts/${postToReply.id}`,
           image_url: postToReply.attachments?.[0]?.url || null,
-          text: postToReply.content, // Texte interne au post ("Lookk")
+          text: postToReply.content,
         });
       }
 
-      // 2. ENVOI : message.text contient "regarde ça" (ta flèche jaune)
       await channel.sendMessage({
         text: message.text, 
         attachments: attachments,
       });
 
-      // 3. ON NETTOIE SEULEMENT APRÈS L'ENVOI RÉUSSI
       setPostToReply(null);
       clearPostFromUrl();
 
@@ -89,10 +85,10 @@ export default function ChatChannel({
             <CustomChannelHeader openSidebar={openSidebar} />
             <MessageList />
             
-            {/* APERÇU AVANT ENVOI (Ton bandeau bleu actuel) */}
+            {/* APERÇU AVANT ENVOI (Corrigé pour Mobile) */}
             {postToReply && (
-              <div className="flex items-center justify-between p-3 bg-blue-50 dark:bg-slate-900 border-t border-b border-blue-100">
-                <div className="flex items-center gap-3 overflow-hidden flex-1">
+              <div className="flex items-center justify-between p-3 bg-blue-50 dark:bg-slate-900 border-t border-b border-blue-100 shrink-0">
+                <div className="flex items-center gap-3 overflow-hidden flex-1 min-w-0">
                   {postToReply.attachments?.[0]?.url && (
                     <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded border bg-white">
                       <Image 
@@ -104,18 +100,28 @@ export default function ChatChannel({
                       />
                     </div>
                   )}
-                  <div className="flex flex-col overflow-hidden text-sm">
-                    <span className="font-bold text-blue-600">RÉPONSE AU POST DE {postToReply.user?.displayName?.toUpperCase()}</span>
-                    <p className="truncate italic">&quot;{postToReply.content}&quot;</p>
+                  {/* Zone de texte protégée contre le débordement */}
+                  <div className="flex flex-col overflow-hidden text-sm min-w-0">
+                    <span className="font-bold text-blue-600 text-xs uppercase truncate">
+                      Réponse au post de {postToReply.user?.displayName}
+                    </span>
+                    <p className="italic line-clamp-2 leading-tight text-muted-foreground break-words">
+                      &quot;{postToReply.content}&quot;
+                    </p>
                   </div>
                 </div>
-                <Button size="icon" variant="ghost" onClick={() => { setPostToReply(null); clearPostFromUrl(); }}>
+                
+                <Button 
+                  size="icon" 
+                  variant="ghost" 
+                  className="shrink-0 ml-2"
+                  onClick={() => { setPostToReply(null); clearPostFromUrl(); }}
+                >
                   <X className="size-4" />
                 </Button>
               </div>
             )}
 
-            {/* Utilisation du handler personnalisé quand un post est présent */}
             <MessageInput 
               focus 
               overrideSubmitHandler={postToReply ? (customSubmitHandler as any) : undefined} 
@@ -130,7 +136,7 @@ export default function ChatChannel({
 function CustomChannelHeader({ openSidebar }: { openSidebar: () => void }) {
   const router = useRouter();
   return (
-    <div className="flex items-center justify-between border-b p-2 bg-card">
+    <div className="flex items-center justify-between border-b p-2 bg-card shrink-0">
       <div className="flex items-center gap-2">
         <Button size="icon" variant="ghost" onClick={() => router.push("/")}>
           <ArrowLeft className="size-5" />

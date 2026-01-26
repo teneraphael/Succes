@@ -13,7 +13,7 @@ if (!admin.apps.length) {
   });
 }
 
-export async function sendPushNotification(userId: string, title: string, body: string) {
+export async function sendPushNotification(userId: string, title: string, body: string, p0: { type: string; channelId: any; senderId: any; }) {
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: { fcmToken: true }
