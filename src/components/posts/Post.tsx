@@ -22,25 +22,20 @@ interface PostProps {
   post: PostData;
 }
 
-/**
- * Composant pour afficher le badge de certification du vendeur
- * La couleur change selon le nombre d'abonnés
- */
 function SellerBadge({ followerCount, isSeller }: { followerCount: number; isSeller: boolean }) {
   if (!isSeller) return null;
 
-  // Définition des paliers de couleurs
-  let badgeColor = "text-slate-500"; // Gris (Standard < 100)
+  let badgeColor = "text-slate-500";
   let badgeTitle = "Vendeur Standard";
 
   if (followerCount >= 2000) {
-    badgeColor = "text-yellow-400"; // Or (+2000)
+    badgeColor = "text-yellow-400";
     badgeTitle = "Vendeur Or";
   } else if (followerCount >= 500) {
-    badgeColor = "text-slate-300"; // Argent (+500)
+    badgeColor = "text-slate-300";
     badgeTitle = "Vendeur Argent";
   } else if (followerCount >= 100) {
-    badgeColor = "text-amber-600"; // Bronze (+100)
+    badgeColor = "text-amber-600";
     badgeTitle = "Vendeur Bronze";
   }
 
@@ -56,12 +51,11 @@ export default function Post({ post }: PostProps) {
   const [showComments, setShowComments] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
 
-  // Seuil pour le bouton "Voir plus"
   const charLimit = 250;
   const isLongText = post.content.length > charLimit;
 
   return (
-    <article className="group/post w-full space-y-3 bg-card p-4 md:p-5 shadow-none md:shadow-sm rounded-none md:rounded-2xl border-x-0 md:border border-y md:border-y-0 border-border transition-colors">
+    <article className="group/post w-full space-y-3 bg-card p-4 md:p-5 shadow-none md:shadow-sm rounded-none md:rounded-2xl border-x-0 md:border border-y md:border-y-0 border-border transition-colors hover:bg-card/80">
       <div className="flex justify-between gap-3">
         <div className="flex flex-wrap gap-3">
           <UserTooltip user={post.user}>
@@ -79,12 +73,12 @@ export default function Post({ post }: PostProps) {
                   {post.user.displayName}
                 </Link>
               </UserTooltip>
-              {/* Badge de certification dynamique selon followers */}
               <SellerBadge 
                 isSeller={post.user.isSeller} 
                 followerCount={post.user._count.followers} 
               />
             </div>
+            {/* 🚀 Date cliquable vers le détail */}
             <Link
               href={`/posts/${post.id}`}
               className="block text-sm text-muted-foreground hover:underline"
@@ -95,35 +89,48 @@ export default function Post({ post }: PostProps) {
           </div>
         </div>
 
-        {/* Bouton de menu visible par tous pour permettre le signalement */}
         <PostMoreButton
           post={post}
           className="opacity-100 md:opacity-0 transition-opacity group-hover/post:opacity-100"
         />
       </div>
 
-      <Linkify>
-        <div className="whitespace-pre-line break-words px-1 md:px-0">
-          {isExpanded ? post.content : post.content.substring(0, charLimit)}
-          
-          {isLongText && (
-            <button
-              onClick={() => setIsExpanded(!isExpanded)}
-              className="ml-1 text-primary font-semibold hover:underline"
-            >
-              {isExpanded ? "... Voir moins" : "... Voir plus"}
-            </button>
-          )}
-        </div>
-      </Linkify>
+      {/* 🚀 Contenu cliquable (sauf si on clique sur "Voir plus") */}
+      <div className="relative">
+        <Link href={`/posts/${post.id}`} className="block">
+          <Linkify>
+            <div className="whitespace-pre-line break-words px-1 md:px-0">
+              {isExpanded ? post.content : post.content.substring(0, charLimit)}
+            </div>
+          </Linkify>
+        </Link>
+        
+        {isLongText && (
+          <button
+            onClick={(e) => {
+              e.preventDefault(); // Empêche la navigation du Link parent
+              setIsExpanded(!isExpanded);
+            }}
+            className="ml-1 text-primary font-semibold hover:underline relative z-10"
+          >
+            {isExpanded ? "... Voir moins" : "... Voir plus"}
+          </button>
+        )}
+      </div>
 
+      {/* 🚀 Médias cliquables */}
       {!!post.attachments.length && (
-        <MediaPreviews attachments={post.attachments} postUserId={post.user.id} />
+        <Link href={`/posts/${post.id}`} className="block">
+          <MediaPreviews attachments={post.attachments} postUserId={post.user.id} />
+        </Link>
       )}
 
       <div className="flex justify-center mt-2 px-1 md:px-0">
         <button 
-          onClick={() => redirectToChat(post.user.id)} 
+          onClick={(e) => {
+            e.stopPropagation();
+            redirectToChat(post.user.id);
+          }} 
           className="w-full text-center bg-primary/10 text-primary py-3 rounded-xl font-semibold cursor-pointer hover:bg-primary/20 transition-colors"
         >
           Discuter
@@ -168,6 +175,8 @@ export default function Post({ post }: PostProps) {
     window.location.href = `/messages?userId=${postUserId}&postId=${post.id}`;
   }
 }
+
+
 
 interface MediaPreviewsProps {
   attachments: Media[];

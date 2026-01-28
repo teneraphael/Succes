@@ -4,7 +4,7 @@ import TrendsSidebar from "@/components/TrendsSidebar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import FollowingFeed from "./FollowingFeed";
 import ForYouFeed from "./ForYouFeed";
-import WelcomeMessage from "./WelcomeMessage"; // On va créer ce composant
+import WelcomeMessage from "./WelcomeMessage"; 
 
 export default async function Home() {
   const { user } = await validateRequest(); 
@@ -13,7 +13,7 @@ export default async function Home() {
     <main className="flex w-full min-w-0 gap-5">
       <div className="w-full min-w-0 space-y-5">
         
-        {/* Affichage conditionnel : Si vendeur -> Editor, sinon -> Message Temporaire */}
+        {/* Si vendeur -> Editeur, Sinon -> Message de bienvenue */}
         {user?.isSeller ? (
           <PostEditor />
         ) : (
@@ -22,12 +22,15 @@ export default async function Home() {
 
         <Tabs defaultValue="for-you">
           <TabsList>
-            <TabsTrigger value="for-you">For you</TabsTrigger>
-            <TabsTrigger value="following">Following</TabsTrigger>
+            <TabsTrigger value="for-you">Pour vous</TabsTrigger>
+            <TabsTrigger value="following">Abonnements</TabsTrigger>
           </TabsList>
+          
           <TabsContent value="for-you">
-            <ForYouFeed />
+            {/* ✅ IMPORTANT : On passe l'ID user pour l'algo de recommandation */}
+            <ForYouFeed userId={user?.id} />
           </TabsContent>
+          
           <TabsContent value="following">
             <FollowingFeed />
           </TabsContent>

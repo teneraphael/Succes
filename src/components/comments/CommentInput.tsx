@@ -1,3 +1,5 @@
+"use client";
+
 import { PostData } from "@/lib/types";
 import { Loader2, SendHorizonal } from "lucide-react";
 import { useState } from "react";
@@ -25,7 +27,21 @@ export default function CommentInput({ post }: CommentInputProps) {
         content: input,
       },
       {
-        onSuccess: () => setInput(""),
+        onSuccess: () => {
+          setInput("");
+
+          // 🚀 SIGNAL POUR L'ALGORITHME
+          // On track l'interaction de type "COMMENT"
+          fetch("/api/posts/track", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              id: post.id,
+              type: "COMMENT",
+              itemType: "POST",
+            }),
+          }).catch((err) => console.error("Algo tracking error (comment):", err));
+        },
       },
     );
   }

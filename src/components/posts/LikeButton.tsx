@@ -1,3 +1,5 @@
+"use client";
+
 import kyInstance from "@/lib/ky";
 import { LikeInfo } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -17,9 +19,7 @@ interface LikeButtonProps {
 
 export default function LikeButton({ postId, initialState }: LikeButtonProps) {
   const { toast } = useToast();
-
   const queryClient = useQueryClient();
-
   const queryKey: QueryKey = ["like-info", postId];
 
   const { data } = useQuery({
@@ -31,10 +31,27 @@ export default function LikeButton({ postId, initialState }: LikeButtonProps) {
   });
 
   const { mutate } = useMutation({
-    mutationFn: () =>
-      data.isLikedByUser
+    mutationFn: async () => {
+      // 1. Action de Like/Unlike en DB
+      const request = data.isLikedByUser
         ? kyInstance.delete(`/api/posts/${postId}/likes`)
-        : kyInstance.post(`/api/posts/${postId}/likes`),
+        : kyInstance.post(`/api/posts/${postId}/likes`);
+      
+      await request;
+
+      // 2. 🚀 SIGNAL POUR L'ALGORITHME (Uniquement si on Like)
+      if (!data.isLikedByUser) {
+        await fetch("/api/posts/track", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ 
+            id: postId, 
+            type: "FAVORITE", // Signal fort pour l'algo
+            itemType: "POST" 
+          }),
+        }).catch(err => console.error("Algo tracking error:", err));
+      }
+    },
     onMutate: async () => {
       await queryClient.cancelQueries({ queryKey });
 

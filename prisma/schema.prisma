@@ -35,6 +35,8 @@ model User {
   bio             String?
   sessions        Session[]
   posts           Post[]
+  deals         Deal[]
+  interactions  UserInteraction[]
   following       Follow[]       @relation("Following")
   followers       Follow[]       @relation("Followers")
   likes           Like[]
@@ -58,6 +60,39 @@ model User {
   createdAt DateTime @default(now())
 
   @@map("users")
+}
+model Deal {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  price       Float
+  images      String[] // Tes URLs d'images
+  
+  // Champs importants pour l'algo
+  category    String   // Ex: "MODE", "TECH", "AUTO", "IMMOBILIER"
+  views       Int      @default(0) // Popularité globale
+  createdAt   DateTime @default(now())
+  
+  // Relations
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  interactions UserInteraction[]
+}
+
+model UserInteraction {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  type      String   // "VIEW", "CHAT", "FAVORITE"
+  
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  postId    String   // <--- Assure-toi que c'est "postId" et non "dealId" si ton modèle s'appelle Post
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  dealId    String
+  deal      Deal     @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  @@index([userId])
+  @@index([postId])
 }
 
 model Conversation {
@@ -108,6 +143,9 @@ model Post {
   attachments         Media[]
   likes               Like[]
   bookmarks           Bookmark[]
+  category    String   @default("DIVERS") 
+  views       Int      @default(0)
+  interactions UserInteraction[]
   comments            Comment[]
   linkedNotifications Notification[]
   
@@ -115,7 +153,7 @@ model Post {
   reports             Report[]       
 
   createdAt DateTime @default(now())
-
+  @@index([category]) 
   @@map("posts")
 }
 
@@ -189,4 +227,10 @@ enum NotificationType {
   FOLLOW
   COMMENT
   REPORT_DELETION
+}
+
+enum InteractionType {
+  VIEW
+  CHAT
+  FAVORITE
 }

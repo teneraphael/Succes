@@ -3,12 +3,17 @@
 import InfiniteScrollContainer from "@/components/InfiniteScrollContainer";
 import Post from "@/components/posts/Post";
 import PostsLoadingSkeleton from "@/components/posts/PostsLoadingSkeleton";
+import TrackedPost from "@/components/posts/TrackedPost"; // On importe le surveillant
 import kyInstance from "@/lib/ky";
 import { PostsPage } from "@/lib/types";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
 
-export default function ForYouFeed() {
+interface ForYouFeedProps {
+  userId?: string;
+}
+
+export default function ForYouFeed({ userId }: ForYouFeedProps) {
   const {
     data,
     fetchNextPage,
@@ -17,12 +22,16 @@ export default function ForYouFeed() {
     isFetchingNextPage,
     status,
   } = useInfiniteQuery({
-    queryKey: ["post-feed", "for-you"],
+    queryKey: ["post-feed", "for-you", userId], 
     queryFn: ({ pageParam }) =>
       kyInstance
         .get(
-          "/api/posts/for-you",
-          pageParam ? { searchParams: { cursor: pageParam } } : {},
+          "/api/posts/for-you", // Route de ton algo de recommandation
+          {
+            searchParams: {
+              ...(pageParam ? { cursor: pageParam } : {}),
+            },
+          }
         )
         .json<PostsPage>(),
     initialPageParam: null as string | null,
@@ -38,7 +47,7 @@ export default function ForYouFeed() {
   if (status === "success" && !posts.length && !hasNextPage) {
     return (
       <p className="text-center text-muted-foreground">
-        No one has posted anything yet.
+        Aucun post disponible pour le moment.
       </p>
     );
   }
@@ -46,7 +55,7 @@ export default function ForYouFeed() {
   if (status === "error") {
     return (
       <p className="text-center text-destructive">
-        An error occurred while loading posts.
+        Une erreur est survenue lors du chargement du fil d&apos;actualité.
       </p>
     );
   }
@@ -57,7 +66,10 @@ export default function ForYouFeed() {
       onBottomReached={() => hasNextPage && !isFetching && fetchNextPage()}
     >
       {posts.map((post) => (
-        <Post key={post.id} post={post} />
+        /* ✅ On enveloppe le post pour tracker la vue sans clic */
+        <TrackedPost key={post.id} post={post} userId={userId}>
+          <Post post={post} />
+        </TrackedPost>
       ))}
       {isFetchingNextPage && <Loader2 className="mx-auto my-3 animate-spin" />}
     </InfiniteScrollContainer>

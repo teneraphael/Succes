@@ -1,3 +1,5 @@
+"use client";
+
 import kyInstance from "@/lib/ky";
 import { BookmarkInfo } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -20,9 +22,7 @@ export default function BookmarkButton({
   initialState,
 }: BookmarkButtonProps) {
   const { toast } = useToast();
-
   const queryClient = useQueryClient();
-
   const queryKey: QueryKey = ["bookmark-info", postId];
 
   const { data } = useQuery({
@@ -34,10 +34,28 @@ export default function BookmarkButton({
   });
 
   const { mutate } = useMutation({
-    mutationFn: () =>
-      data.isBookmarkedByUser
+    mutationFn: async () => {
+      // 1. Action de Bookmark/Unbookmark en DB
+      const request = data.isBookmarkedByUser
         ? kyInstance.delete(`/api/posts/${postId}/bookmark`)
-        : kyInstance.post(`/api/posts/${postId}/bookmark`),
+        : kyInstance.post(`/api/posts/${postId}/bookmark`);
+      
+      await request;
+
+      // 2. 🚀 SIGNAL CRUCIAL POUR L'ALGO
+      // Si l'utilisateur enregistre, on considère cela comme un "FAVORITE" (Poids max)
+      if (!data.isBookmarkedByUser) {
+        await fetch("/api/posts/track", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ 
+            id: postId, 
+            type: "FAVORITE", 
+            itemType: "POST" 
+          }),
+        }).catch(err => console.error("Algo tracking error (bookmark):", err));
+      }
+    },
     onMutate: async () => {
       toast({
         description: `Post ${data.isBookmarkedByUser ? "un" : ""}bookmarked`,
