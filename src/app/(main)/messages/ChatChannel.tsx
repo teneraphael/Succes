@@ -79,13 +79,18 @@ export default function ChatChannel({
 
   return (
     <div className={cn("w-full h-full flex flex-col min-h-0", !open && "hidden")}>
-      <Channel channel={channel} key={channel.cid}> 
+      {/* 🚀 CORRECTION : markReadOnMount={false} empêche la lecture automatique */}
+      <Channel 
+        channel={channel} 
+        key={channel.cid}
+        markReadOnMount={false}
+      > 
         <div className="flex flex-col h-full overflow-hidden">
           <Window key={`window-${channel.id}`}>
             <CustomChannelHeader openSidebar={openSidebar} />
             <MessageList />
             
-            {/* APERÇU AVANT ENVOI (Corrigé pour Mobile) */}
+            {/* APERÇU AVANT ENVOI */}
             {postToReply && (
               <div className="flex items-center justify-between p-3 bg-blue-50 dark:bg-slate-900 border-t border-b border-blue-100 shrink-0">
                 <div className="flex items-center gap-3 overflow-hidden flex-1 min-w-0">
@@ -100,7 +105,6 @@ export default function ChatChannel({
                       />
                     </div>
                   )}
-                  {/* Zone de texte protégée contre le débordement */}
                   <div className="flex flex-col overflow-hidden text-sm min-w-0">
                     <span className="font-bold text-blue-600 text-xs uppercase truncate">
                       Réponse au post de {postToReply.user?.displayName}
