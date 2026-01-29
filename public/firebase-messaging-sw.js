@@ -17,37 +17,52 @@ const messaging = firebase.messaging();
 messaging.onBackgroundMessage((payload) => {
   console.log("Notification reçue en arrière-plan", payload);
   
-  const notificationTitle = payload.notification.title;
+  let title = "";
+  let body = "";
+  let url = "/notifications";
+
+  // 1. Détection des notifications envoyées par STREAM CHAT
+  if (payload.data && payload.data.sender_name) {
+    title = `Message de ${payload.data.sender_name}`;
+    body = payload.data.text || "Vous avez reçu un nouveau message";
+    url = `/messages?userId=${payload.data.sender_id}`;
+  } 
+  // 2. Détection des notifications manuelles (Likes, Follows, etc.)
+  else if (payload.notification) {
+    title = payload.notification.title;
+    body = payload.notification.body;
+    url = payload.data?.url || '/notifications';
+  }
+
   const notificationOptions = {
-    body: payload.notification.body,
-    icon: '/logo.png', 
-    // On stocke l'URL dans les data pour la récupérer au clic
-    data: {
-      url: payload.data?.url || '/notifications' 
-    },
+    body: body,
+    icon: '/logo.png',
+    badge: '/badge.png', // Petite icône pour la barre d'état Android
+    tag: payload.data?.sender_id || 'general-notification', // Regroupe les messages d'un même utilisateur
+    data: { url: url },
   };
 
-  self.registration.showNotification(notificationTitle, notificationOptions);
+  if (title) {
+    self.registration.showNotification(title, notificationOptions);
+  }
 });
 
-// --- AJOUT : GESTION DU CLIC SUR LA NOTIFICATION ---
+// --- GESTION DU CLIC SUR LA NOTIFICATION ---
 self.addEventListener('notificationclick', (event) => {
-  // 1. On ferme la notification
   event.notification.close();
 
-  // 2. On définit l'URL cible (celle envoyée par le serveur ou par défaut /notifications)
   const targetUrl = event.notification.data?.url || '/notifications';
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-      // 3. Si un onglet DealCity est déjà ouvert, on le focus et on change l'URL
+      // Si un onglet est déjà ouvert, on navigue vers l'URL et on focus
       for (const client of clientList) {
-        if ('focus' in client) {
+        if (client.url.includes(location.host) && 'focus' in client) {
           client.navigate(targetUrl);
           return client.focus();
         }
       }
-      // 4. Si le site n'est pas ouvert, on ouvre un nouvel onglet
+      // Sinon on ouvre un nouvel onglet
       if (clients.openWindow) {
         return clients.openWindow(targetUrl);
       }

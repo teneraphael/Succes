@@ -19,7 +19,7 @@ const firebaseConfig = {
 
 };
 
-const app = initializeApp(firebaseConfig);
+export const app = initializeApp(firebaseConfig);
 
 // On exporte "messaging" pour l'utiliser plus tard
 export const messaging = typeof window !== "undefined" ? getMessaging(app) : null;
