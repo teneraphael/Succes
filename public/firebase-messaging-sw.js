@@ -15,6 +15,8 @@ const messaging = firebase.messaging();
 
 // Affichage de la notification en arrière-plan
 messaging.onBackgroundMessage((payload) => {
+  console.log("!!! MESSAGE REÇU DANS LE SW !!!", payload);
+  self.registration.showNotification("Test de force", { body: "Le SW a bien reçu l'info" });
   console.log("Notification reçue en arrière-plan", payload);
   
   let title = "";
