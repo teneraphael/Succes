@@ -63,13 +63,14 @@ export default function ChatChannel({
       }
 
       await channel.sendMessage({
-        text: message.text, 
-        attachments: attachments,
+        text: message.text,
+        attachments: attachments.length > 0 ? attachments : undefined,
       });
 
-      setPostToReply(null);
-      clearPostFromUrl();
-
+      if (postToReply) {
+        setPostToReply(null);
+        clearPostFromUrl();
+      }
     } catch (err) {
       console.error("Erreur d'envoi:", err);
     }
@@ -79,18 +80,21 @@ export default function ChatChannel({
 
   return (
     <div className={cn("w-full h-full flex flex-col min-h-0", !open && "hidden")}>
-      {/* 🚀 CORRECTION : markReadOnMount={false} empêche la lecture automatique */}
       <Channel 
         channel={channel} 
         key={channel.cid}
+        // Empeche de marquer comme lu à l'affichage du composant
         markReadOnMount={false}
+        // CORRECTIF TYPESCRIPT : On passe une fonction vide pour bloquer la lecture automatique
+        doMarkReadRequest={() => {
+          /* Ne rien faire pour laisser le temps à la notification de partir */
+        }}
       > 
         <div className="flex flex-col h-full overflow-hidden">
           <Window key={`window-${channel.id}`}>
             <CustomChannelHeader openSidebar={openSidebar} />
             <MessageList />
             
-            {/* APERÇU AVANT ENVOI */}
             {postToReply && (
               <div className="flex items-center justify-between p-3 bg-blue-50 dark:bg-slate-900 border-t border-b border-blue-100 shrink-0">
                 <div className="flex items-center gap-3 overflow-hidden flex-1 min-w-0">
