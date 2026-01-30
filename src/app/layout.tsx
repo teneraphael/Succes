@@ -3,11 +3,11 @@ import { NextSSRPlugin } from "@uploadthing/react/next-ssr-plugin";
 import type { Metadata } from "next";
 import { ThemeProvider } from "next-themes";
 import localFont from "next/font/local";
+import ChatInitializer from "@/components/ChatInitializer";
 import { extractRouterConfig } from "uploadthing/server";
 import { fileRouter } from "./api/uploadthing/core";
 import "./globals.css";
 import ReactQueryProvider from "./ReactQueryProvider";
-import NotificationHandler from "@/components/NotificationHandler";
 import SessionProvider from "./(main)/SessionProvider";
 import { validateRequest } from "@/auth"; // Importe ta fonction Lucia
 
@@ -43,6 +43,7 @@ export default async function RootLayout({
         <ReactQueryProvider>
           {/* 2. Envelopper avec SessionProvider AVANT ThemeProvider et children */}
           <SessionProvider value={sessionValues}>
+            <ChatInitializer />
             <ThemeProvider
               attribute="class"
               defaultTheme="system"
@@ -50,7 +51,6 @@ export default async function RootLayout({
               disableTransitionOnChange
             >
               {children}
-              <NotificationHandler />
             </ThemeProvider>
           </SessionProvider>
         </ReactQueryProvider>
