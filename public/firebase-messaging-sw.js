@@ -8,66 +8,61 @@ firebase.initializeApp({
   storageBucket: "city-1397c.firebasestorage.app",
   messagingSenderId: "155671123816",
   appId: "1:155671123816:web:50e439a69717b23886e8dd",
-  measurementId: "G-6ZMXSP0Z1P"
 });
 
 const messaging = firebase.messaging();
 
-// Affichage de la notification en arrière-plan
 messaging.onBackgroundMessage((payload) => {
-  console.log("!!! MESSAGE REÇU DANS LE SW !!!", payload);
-  self.registration.showNotification("Test de force", { body: "Le SW a bien reçu l'info" });
-  console.log("Notification reçue en arrière-plan", payload);
-  
-  let title = "";
-  let body = "";
-  let url = "/notifications";
+  console.log("📩 Message reçu:", payload);
 
-  // 1. Détection des notifications envoyées par STREAM CHAT
+  let title = "City App";
+  let body = "Nouvelle interaction";
+  let url = "/";
+  let image = null; // Image d'illustration (ex: photo du post)
+  let icon = "/logo.png"; // Ta photo de profil ou logo
+
+  // --- STYLE CHAT ---
   if (payload.data && payload.data.sender_name) {
-    title = `Message de ${payload.data.sender_name}`;
-    body = payload.data.text || "Vous avez reçu un nouveau message";
-    url = `/messages?userId=${payload.data.sender_id}`;
+    title = payload.data.sender_name;
+    body = payload.data.text || "Vous a envoyé un message";
+    url = "/messages";
+    icon = payload.data.sender_image || "/logo.png"; 
   } 
-  // 2. Détection des notifications manuelles (Likes, Follows, etc.)
+  // --- STYLE LIKES / NOTIFS ---
   else if (payload.notification) {
     title = payload.notification.title;
     body = payload.notification.body;
-    url = payload.data?.url || '/notifications';
+    image = payload.notification.image || null; // Affiche l'image du post liké
+    url = payload.data?.url || "/notifications";
   }
 
   const notificationOptions = {
     body: body,
-    icon: '/logo.png',
-    badge: '/badge.png', // Petite icône pour la barre d'état Android
-    tag: payload.data?.sender_id || 'general-notification', // Regroupe les messages d'un même utilisateur
-    data: { url: url },
+    icon: icon, // Petite image ronde à gauche
+    image: image, // Grande image d'aperçu (optionnel)
+    badge: '/badge-icon.png', // Icône monochrome pour la barre d'état Android
+    tag: payload.data?.sender_id || 'city-notif', // Regroupe les notifs par personne
+    renotify: true, // Fait vibrer même si une notif du même tag est déjà là
+    requireInteraction: false, // La notif disparaît seule après un moment
+    vibrate: [100, 50, 100],
+    data: { url: url }
   };
 
-  if (title) {
-    self.registration.showNotification(title, notificationOptions);
-  }
+  return self.registration.showNotification(title, notificationOptions);
 });
 
-// --- GESTION DU CLIC SUR LA NOTIFICATION ---
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-
-  const targetUrl = event.notification.data?.url || '/notifications';
+  const targetUrl = event.notification.data?.url || '/';
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-      // Si un onglet est déjà ouvert, on navigue vers l'URL et on focus
       for (const client of clientList) {
         if (client.url.includes(location.host) && 'focus' in client) {
-          client.navigate(targetUrl);
           return client.focus();
         }
       }
-      // Sinon on ouvre un nouvel onglet
-      if (clients.openWindow) {
-        return clients.openWindow(targetUrl);
-      }
+      if (clients.openWindow) return clients.openWindow(targetUrl);
     })
   );
 });
