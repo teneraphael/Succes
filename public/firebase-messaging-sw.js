@@ -13,39 +13,42 @@ firebase.initializeApp({
 const messaging = firebase.messaging();
 
 messaging.onBackgroundMessage((payload) => {
-  console.log("📩 Message reçu:", payload);
+  console.log("📩 Message reçu en arrière-plan:", payload);
 
   let title = "City App";
   let body = "Nouvelle interaction";
-  let url = "/";
-  let image = null; // Image d'illustration (ex: photo du post)
-  let icon = "/logo.png"; // Ta photo de profil ou logo
+  let url = "/notifications"; // Par défaut
+  let image = null;
+  let icon = "/logo.png";
 
-  // --- STYLE CHAT ---
-  if (payload.data && payload.data.sender_name) {
+  // --- PRIORITÉ 1 : NOTIFICATION (Likes, Follows envoyés par ton serveur) ---
+  if (payload.notification) {
+    title = payload.notification.title || title;
+    body = payload.notification.body || body;
+    image = payload.notification.image || null;
+    // On essaie de choper l'URL dans data s'il existe
+    url = payload.data?.url || "/notifications";
+  } 
+  // --- PRIORITÉ 2 : DATA (Chat Stream) ---
+  else if (payload.data && payload.data.sender_name) {
     title = payload.data.sender_name;
     body = payload.data.text || "Vous a envoyé un message";
     url = "/messages";
-    icon = payload.data.sender_image || "/logo.png"; 
-  } 
-  // --- STYLE LIKES / NOTIFS ---
-  else if (payload.notification) {
-    title = payload.notification.title;
-    body = payload.notification.body;
-    image = payload.notification.image || null; // Affiche l'image du post liké
-    url = payload.data?.url || "/notifications";
+    icon = payload.data.sender_image || "/logo.png";
   }
 
   const notificationOptions = {
     body: body,
-    icon: icon, // Petite image ronde à gauche
-    image: image, // Grande image d'aperçu (optionnel)
-    badge: '/badge-icon.png', // Icône monochrome pour la barre d'état Android
-    tag: payload.data?.sender_id || 'city-notif', // Regroupe les notifs par personne
-    renotify: true, // Fait vibrer même si une notif du même tag est déjà là
-    requireInteraction: false, // La notif disparaît seule après un moment
-    vibrate: [100, 50, 100],
-    data: { url: url }
+    icon: icon,
+    image: image,
+    badge: '/badge-icon.png',
+    tag: payload.data?.sender_id || 'city-global-notif',
+    renotify: true,
+    vibrate: [200, 100, 200],
+    data: { 
+        url: url,
+        launched_at: Date.now() 
+    }
   };
 
   return self.registration.showNotification(title, notificationOptions);
@@ -53,16 +56,24 @@ messaging.onBackgroundMessage((payload) => {
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const targetUrl = event.notification.data?.url || '/';
+  
+  // On construit l'URL absolue pour éviter les bugs de redirection mobile
+  const relativeUrl = event.notification.data?.url || '/';
+  const targetUrl = new URL(relativeUrl, self.location.origin).href;
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      // 1. Si un onglet est déjà sur le site, on le focus et on navigue
       for (const client of clientList) {
-        if (client.url.includes(location.host) && 'focus' in client) {
+        if (client.url.includes(self.location.origin) && 'navigate' in client) {
+          client.navigate(targetUrl);
           return client.focus();
         }
       }
-      if (clients.openWindow) return clients.openWindow(targetUrl);
+      // 2. Si rien n'est ouvert, on ouvre une nouvelle fenêtre
+      if (clients.openWindow) {
+        return clients.openWindow(targetUrl);
+      }
     })
   );
 });
