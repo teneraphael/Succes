@@ -1,6 +1,7 @@
 importScripts('https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/9.0.0/firebase-messaging-compat.js');
 
+// Ton initialisation Firebase
 firebase.initializeApp({
   apiKey: "AIzaSyDYTmdZpLhw04HNXLmnnmKqJf7umAKu35g",
   authDomain: "city-1397c.firebaseapp.com",
@@ -8,63 +9,76 @@ firebase.initializeApp({
   storageBucket: "city-1397c.firebasestorage.app",
   messagingSenderId: "155671123816",
   appId: "1:155671123816:web:50e439a69717b23886e8dd",
-  measurementId: "G-6ZMXSP0Z1P"
 });
 
 const messaging = firebase.messaging();
 
-// Affichage de la notification en arrière-plan
+// 1. GESTION DE LA RÉCEPTION (Affichage)
 messaging.onBackgroundMessage((payload) => {
-  console.log("Notification reçue en arrière-plan", payload);
-  
-  // --- EXTRACTION INTELLIGENTE ---
-  // On prend les infos de 'notification' OU de 'data' (pour le Chat)
-  const title = payload.notification?.title || payload.data?.sender_name || "City App";
-  const body = payload.notification?.body || payload.data?.text || payload.data?.message || "Nouvelle notification";
-  
-  // Définition de l'URL cible selon le type
-  let targetUrl = '/notifications'; 
-  if (payload.data?.sender_name || payload.data?.cid) {
-    targetUrl = '/messages'; // Si c'est un message, on va vers le chat
-  } else if (payload.data?.url) {
-    targetUrl = payload.data.url; // URL spécifique (like/post)
+  console.log("📩 Payload reçu:", payload);
+
+  let title = "City App";
+  let body = "Nouvelle interaction";
+  let url = "/notifications"; // Par défaut pour les likes/follows
+  let icon = "/logo.png";
+  let image = null;
+
+  // CAS A : C'est le CHAT (Stream Chat envoie des données dans 'data')
+  if (payload.data && payload.data.sender_name) {
+    title = payload.data.sender_name;
+    body = payload.data.text || "Vous a envoyé un message";
+    icon = payload.data.sender_image || "/logo.png";
+    // Redirection vers le chat (on peut ajouter l'ID si Stream l'envoie)
+    url = "/messages"; 
+  } 
+  // CAS B : C'est un LIKE, FOLLOW ou COMMENT (Ton API envoie 'notification')
+  else if (payload.notification) {
+    title = payload.notification.title || title;
+    body = payload.notification.body || body;
+    image = payload.notification.image || null;
+    // On récupère l'URL spécifique envoyée par ton backend, sinon /notifications
+    url = payload.data?.url || "/notifications";
   }
 
   const notificationOptions = {
     body: body,
-    icon: payload.data?.sender_image || '/logo.png', 
-    badge: '/badge-icon.png',
-    tag: 'city-notif',
+    icon: icon,
+    image: image,
+    badge: "/badge-icon.png", // L'icône blanche pour la barre d'état Android
+    tag: "city-notif-system",
     renotify: true,
-    data: {
-      url: targetUrl 
-    },
+    vibrate: [200, 100, 200],
+    data: { 
+      url: url // On stocke l'URL ici pour la récupérer au clic
+    }
   };
 
-  self.registration.showNotification(title, notificationOptions);
+  return self.registration.showNotification(title, notificationOptions);
 });
 
-// --- GESTION DU CLIC (Redirection) ---
+// 2. GESTION DU CLIC (Redirection)
 self.addEventListener('notificationclick', (event) => {
+  // On ferme la notification immédiatement
   event.notification.close();
 
-  // On récupère l'URL stockée
-  const targetUrl = event.notification.data?.url || '/notifications';
-  // On s'assure que l'URL est complète (absolue)
-  const absoluteUrl = new URL(targetUrl, self.location.origin).href;
+  // On récupère l'URL de redirection stockée dans les data
+  const relativeUrl = event.notification.data?.url || '/';
+  const targetUrl = new URL(relativeUrl, self.location.origin).href;
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-      // 1. Si un onglet est déjà ouvert, on navigue et on focus
+      // Si un onglet est déjà ouvert sur ton site
       for (const client of clientList) {
         if (client.url.includes(self.location.origin) && 'navigate' in client) {
-          client.navigate(absoluteUrl);
+          // On force la navigation vers la bonne page (chat ou notifications)
+          client.navigate(targetUrl);
+          // On met l'onglet en avant
           return client.focus();
         }
       }
-      // 2. Si le site n'est pas ouvert, on l'ouvre
+      // Si le site n'est pas ouvert, on ouvre une nouvelle fenêtre
       if (clients.openWindow) {
-        return clients.openWindow(absoluteUrl);
+        return clients.openWindow(targetUrl);
       }
     })
   );
