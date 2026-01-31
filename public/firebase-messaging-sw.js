@@ -8,73 +8,63 @@ firebase.initializeApp({
   storageBucket: "city-1397c.firebasestorage.app",
   messagingSenderId: "155671123816",
   appId: "1:155671123816:web:50e439a69717b23886e8dd",
+  measurementId: "G-6ZMXSP0Z1P"
 });
 
 const messaging = firebase.messaging();
 
+// Affichage de la notification en arrière-plan
 messaging.onBackgroundMessage((payload) => {
-  console.log("📩 Payload complet reçu par le SW:", payload);
-
-  // Valeurs par défaut pour éviter le message "Nouvelle interaction"
-  let title = "City App";
-  let body = "Nouveau message reçu";
-  let url = "/notifications"; 
-  let icon = "/logo.png";
-  let image = null;
-
-  // --- ANALYSE DES DONNÉES REÇUES ---
-
-  // 1. Détection Prioritaire : Stream Chat
-  // Stream envoie souvent les infos dans l'objet 'data'
-  if (payload.data && (payload.data.sender || payload.data.sender_name || payload.data.user_id)) {
-    title = payload.data.sender_name || payload.data.user_id || "Nouveau message";
-    body = payload.data.text || payload.data.message || "Vous a envoyé un message";
-    icon = payload.data.sender_image || "/logo.png";
-    url = "/messages";
-  } 
-  // 2. Détection : Notifications Système (Likes, Follows, Comments)
-  else if (payload.notification) {
-    title = payload.notification.title || title;
-    body = payload.notification.body || body;
-    image = payload.notification.image || null;
-    // Si ton backend envoie une URL spécifique, on l'utilise
-    url = payload.data?.url || "/notifications";
+  console.log("Notification reçue en arrière-plan", payload);
+  
+  // --- EXTRACTION INTELLIGENTE ---
+  // On prend les infos de 'notification' OU de 'data' (pour le Chat)
+  const title = payload.notification?.title || payload.data?.sender_name || "City App";
+  const body = payload.notification?.body || payload.data?.text || payload.data?.message || "Nouvelle notification";
+  
+  // Définition de l'URL cible selon le type
+  let targetUrl = '/notifications'; 
+  if (payload.data?.sender_name || payload.data?.cid) {
+    targetUrl = '/messages'; // Si c'est un message, on va vers le chat
+  } else if (payload.data?.url) {
+    targetUrl = payload.data.url; // URL spécifique (like/post)
   }
 
   const notificationOptions = {
     body: body,
-    icon: icon,
-    image: image,
-    badge: "/badge-icon.png",
-    tag: "city-interaction", // Tag unique pour mettre à jour la même bulle
+    icon: payload.data?.sender_image || '/logo.png', 
+    badge: '/badge-icon.png',
+    tag: 'city-notif',
     renotify: true,
-    vibrate: [200, 100, 200],
-    data: { url: url }
+    data: {
+      url: targetUrl 
+    },
   };
 
-  return self.registration.showNotification(title, notificationOptions);
+  self.registration.showNotification(title, notificationOptions);
 });
 
-// GESTION DU CLIC ET REDIRECTION
+// --- GESTION DU CLIC (Redirection) ---
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
 
-  const relativeUrl = event.notification.data?.url || '/';
-  const targetUrl = new URL(relativeUrl, self.location.origin).href;
+  // On récupère l'URL stockée
+  const targetUrl = event.notification.data?.url || '/notifications';
+  // On s'assure que l'URL est complète (absolue)
+  const absoluteUrl = new URL(targetUrl, self.location.origin).href;
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-      // Si le site est déjà ouvert dans un onglet
+      // 1. Si un onglet est déjà ouvert, on navigue et on focus
       for (const client of clientList) {
         if (client.url.includes(self.location.origin) && 'navigate' in client) {
-          // On le redirige vers la bonne page et on met le focus
-          client.navigate(targetUrl);
+          client.navigate(absoluteUrl);
           return client.focus();
         }
       }
-      // Si le site n'est pas ouvert, on l'ouvre à la bonne page
+      // 2. Si le site n'est pas ouvert, on l'ouvre
       if (clients.openWindow) {
-        return clients.openWindow(targetUrl);
+        return clients.openWindow(absoluteUrl);
       }
     })
   );
