@@ -13,64 +13,66 @@ firebase.initializeApp({
 const messaging = firebase.messaging();
 
 messaging.onBackgroundMessage((payload) => {
-  console.log("📩 Message reçu en arrière-plan:", payload);
+  console.log("📩 Payload complet reçu par le SW:", payload);
 
+  // Valeurs par défaut pour éviter le message "Nouvelle interaction"
   let title = "City App";
-  let body = "Nouvelle interaction";
-  let url = "/notifications"; // Par défaut
-  let image = null;
+  let body = "Nouveau message reçu";
+  let url = "/notifications"; 
   let icon = "/logo.png";
+  let image = null;
 
-  // --- PRIORITÉ 1 : NOTIFICATION (Likes, Follows envoyés par ton serveur) ---
-  if (payload.notification) {
+  // --- ANALYSE DES DONNÉES REÇUES ---
+
+  // 1. Détection Prioritaire : Stream Chat
+  // Stream envoie souvent les infos dans l'objet 'data'
+  if (payload.data && (payload.data.sender || payload.data.sender_name || payload.data.user_id)) {
+    title = payload.data.sender_name || payload.data.user_id || "Nouveau message";
+    body = payload.data.text || payload.data.message || "Vous a envoyé un message";
+    icon = payload.data.sender_image || "/logo.png";
+    url = "/messages";
+  } 
+  // 2. Détection : Notifications Système (Likes, Follows, Comments)
+  else if (payload.notification) {
     title = payload.notification.title || title;
     body = payload.notification.body || body;
     image = payload.notification.image || null;
-    // On essaie de choper l'URL dans data s'il existe
+    // Si ton backend envoie une URL spécifique, on l'utilise
     url = payload.data?.url || "/notifications";
-  } 
-  // --- PRIORITÉ 2 : DATA (Chat Stream) ---
-  else if (payload.data && payload.data.sender_name) {
-    title = payload.data.sender_name;
-    body = payload.data.text || "Vous a envoyé un message";
-    url = "/messages";
-    icon = payload.data.sender_image || "/logo.png";
   }
 
   const notificationOptions = {
     body: body,
     icon: icon,
     image: image,
-    badge: '/badge-icon.png',
-    tag: payload.data?.sender_id || 'city-global-notif',
+    badge: "/badge-icon.png",
+    tag: "city-interaction", // Tag unique pour mettre à jour la même bulle
     renotify: true,
     vibrate: [200, 100, 200],
-    data: { 
-        url: url,
-        launched_at: Date.now() 
-    }
+    data: { url: url }
   };
 
   return self.registration.showNotification(title, notificationOptions);
 });
 
+// GESTION DU CLIC ET REDIRECTION
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  
-  // On construit l'URL absolue pour éviter les bugs de redirection mobile
+
   const relativeUrl = event.notification.data?.url || '/';
   const targetUrl = new URL(relativeUrl, self.location.origin).href;
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-      // 1. Si un onglet est déjà sur le site, on le focus et on navigue
+      // Si le site est déjà ouvert dans un onglet
       for (const client of clientList) {
         if (client.url.includes(self.location.origin) && 'navigate' in client) {
+          // On le redirige vers la bonne page et on met le focus
           client.navigate(targetUrl);
           return client.focus();
         }
       }
-      // 2. Si rien n'est ouvert, on ouvre une nouvelle fenêtre
+      // Si le site n'est pas ouvert, on l'ouvre à la bonne page
       if (clients.openWindow) {
         return clients.openWindow(targetUrl);
       }
