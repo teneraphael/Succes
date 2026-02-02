@@ -21,25 +21,31 @@ export default function CommentInput({ post, replyTarget, onClearReply }: Commen
   // Gère l'apparition d'une réponse
   useEffect(() => {
     if (replyTarget) {
-      setInput(`@${replyTarget} `);
-      // On attend un petit peu que le drawer soit bien stable pour le focus
+      // On s'assure qu'il n'y a pas déjà la mention pour éviter les doublons
+      if (!input.startsWith(`@${replyTarget}`)) {
+        setInput(`@${replyTarget} `);
+      }
+      // Focus optimisé pour l'accessibilité
       setTimeout(() => inputRef.current?.focus(), 100);
     }
-  }, [replyTarget]);
+  }, [replyTarget, input]);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!input.trim()) return;
+    const trimmedInput = input.trim();
+    if (!trimmedInput || mutation.isPending) return;
 
     mutation.mutate(
       {
         post,
-        content: input,
+        content: trimmedInput,
       },
       {
         onSuccess: () => {
           setInput("");
-          if (onClearReply) onClearReply(); // On vide la cible de réponse après envoi
+          if (onClearReply) onClearReply();
+          
+          // Tracking algorithmique
           fetch("/api/posts/track", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -48,7 +54,7 @@ export default function CommentInput({ post, replyTarget, onClearReply }: Commen
               type: "COMMENT",
               itemType: "POST",
             }),
-          }).catch((err) => console.error("Algo tracking error (comment):", err));
+          }).catch((err) => console.error("Algo tracking error:", err));
         },
       },
     );
@@ -56,11 +62,17 @@ export default function CommentInput({ post, replyTarget, onClearReply }: Commen
 
   return (
     <div className="border-t bg-card p-3 shadow-sm">
-      {/* Petit indicateur au-dessus de l'input si on répond à quelqu'un */}
+      {/* Indicateur de réponse */}
       {replyTarget && (
-        <div className="flex items-center justify-between px-4 pb-2 text-xs text-muted-foreground">
-          <span>En réponse à <span className="font-bold text-primary">@{replyTarget}</span></span>
-          <button onClick={onClearReply} className="hover:text-foreground">
+        <div className="flex items-center justify-between px-4 pb-2 text-xs text-muted-foreground animate-in fade-in slide-in-from-bottom-1">
+          <p>
+            En réponse à <span className="font-bold text-primary">@{replyTarget}</span>
+          </p>
+          <button 
+            type="button"
+            onClick={onClearReply} 
+            className="hover:text-destructive transition-colors"
+          >
             <X className="size-3" />
           </button>
         </div>
@@ -73,6 +85,8 @@ export default function CommentInput({ post, replyTarget, onClearReply }: Commen
             placeholder="Écrire un commentaire..."
             value={input}
             onChange={(e) => setInput(e.target.value)}
+            // Désactive l'autofill pour éviter les suggestions gênantes sur mobile
+            autoComplete="off"
             className="rounded-full border-none bg-muted px-4 py-2 pr-10 focus-visible:ring-1 focus-visible:ring-primary/20"
           />
         </div>
@@ -80,13 +94,13 @@ export default function CommentInput({ post, replyTarget, onClearReply }: Commen
           type="submit"
           variant="ghost"
           size="icon"
-          className="text-primary hover:bg-transparent disabled:text-muted-foreground"
+          className="text-primary hover:bg-transparent disabled:text-muted-foreground transition-transform active:scale-90"
           disabled={!input.trim() || mutation.isPending}
         >
-          {!mutation.isPending ? (
-            <SendHorizonal className="size-5" />
-          ) : (
+          {mutation.isPending ? (
             <Loader2 className="animate-spin size-5" />
+          ) : (
+            <SendHorizonal className="size-5" />
           )}
         </Button>
       </form>
