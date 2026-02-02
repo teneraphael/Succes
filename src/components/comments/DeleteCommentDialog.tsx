@@ -1,3 +1,5 @@
+"use client";
+
 import { CommentData } from "@/lib/types";
 import LoadingButton from "../LoadingButton";
 import { Button } from "../ui/button";
@@ -34,26 +36,25 @@ export default function DeleteCommentDialog({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Delete comment?</DialogTitle>
+          <DialogTitle>Supprimer le commentaire ?</DialogTitle>
           <DialogDescription>
-            Are you sure you want to delete this comment? This action cannot be
-            undone.
+            Êtes-vous sûr de vouloir supprimer ce commentaire ? Cette action est irréversible.
           </DialogDescription>
         </DialogHeader>
-        <DialogFooter>
+        <DialogFooter className="flex gap-2 sm:gap-0">
           <LoadingButton
             variant="destructive"
             onClick={() => mutation.mutate(comment.id, { onSuccess: onClose })}
             loading={mutation.isPending}
           >
-            Delete
+            Supprimer
           </LoadingButton>
           <Button
             variant="outline"
             onClick={onClose}
             disabled={mutation.isPending}
           >
-            Cancel
+            Annuler
           </Button>
         </DialogFooter>
       </DialogContent>

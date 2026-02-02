@@ -4,11 +4,11 @@ import { useSession } from "@/app/(main)/SessionProvider";
 import { PostData } from "@/lib/types";
 import { cn, formatRelativeDate } from "@/lib/utils";
 import { Media } from "@prisma/client";
-import { MessageSquare, CheckCircle2, ChevronLeft, ChevronRight } from "lucide-react";
+import { MessageSquare, ChevronLeft, ChevronRight } from "lucide-react";
 import Image from "next/image";
 import VideoPost from "../VideoPost";
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Comments from "../comments/Comments";
 import Linkify from "../Linkify";
 import UserAvatar from "../UserAvatar";
@@ -17,42 +17,48 @@ import BookmarkButton from "./BookmarkButton";
 import LikeButton from "./LikeButton";
 import PostMoreButton from "./PostMoreButton";
 import { useSwipeable } from 'react-swipeable';
+import { useMediaQuery } from "@/hooks/use-media-query";
+
+// Imports UI Shadcn
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from "@/components/ui/drawer";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import SellerBadge from "../SellerBadge";
 
 interface PostProps {
   post: PostData;
 }
 
-function SellerBadge({ followerCount, isSeller }: { followerCount: number; isSeller: boolean }) {
-  if (!isSeller) return null;
-
-  let badgeColor = "text-slate-500";
-  let badgeTitle = "Vendeur Standard";
-
-  if (followerCount >= 2000) {
-    badgeColor = "text-yellow-400";
-    badgeTitle = "Vendeur Or";
-  } else if (followerCount >= 500) {
-    badgeColor = "text-slate-300";
-    badgeTitle = "Vendeur Argent";
-  } else if (followerCount >= 100) {
-    badgeColor = "text-amber-600";
-    badgeTitle = "Vendeur Bronze";
-  }
-
-  return (
-    <span title={badgeTitle} className="inline-flex items-center">
-      <CheckCircle2 className={cn("size-4 fill-current", badgeColor)} />
-    </span>
-  );
-}
-
 export default function Post({ post }: PostProps) {
   const { user } = useSession();
-  const [showComments, setShowComments] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
+  
+  // Détecte si on est sur Desktop (largeur >= 768px)
+  const isDesktop = useMediaQuery("(min-width: 768px)");
 
   const charLimit = 250;
   const isLongText = post.content.length > charLimit;
+
+  // Le bouton qui ouvre les commentaires (réutilisé pour Sheet et Drawer)
+  const CommentTrigger = (
+    <button className="flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors">
+      <MessageSquare className="size-5" />
+      <span className="text-sm font-medium tabular-nums">
+        {post._count.comments}
+      </span>
+    </button>
+  );
 
   return (
     <article className="group/post w-full space-y-3 bg-card p-4 md:p-5 shadow-none md:shadow-sm rounded-none md:rounded-2xl border-x-0 md:border border-y md:border-y-0 border-border transition-colors hover:bg-card/80">
@@ -112,7 +118,6 @@ export default function Post({ post }: PostProps) {
         )}
       </div>
 
-      {/* MÉDIAS OPTIMISÉS */}
       {!!post.attachments.length && (
         <MediaPreviews attachments={post.attachments} />
       )}
@@ -137,11 +142,35 @@ export default function Post({ post }: PostProps) {
               isLikedByUser: post.likes.some((like) => like.userId === user?.id),
             }}
           />
-          <CommentButton
-            post={post}
-            onClick={() => setShowComments(!showComments)}
-          />
+
+          {/* LOGIQUE RESPONSIVE : SHEET (PC) vs DRAWER (MOBILE) */}
+          {isDesktop ? (
+            <Sheet>
+              <SheetTrigger asChild>
+                {CommentTrigger}
+              </SheetTrigger>
+              <SheetContent side="right" className="p-0 sm:max-w-[450px] flex flex-col gap-0 bg-background shadow-xl">
+                <SheetHeader className="p-4 border-b">
+                  <SheetTitle className="text-center text-sm font-bold">Commentaires</SheetTitle>
+                </SheetHeader>
+                <Comments post={post} />
+              </SheetContent>
+            </Sheet>
+          ) : (
+            <Drawer>
+              <DrawerTrigger asChild>
+                {CommentTrigger}
+              </DrawerTrigger>
+              <DrawerContent className="max-h-[85vh]">
+                <DrawerHeader className="sr-only">
+                  <DrawerTitle>Commentaires</DrawerTitle>
+                </DrawerHeader>
+                <Comments post={post} />
+              </DrawerContent>
+            </Drawer>
+          )}
         </div>
+
         <BookmarkButton
           postId={post.id}
           initialState={{
@@ -151,15 +180,11 @@ export default function Post({ post }: PostProps) {
           }}
         />
       </div>
-
-      {showComments && (
-        <div className="pt-2 animate-in fade-in slide-in-from-top-1">
-           <Comments post={post} />
-        </div>
-      )}
     </article>
   );
 }
+
+// --- MEDIA PREVIEWS ---
 
 interface MediaPreviewsProps {
   attachments: Media[];
@@ -169,7 +194,6 @@ function MediaPreviews({ attachments }: MediaPreviewsProps) {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const totalMedia = attachments.length;
 
-  // Swipe pour mobile
   const handlers = useSwipeable({
     onSwipedLeft: () => setSelectedIndex((prev) => Math.min(prev + 1, totalMedia - 1)),
     onSwipedRight: () => setSelectedIndex((prev) => Math.max(prev - 1, 0)),
@@ -177,21 +201,17 @@ function MediaPreviews({ attachments }: MediaPreviewsProps) {
     trackMouse: true,
   });
 
-  // Navigation flèches pour Desktop
   const nextMedia = () => setSelectedIndex((prev) => Math.min(prev + 1, totalMedia - 1));
   const prevMedia = () => setSelectedIndex((prev) => Math.max(prev - 1, 0));
 
   return (
     <div className="relative -mx-4 md:mx-0 overflow-hidden bg-black group/media rounded-none md:rounded-xl" {...handlers}>
-      
-      {/* Indicateur de position (ex: 1/10) */}
       {totalMedia > 1 && (
         <div className="absolute right-4 top-4 z-20 rounded-full bg-black/50 px-3 py-1 text-[11px] font-bold text-white backdrop-blur-md border border-white/10">
           {selectedIndex + 1} / {totalMedia}
         </div>
       )}
 
-      {/* Flèches de navigation (Visible au hover sur Desktop) */}
       {totalMedia > 1 && (
         <>
           {selectedIndex > 0 && (
@@ -213,7 +233,6 @@ function MediaPreviews({ attachments }: MediaPreviewsProps) {
         </>
       )}
 
-      {/* Conteneur des médias */}
       <div 
         className="flex transition-transform duration-500 ease-[cubic-bezier(0.25,1,0.5,1)]" 
         style={{ transform: `translateX(-${selectedIndex * 100}%)` }}
@@ -227,7 +246,6 @@ function MediaPreviews({ attachments }: MediaPreviewsProps) {
                 width={800}
                 height={800}
                 className="w-full h-auto max-h-[550px] object-contain"
-                loading="lazy"
                 unoptimized
               />
             ) : (
@@ -237,7 +255,6 @@ function MediaPreviews({ attachments }: MediaPreviewsProps) {
         ))}
       </div>
 
-      {/* Barre de progression (Dots) */}
       {totalMedia > 1 && (
         <div className="absolute bottom-4 left-1/2 flex -translate-x-1/2 gap-1.5 px-2 py-1.5">
           {attachments.map((_, index) => (
@@ -245,25 +262,12 @@ function MediaPreviews({ attachments }: MediaPreviewsProps) {
               key={index}
               className={cn(
                 "h-1.5 rounded-full transition-all duration-300",
-                index === selectedIndex 
-                  ? "bg-white w-5 shadow-sm" 
-                  : "bg-white/40 w-1.5"
+                index === selectedIndex ? "bg-white w-5 shadow-sm" : "bg-white/40 w-1.5"
               )}
             />
           ))}
         </div>
       )}
     </div>
-  );
-}
-
-function CommentButton({ post, onClick }: { post: PostData; onClick: () => void }) {
-  return (
-    <button onClick={onClick} className="flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors">
-      <MessageSquare className="size-5" />
-      <span className="text-sm font-medium tabular-nums">
-        {post._count.comments}
-      </span>
-    </button>
   );
 }

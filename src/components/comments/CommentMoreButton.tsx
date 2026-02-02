@@ -1,3 +1,5 @@
+"use client";
+
 import { CommentData } from "@/lib/types";
 import { MoreHorizontal, Trash2 } from "lucide-react";
 import { useState } from "react";
@@ -29,11 +31,11 @@ export default function CommentMoreButton({
             <MoreHorizontal className="size-5 text-muted-foreground" />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent>
+        <DropdownMenuContent align="end">
           <DropdownMenuItem onClick={() => setShowDeleteDialog(true)}>
-            <span className="flex items-center gap-3 text-destructive">
+            <span className="flex items-center gap-3 text-destructive font-medium">
               <Trash2 className="size-4" />
-              Delete
+              Supprimer
             </span>
           </DropdownMenuItem>
         </DropdownMenuContent>

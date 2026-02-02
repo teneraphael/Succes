@@ -30,6 +30,13 @@ export default function ChatChannel({
 }: ChatChannelProps) {
   const [postToReply, setPostToReply] = useState<any>(null);
 
+  // --- NOUVEAU : Force le marquage comme lu quand le canal change ou s'ouvre ---
+  useEffect(() => {
+    if (open && channel) {
+      channel.markRead();
+    }
+  }, [channel, open]);
+
   const clearPostFromUrl = useCallback(() => {
     const url = new URL(window.location.href);
     if (url.searchParams.has("postId")) {
@@ -83,12 +90,9 @@ export default function ChatChannel({
       <Channel 
         channel={channel} 
         key={channel.cid}
-        // Empeche de marquer comme lu à l'affichage du composant
-        markReadOnMount={false}
-        // CORRECTIF TYPESCRIPT : On passe une fonction vide pour bloquer la lecture automatique
-        doMarkReadRequest={() => {
-          /* Ne rien faire pour laisser le temps à la notification de partir */
-        }}
+        // ✅ On remet à true pour que le badge disparaisse au montage
+        markReadOnMount={true}
+        // ❌ On a supprimé doMarkReadRequest qui bloquait l'envoi de l'info "lu"
       > 
         <div className="flex flex-col h-full overflow-hidden">
           <Window key={`window-${channel.id}`}>

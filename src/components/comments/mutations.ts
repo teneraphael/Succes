@@ -1,3 +1,5 @@
+"use client";
+
 import { CommentsPage } from "@/lib/types";
 import {
   InfiniteData,
@@ -10,7 +12,6 @@ import { deleteComment, submitComment } from "./actions";
 
 export function useSubmitCommentMutation(postId: string) {
   const { toast } = useToast();
-
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
@@ -48,14 +49,14 @@ export function useSubmitCommentMutation(postId: string) {
       });
 
       toast({
-        description: "Comment created",
+        description: "Commentaire ajouté",
       });
     },
     onError(error) {
       console.error(error);
       toast({
         variant: "destructive",
-        description: "Failed to submit comment. Please try again.",
+        description: "Impossible d'envoyer le commentaire. Veuillez réessayer.",
       });
     },
   });
@@ -65,7 +66,6 @@ export function useSubmitCommentMutation(postId: string) {
 
 export function useDeleteCommentMutation() {
   const { toast } = useToast();
-
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
@@ -91,14 +91,14 @@ export function useDeleteCommentMutation() {
       );
 
       toast({
-        description: "Comment deleted",
+        description: "Commentaire supprimé",
       });
     },
     onError(error) {
       console.error(error);
       toast({
         variant: "destructive",
-        description: "Failed to delete comment. Please try again.",
+        description: "Échec de la suppression. Veuillez réessayer.",
       });
     },
   });
