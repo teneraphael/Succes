@@ -1,7 +1,9 @@
+"use client";
+
 import { useToast } from "@/components/ui/use-toast";
 import { useUploadThing } from "@/lib/uploadthing";
 import { useState } from "react";
-import {v4 as uuidv4} from "uuid";
+import { v4 as uuidv4 } from "uuid";
 
 export interface Attachment {
   file: File;
@@ -13,7 +15,6 @@ export default function useMediaUpload() {
   const { toast } = useToast();
 
   const [attachments, setAttachments] = useState<Attachment[]>([]);
-
   const [uploadProgress, setUploadProgress] = useState<number>();
 
   const { startUpload, isUploading } = useUploadThing("attachment", {
@@ -65,15 +66,16 @@ export default function useMediaUpload() {
     if (isUploading) {
       toast({
         variant: "destructive",
-        description: "Please wait for the current upload to finish.",
+        description: "Veuillez patienter pendant l'envoi en cours.",
       });
       return;
     }
 
-    if (attachments.length + files.length > 5) {
+    // --- CORRECTION : Changement de la limite de 5 à 10 ---
+    if (attachments.length + files.length > 10) {
       toast({
         variant: "destructive",
-        description: "You can only upload up to 5 attachments per post.",
+        description: "Vous pouvez uploader jusqu'à 10 fichiers par annonce.",
       });
       return;
     }

@@ -4,11 +4,11 @@ import { useSession } from "@/app/(main)/SessionProvider";
 import { PostData } from "@/lib/types";
 import { cn, formatRelativeDate } from "@/lib/utils";
 import { Media } from "@prisma/client";
-import { MessageSquare, CheckCircle2 } from "lucide-react";
+import { MessageSquare, CheckCircle2, ChevronLeft, ChevronRight } from "lucide-react";
 import Image from "next/image";
 import VideoPost from "../VideoPost";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Comments from "../comments/Comments";
 import Linkify from "../Linkify";
 import UserAvatar from "../UserAvatar";
@@ -78,7 +78,6 @@ export default function Post({ post }: PostProps) {
                 followerCount={post.user._count.followers} 
               />
             </div>
-            {/* 🚀 Date cliquable vers le détail */}
             <Link
               href={`/posts/${post.id}`}
               className="block text-sm text-muted-foreground hover:underline"
@@ -95,49 +94,39 @@ export default function Post({ post }: PostProps) {
         />
       </div>
 
-      {/* 🚀 Contenu cliquable (sauf si on clique sur "Voir plus") */}
       <div className="relative">
-        <Link href={`/posts/${post.id}`} className="block">
-          <Linkify>
-            <div className="whitespace-pre-line break-words px-1 md:px-0">
-              {isExpanded ? post.content : post.content.substring(0, charLimit)}
-            </div>
-          </Linkify>
-        </Link>
+        <Linkify>
+          <div className="whitespace-pre-line break-words px-1 md:px-0 text-[15px]">
+            {isExpanded ? post.content : post.content.substring(0, charLimit)}
+            {isLongText && !isExpanded && "..."}
+          </div>
+        </Linkify>
         
         {isLongText && (
           <button
-            onClick={(e) => {
-              e.preventDefault(); // Empêche la navigation du Link parent
-              setIsExpanded(!isExpanded);
-            }}
-            className="ml-1 text-primary font-semibold hover:underline relative z-10"
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="mt-1 text-primary font-semibold hover:underline text-sm"
           >
-            {isExpanded ? "... Voir moins" : "... Voir plus"}
+            {isExpanded ? "Voir moins" : "Voir plus"}
           </button>
         )}
       </div>
 
-      {/* 🚀 Médias cliquables */}
+      {/* MÉDIAS OPTIMISÉS */}
       {!!post.attachments.length && (
-        <Link href={`/posts/${post.id}`} className="block">
-          <MediaPreviews attachments={post.attachments} postUserId={post.user.id} />
-        </Link>
+        <MediaPreviews attachments={post.attachments} />
       )}
 
       <div className="flex justify-center mt-2 px-1 md:px-0">
         <button 
-          onClick={(e) => {
-            e.stopPropagation();
-            redirectToChat(post.user.id);
-          }} 
-          className="w-full text-center bg-primary/10 text-primary py-3 rounded-xl font-semibold cursor-pointer hover:bg-primary/20 transition-colors"
+          onClick={() => window.location.href = `/messages?userId=${post.user.id}&postId=${post.id}`} 
+          className="w-full text-center bg-[#6ab344] text-white py-3 rounded-xl font-bold cursor-pointer hover:bg-[#5a9c39] transition-all active:scale-[0.98]"
         >
-          Discuter
+          Discuter sur le prix
         </button>
       </div>
 
-      <hr className="text-muted-foreground/20 mx-1 md:mx-0" />
+      <hr className="text-muted-foreground/10 mx-1 md:mx-0" />
       
       <div className="flex justify-between gap-5 px-1 md:px-0">
         <div className="flex items-center gap-5">
@@ -164,29 +153,23 @@ export default function Post({ post }: PostProps) {
       </div>
 
       {showComments && (
-        <div className="pt-2">
+        <div className="pt-2 animate-in fade-in slide-in-from-top-1">
            <Comments post={post} />
         </div>
       )}
     </article>
   );
-
-  function redirectToChat(postUserId: string) {
-    window.location.href = `/messages?userId=${postUserId}&postId=${post.id}`;
-  }
 }
-
-
 
 interface MediaPreviewsProps {
   attachments: Media[];
-  postUserId: string;
 }
 
-function MediaPreviews({ attachments, postUserId }: MediaPreviewsProps) {
+function MediaPreviews({ attachments }: MediaPreviewsProps) {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const totalMedia = attachments.length;
 
+  // Swipe pour mobile
   const handlers = useSwipeable({
     onSwipedLeft: () => setSelectedIndex((prev) => Math.min(prev + 1, totalMedia - 1)),
     onSwipedRight: () => setSelectedIndex((prev) => Math.max(prev - 1, 0)),
@@ -194,43 +177,77 @@ function MediaPreviews({ attachments, postUserId }: MediaPreviewsProps) {
     trackMouse: true,
   });
 
+  // Navigation flèches pour Desktop
+  const nextMedia = () => setSelectedIndex((prev) => Math.min(prev + 1, totalMedia - 1));
+  const prevMedia = () => setSelectedIndex((prev) => Math.max(prev - 1, 0));
+
   return (
-    <div className="relative -mx-4 md:mx-0 overflow-hidden bg-black/5" {...handlers}>
+    <div className="relative -mx-4 md:mx-0 overflow-hidden bg-black group/media rounded-none md:rounded-xl" {...handlers}>
+      
+      {/* Indicateur de position (ex: 1/10) */}
+      {totalMedia > 1 && (
+        <div className="absolute right-4 top-4 z-20 rounded-full bg-black/50 px-3 py-1 text-[11px] font-bold text-white backdrop-blur-md border border-white/10">
+          {selectedIndex + 1} / {totalMedia}
+        </div>
+      )}
+
+      {/* Flèches de navigation (Visible au hover sur Desktop) */}
+      {totalMedia > 1 && (
+        <>
+          {selectedIndex > 0 && (
+            <button 
+              onClick={prevMedia}
+              className="absolute left-3 top-1/2 z-30 -translate-y-1/2 rounded-full bg-white/20 p-2 text-white backdrop-blur-sm opacity-0 group-hover/media:opacity-100 transition-opacity hidden md:block hover:bg-white/40"
+            >
+              <ChevronLeft size={24} />
+            </button>
+          )}
+          {selectedIndex < totalMedia - 1 && (
+            <button 
+              onClick={nextMedia}
+              className="absolute right-3 top-1/2 z-30 -translate-y-1/2 rounded-full bg-white/20 p-2 text-white backdrop-blur-sm opacity-0 group-hover/media:opacity-100 transition-opacity hidden md:block hover:bg-white/40"
+            >
+              <ChevronRight size={24} />
+            </button>
+          )}
+        </>
+      )}
+
+      {/* Conteneur des médias */}
       <div 
-        className="flex transition-transform duration-500 ease-out" 
+        className="flex transition-transform duration-500 ease-[cubic-bezier(0.25,1,0.5,1)]" 
         style={{ transform: `translateX(-${selectedIndex * 100}%)` }}
       >
         {attachments.map((media) => (
-          <div key={media.id} className="w-full flex-shrink-0 flex items-center justify-center bg-black/5">
+          <div key={media.id} className="w-full flex-shrink-0 flex items-center justify-center bg-black min-h-[300px] max-h-[550px]">
             {media.type === "IMAGE" ? (
               <Image
                 src={media.url}
-                alt="Attachment"
+                alt="Produit"
                 width={800}
                 height={800}
-                className="w-full h-auto object-contain"
+                className="w-full h-auto max-h-[550px] object-contain"
                 loading="lazy"
                 unoptimized
               />
-            ) : media.type === "VIDEO" ? (
-              <div className="w-full h-auto">
-                <VideoPost src={media.url} className="w-full h-auto" />
-              </div>
             ) : (
-              <p className="p-4 text-destructive">Format non supporté</p>
+              <VideoPost src={media.url} className="w-full max-h-[550px]" />
             )}
           </div>
         ))}
       </div>
 
+      {/* Barre de progression (Dots) */}
       {totalMedia > 1 && (
-        <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 gap-1.5 bg-black/20 px-2 py-1 rounded-full backdrop-blur-sm">
+        <div className="absolute bottom-4 left-1/2 flex -translate-x-1/2 gap-1.5 px-2 py-1.5">
           {attachments.map((_, index) => (
             <div
               key={index}
               className={cn(
-                "h-1.5 w-1.5 rounded-full transition-colors",
-                index === selectedIndex ? "bg-white" : "bg-white/50"
+                "h-1.5 rounded-full transition-all duration-300",
+                index === selectedIndex 
+                  ? "bg-white w-5 shadow-sm" 
+                  : "bg-white/40 w-1.5"
               )}
             />
           ))}
@@ -245,7 +262,7 @@ function CommentButton({ post, onClick }: { post: PostData; onClick: () => void 
     <button onClick={onClick} className="flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors">
       <MessageSquare className="size-5" />
       <span className="text-sm font-medium tabular-nums">
-        {post._count.comments} <span className="hidden sm:inline">commentaires</span>
+        {post._count.comments}
       </span>
     </button>
   );
