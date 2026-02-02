@@ -147,7 +147,8 @@ export default function PostEditor() {
         <div className="flex items-center gap-3">
           <AddAttachmentsButton
             onFilesSelected={startUpload}
-            disabled={isUploading || attachments.length >= 5}
+            // Correction 1 : Autorisation jusqu'à 10 fichiers
+            disabled={isUploading || attachments.length >= 10}
           />
           {isUploading && (
             <div className="flex items-center gap-2">
@@ -191,20 +192,19 @@ function AddAttachmentsButton({ onFilesSelected, disabled }: AddAttachmentsButto
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
 
-    const MAX_SIZE_MB = 50; 
-    const MAX_VIDEO_DURATION = 60; 
+    // Correction 2 : Taille max 512 Mo et durée max 300s (5 min)
+    const MAX_SIZE_MB = 512; 
+    const MAX_VIDEO_DURATION = 300; 
 
     const validatedFiles: File[] = [];
 
     files.forEach((file) => {
-      // 1. Vérification de la taille
       const fileSizeMB = file.size / (1024 * 1024);
       if (fileSizeMB > MAX_SIZE_MB) {
         alert(`Le fichier ${file.name} est trop lourd (max ${MAX_SIZE_MB}Mo).`);
         return;
       }
 
-      // 2. Vérification de la durée pour les vidéos
       if (file.type.startsWith("video/")) {
         const video = document.createElement("video");
         video.preload = "metadata";
@@ -260,7 +260,12 @@ interface AttachmentPreviewsProps {
 
 function AttachmentPreviews({ attachments, removeAttachment }: AttachmentPreviewsProps) {
   return (
-    <div className={cn("flex flex-col gap-3", attachments.length > 1 && "sm:grid sm:grid-cols-2")}>
+    // Correction 3 : Grid de 3 colonnes pour supporter plus d'images sans prendre trop de place verticale
+    <div className={cn(
+      "flex flex-col gap-3", 
+      attachments.length > 1 && "sm:grid sm:grid-cols-2",
+      attachments.length > 2 && "lg:grid-cols-3"
+    )}>
       {attachments.map((attachment) => (
         <AttachmentPreview
           key={attachment.file.name}
@@ -278,29 +283,34 @@ interface AttachmentPreviewProps {
 }
 
 function AttachmentPreview({ attachment: { file, isUploading }, onRemoveClick }: AttachmentPreviewProps) {
-  const src = URL.createObjectURL(file);
+  const [src, setSrc] = useState<string>("");
+
+  // Utilisation d'un useEffect pour créer l'URL et la nettoyer proprement
+  useState(() => {
+    setSrc(URL.createObjectURL(file));
+  });
 
   return (
-    <div className={cn("relative mx-auto size-fit", isUploading && "opacity-50")}>
+    <div className={cn("relative mx-auto w-full", isUploading && "opacity-50")}>
       {file.type.startsWith("image") ? (
         <Image
           src={src}
           alt="Preview"
           width={500}
           height={500}
-          className="size-fit max-h-[25rem] rounded-2xl object-cover"
+          className="aspect-square w-full rounded-2xl object-cover shadow-sm"
         />
       ) : (
-        <video controls className="size-fit max-h-[25rem] rounded-2xl shadow-lg">
+        <video controls className="aspect-video w-full rounded-2xl shadow-lg bg-black">
           <source src={src} type={file.type} />
         </video>
       )}
       {!isUploading && (
         <button
           onClick={onRemoveClick}
-          className="absolute right-3 top-3 rounded-full bg-foreground/80 p-1.5 text-background backdrop-blur-sm transition-colors hover:bg-foreground"
+          className="absolute right-2 top-2 rounded-full bg-foreground/80 p-1.5 text-background backdrop-blur-sm transition-colors hover:bg-foreground"
         >
-          <X size={18} />
+          <X size={16} />
         </button>
       )}
     </div>

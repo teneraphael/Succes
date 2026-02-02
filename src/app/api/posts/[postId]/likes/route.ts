@@ -1,7 +1,7 @@
 import { validateRequest } from "@/auth";
 import prisma from "@/lib/prisma";
 import { LikeInfo } from "@/lib/types";
-import { sendPushNotification } from "@/lib/push-notifications"; // 1. Import de ta nouvelle fonction
+import { sendPushNotification } from "@/lib/push-notifications"; 
 
 export async function GET(
   req: Request,
@@ -64,7 +64,7 @@ export async function POST(
       where: { id: postId },
       select: {
         userId: true,
-        content: true, // On récupère le début du texte pour la notification
+        content: true, 
       },
     });
 
@@ -72,42 +72,43 @@ export async function POST(
       return Response.json({ error: "Post not found" }, { status: 404 });
     }
 
-    await prisma.$transaction([
-      prisma.like.upsert({
-        where: {
-          userId_postId: {
-            userId: loggedInUser.id,
-            postId,
-          },
-        },
-        create: {
+    // 1. On gère le Like avec upsert (indestructible)
+    await prisma.like.upsert({
+      where: {
+        userId_postId: {
           userId: loggedInUser.id,
           postId,
         },
-        update: {},
-      }),
-      ...(loggedInUser.id !== post.userId
-        ? [
-            prisma.notification.create({
-              data: {
-                issuerId: loggedInUser.id,
-                recipientId: post.userId,
-                postId,
-                type: "LIKE",
-              },
-            }),
-          ]
-        : []),
-    ]);
+      },
+      create: {
+        userId: loggedInUser.id,
+        postId,
+      },
+      update: {},
+    });
 
-    // --- 2. ENVOI DE LA NOTIFICATION PUSH ---
+    // 2. On gère la notification à part pour ne pas bloquer le Like en cas d'erreur de doublon
     if (loggedInUser.id !== post.userId) {
-      // On lance l'envoi sans 'await' pour ne pas faire attendre l'utilisateur
-      sendPushNotification(
-        post.userId,
-        "Nouveau Like ! ❤️",
-        `${loggedInUser.displayName} a aimé votre post : "${post.content.slice(0, 30)}..."`
-      );
+      try {
+        await prisma.notification.create({
+          data: {
+            issuerId: loggedInUser.id,
+            recipientId: post.userId,
+            postId,
+            type: "LIKE",
+          },
+        });
+
+        // Envoi Push uniquement si la notification en base a réussi
+        sendPushNotification(
+          post.userId,
+          "Nouveau Like ! ❤️",
+          `${loggedInUser.displayName} a aimé votre post : "${post.content.slice(0, 30)}..."`
+        );
+      } catch (e) {
+        // On ignore l'erreur si la notification existe déjà
+        console.log("Notification déjà existante, passée.");
+      }
     }
 
     return new Response();
@@ -139,22 +140,22 @@ export async function DELETE(
       return Response.json({ error: "Post not found" }, { status: 404 });
     }
 
-    await prisma.$transaction([
-      prisma.like.deleteMany({
-        where: {
-          userId: loggedInUser.id,
-          postId,
-        },
-      }),
-      prisma.notification.deleteMany({
-        where: {
-          issuerId: loggedInUser.id,
-          recipientId: post.userId,
-          postId,
-          type: "LIKE",
-        },
-      }),
-    ]);
+    // On utilise deleteMany qui ne crash pas si l'élément est déjà supprimé
+    await prisma.like.deleteMany({
+      where: {
+        userId: loggedInUser.id,
+        postId,
+      },
+    });
+
+    await prisma.notification.deleteMany({
+      where: {
+        issuerId: loggedInUser.id,
+        recipientId: post.userId,
+        postId,
+        type: "LIKE",
+      },
+    });
 
     return new Response();
   } catch (error) {

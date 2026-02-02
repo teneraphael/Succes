@@ -30,7 +30,8 @@ export default function LikeButton({ postId, initialState }: LikeButtonProps) {
     staleTime: Infinity,
   });
 
-  const { mutate } = useMutation({
+  // Ajout de isPending ici
+  const { mutate, isPending } = useMutation({
     mutationFn: async () => {
       // 1. Action de Like/Unlike en DB
       const request = data.isLikedByUser
@@ -39,14 +40,14 @@ export default function LikeButton({ postId, initialState }: LikeButtonProps) {
       
       await request;
 
-      // 2. 🚀 SIGNAL POUR L'ALGORITHME (Uniquement si on Like)
+      // 2. SIGNAL POUR L'ALGORITHME (Uniquement si on Like)
       if (!data.isLikedByUser) {
         await fetch("/api/posts/track", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ 
             id: postId, 
-            type: "FAVORITE", // Signal fort pour l'algo
+            type: "FAVORITE", 
             itemType: "POST" 
           }),
         }).catch(err => console.error("Algo tracking error:", err));
@@ -76,10 +77,18 @@ export default function LikeButton({ postId, initialState }: LikeButtonProps) {
   });
 
   return (
-    <button onClick={() => mutate()} className="flex items-center gap-2">
+    <button 
+      onClick={() => mutate()} 
+      // Sécurité : empêche le clic frénétique
+      disabled={isPending} 
+      className={cn(
+        "flex items-center gap-2 transition-opacity",
+        isPending && "opacity-50 cursor-not-allowed" // Feedback visuel optionnel
+      )}
+    >
       <Heart
         className={cn(
-          "size-5",
+          "size-5 transition-colors",
           data.isLikedByUser && "fill-red-500 text-red-500",
         )}
       />

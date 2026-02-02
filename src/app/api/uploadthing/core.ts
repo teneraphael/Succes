@@ -50,9 +50,17 @@ export const fileRouter = {
 
       return { avatarUrl: newAvatarUrl };
     }),
+  
+  // --- SECTION MODIFIÉE POUR LES LIMITES ---
   attachment: f({
-    image: { maxFileSize: "4MB", maxFileCount: 5 },
-    video: { maxFileSize: "64MB", maxFileCount: 5 },
+    image: { 
+      maxFileSize: "16MB", // Augmenté pour les photos haute résolution
+      maxFileCount: 10     // Autorise jusqu'à 10 photos
+    },
+    video: { 
+      maxFileSize: "512MB", // Débridé à 512MB pour les longues vidéos
+      maxFileCount: 5       // Autorise plusieurs vidéos par annonce
+    },
   })
     .middleware(async () => {
       const { user } = await validateRequest();
