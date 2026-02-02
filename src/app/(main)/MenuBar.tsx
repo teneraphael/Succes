@@ -2,7 +2,7 @@ import { validateRequest } from "@/auth";
 import { Button } from "@/components/ui/button";
 import prisma from "@/lib/prisma";
 import streamServerClient from "@/lib/stream";
-import { Bookmark, Home } from "lucide-react";
+import { Bookmark, Home, Video } from "lucide-react";
 import Link from "next/link";
 import MessagesButton from "./MessagesButton";
 import NotificationsButton from "./NotificationsButton";
@@ -28,6 +28,7 @@ export default async function MenuBar({ className }: MenuBarProps) {
 
   return (
     <div className={className}>
+      {/* ACCUEIL */}
       <Button
         variant="ghost"
         className="flex items-center justify-start gap-3"
@@ -35,14 +36,31 @@ export default async function MenuBar({ className }: MenuBarProps) {
         asChild
       >
         <Link href="/">
-          <Home />
-          <span className="hidden lg:inline">Home</span>
+          <Home className="size-5" />
+          <span className="hidden lg:inline">Accueil</span>
         </Link>
       </Button>
+
+      {/* VIDÉOS (Style harmonisé noir) */}
+      <Button
+        variant="ghost"
+        className="flex items-center justify-start gap-3"
+        title="Vidéos"
+        asChild
+      >
+        <Link href="/video">
+          <Video className="size-5" />
+          <span className="hidden lg:inline">Vidéos</span>
+        </Link>
+      </Button>
+
       <NotificationsButton
         initialState={{ unreadCount: unreadNotificationsCount }}
       />
+      
       <MessagesButton initialState={{ unreadCount: unreadMessagesCount }} />
+
+      {/* FAVORIS */}
       <Button
         variant="ghost"
         className="flex items-center justify-start gap-3"
@@ -50,8 +68,8 @@ export default async function MenuBar({ className }: MenuBarProps) {
         asChild
       >
         <Link href="/bookmarks">
-          <Bookmark />
-          <span className="hidden lg:inline">Bookmarks</span>
+          <Bookmark className="size-5" />
+          <span className="hidden lg:inline">Favoris</span>
         </Link>
       </Button>
     </div>
