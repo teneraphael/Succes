@@ -9,7 +9,9 @@ import { fileRouter } from "./api/uploadthing/core";
 import "./globals.css";
 import ReactQueryProvider from "./ReactQueryProvider";
 import SessionProvider from "./(main)/SessionProvider";
-import { validateRequest } from "@/auth"; // Importe ta fonction Lucia
+import { validateRequest } from "@/auth"; 
+import { LanguageProvider } from "@/components/LanguageProvider";
+import LanguageSync from "@/components/LanguageSync";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -33,28 +35,31 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // 1. Récupérer la session côté serveur
   const sessionValues = await validateRequest();
 
   return (
-    <html lang="en">
+    // suppressHydrationWarning est crucial ici
+    <html lang="en" suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
-        <NextSSRPlugin routerConfig={extractRouterConfig(fileRouter)} />
-        <ReactQueryProvider>
-          {/* 2. Envelopper avec SessionProvider AVANT ThemeProvider et children */}
-          <SessionProvider value={sessionValues}>
-            <ChatInitializer />
-            <ThemeProvider
-              attribute="class"
-              defaultTheme="system"
-              enableSystem
-              disableTransitionOnChange
-            >
-              {children}
-            </ThemeProvider>
-          </SessionProvider>
-        </ReactQueryProvider>
-        <Toaster />
+        <LanguageProvider>
+          <LanguageSync>
+            <NextSSRPlugin routerConfig={extractRouterConfig(fileRouter)} />
+            <ReactQueryProvider>
+              <SessionProvider value={sessionValues}>
+                <ChatInitializer />
+                <ThemeProvider
+                  attribute="class"
+                  defaultTheme="system"
+                  enableSystem
+                  disableTransitionOnChange
+                >
+                  {children}
+                </ThemeProvider>
+              </SessionProvider>
+            </ReactQueryProvider>
+            <Toaster />
+          </LanguageSync>
+        </LanguageProvider>
       </body>
     </html>
   );

@@ -2,24 +2,39 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { X } from "lucide-react"; // Import de l'icône de fermeture
 
 export default function WelcomeMessage() {
-  const [isVisible, setIsVisible] = useState(true);
+  const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
-    // Le message disparaît après 10 secondes
-    const timer = setTimeout(() => {
-      setIsVisible(false);
-    }, 100000);
-
-    return () => clearTimeout(timer);
+    // On vérifie si l'utilisateur a déjà fermé ce message par le passé
+    const isHidden = localStorage.getItem("welcome-message-closed");
+    if (!isHidden) {
+      setIsVisible(true);
+    }
   }, []);
+
+  const handleClose = () => {
+    setIsVisible(false);
+    // On enregistre le choix pour que le message ne revienne pas
+    localStorage.setItem("welcome-message-closed", "true");
+  };
 
   if (!isVisible) return null;
 
   return (
-    <div className="w-full bg-[#f0f7ff] p-8 rounded-3xl border-2 border-dashed border-[#4a90e2]/30 flex flex-col items-center text-center space-y-4 transition-all duration-500 animate-in fade-in zoom-in">
+    <div className="relative w-full bg-[#f0f7ff] p-8 rounded-[32px] border-2 border-dashed border-[#4a90e2]/30 flex flex-col items-center text-center space-y-4 transition-all duration-500 animate-in fade-in zoom-in">
       
+      {/* BOUTON FERMER (X) */}
+      <button 
+        onClick={handleClose}
+        className="absolute right-4 top-4 p-1 rounded-full text-gray-400 hover:bg-white hover:text-[#4a90e2] transition-colors"
+        aria-label="Fermer"
+      >
+        <X className="size-5" />
+      </button>
+
       {/* Logo DealCity Miniature */}
       <div className="flex items-end gap-1">
         <div className="w-[4px] h-3 bg-[#4a90e2] rounded-full"></div>
@@ -34,7 +49,7 @@ export default function WelcomeMessage() {
           Bienvenue parmi nous ! 👋
         </h2>
         <p className="text-gray-600 text-sm max-w-sm mx-auto">
-          Explorez les meilleures offres. Pour publier vos produits, devenez un vendeur certifié.
+          {"Explorez les meilleures offres. Pour publier vos produits, devenez un vendeur certifié."}
         </p>
       </div>
 
@@ -45,7 +60,9 @@ export default function WelcomeMessage() {
         Become Seller
       </Link>
       
-      <p className="text-[10px] text-gray-400 italic">Ce message disparaîtra dans quelques secondes...</p>
+      <p className="text-[10px] text-gray-400 italic">
+        {"Cliquez sur la croix pour ne plus voir ce message"}
+      </p>
     </div>
   );
 }

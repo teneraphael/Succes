@@ -5,6 +5,7 @@ import ChatInitializer from "@/components/ChatInitializer";
 import Navbar from "./Navbar";
 import SessionProvider from "./SessionProvider";
 import LayoutClientWrapper from "@/components/LayoutClientWrapper";
+import { LanguageProvider } from "@/components/LanguageProvider";
 
 
 export default async function Layout({
@@ -17,6 +18,7 @@ export default async function Layout({
   if (!session.user) redirect("/login");
 
   return (
+    <LanguageProvider>
     <SessionProvider value={session}>
       {/* 2. Place-le ICI : il est bien ENTOURÉ par SessionProvider */}
      <ChatInitializer />
@@ -33,5 +35,6 @@ export default async function Layout({
         {children}
       </LayoutClientWrapper>
     </SessionProvider>
+    </LanguageProvider>
   );
 }
