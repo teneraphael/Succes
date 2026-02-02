@@ -50,7 +50,7 @@ export default function PostMoreButton({
   // 2. Partager (Menu natif mobile ou copie lien)
   async function handleShare() {
     const shareData = {
-      title: "DealCity - " + post.user.displayName,
+      title: `DealCity - ${post.user.displayName}`,
       text: post.content,
       url: `${window.location.origin}/posts/${post.id}`,
     };
@@ -79,13 +79,13 @@ export default function PostMoreButton({
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        // Format du nom : dealcity_username_date_index
         a.download = `dealcity_${post.user.username}_${index + 1}`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         window.URL.revokeObjectURL(url);
       } catch (error) {
+        console.error(error);
         toast({ variant: "destructive", description: "Erreur lors du téléchargement." });
       }
     }
@@ -118,7 +118,7 @@ export default function PostMoreButton({
           {/* OPTIONS DE PARTAGE & ACCÈS */}
           <DropdownMenuItem onClick={handleShare}>
             <Share2 className="mr-2 size-4" />
-            Partager l'annonce
+            {"Partager l'annonce"}
           </DropdownMenuItem>
 
           <DropdownMenuItem onClick={copyLink}>
@@ -127,13 +127,13 @@ export default function PostMoreButton({
           </DropdownMenuItem>
 
           <DropdownMenuItem asChild>
-            <a href={`/posts/${post.id}`} target="_blank">
+            <a href={`/posts/${post.id}`} target="_blank" rel="noopener noreferrer">
               <ExternalLink className="mr-2 size-4" />
               Ouvrir dans un onglet
             </a>
           </DropdownMenuItem>
 
-          {/* OPTION TÉLÉCHARGEMENT (Seulement si médias présents) */}
+          {/* OPTION TÉLÉCHARGEMENT */}
           {post.attachments.length > 0 && (
             <DropdownMenuItem onClick={downloadMedia}>
               <Download className="mr-2 size-4" />
