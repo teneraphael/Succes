@@ -20,9 +20,10 @@ export const loginSchema = z.object({
 
 export type LoginValues = z.infer<typeof loginSchema>;
 
+// --- CORRECTION : PASSAGE À 10 MÉDIAS ---
 export const createPostSchema = z.object({
   content: requiredString,
-  mediaIds: z.array(z.string()).max(5, "Cannot have more than 5 attachments"),
+  mediaIds: z.array(z.string()).max(10, "Vous ne pouvez pas ajouter plus de 10 fichiers"),
 });
 
 export const updateUserProfileSchema = z.object({
