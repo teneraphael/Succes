@@ -127,7 +127,7 @@ export default function Post({ post }: PostProps) {
           onClick={() => window.location.href = `/messages?userId=${post.user.id}&postId=${post.id}`} 
           className="w-full text-center bg-[#6ab344] text-white py-3 rounded-xl font-bold cursor-pointer hover:bg-[#5a9c39] transition-all active:scale-[0.98]"
         >
-          Discuter sur le prix
+          Discuter
         </button>
       </div>
 

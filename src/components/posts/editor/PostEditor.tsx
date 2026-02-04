@@ -12,14 +12,18 @@ import StarterKit from "@tiptap/starter-kit";
 import { useDropzone } from "@uploadthing/react";
 import { Camera, Loader2, X, Tag, Banknote, ShoppingBag } from "lucide-react";
 import Image from "next/image";
-import { ClipboardEvent, useRef, useState } from "react";
+import { ClipboardEvent, useRef, useState, useEffect } from "react";
 import { useSubmitPostMutation } from "./mutations";
+import { useRouter } from "next/navigation"; // AJOUTÉ
+import { useToast } from "@/components/ui/use-toast"; // AJOUTÉ
 import "./styles.css";
 import useMediaUpload, { Attachment } from "./useMediaUpload";
 
 export default function PostEditor() {
   const { user } = useSession();
   const mutation = useSubmitPostMutation();
+  const router = useRouter(); // AJOUTÉ
+  const { toast } = useToast(); // AJOUTÉ
 
   const [productName, setProductName] = useState("");
   const [price, setPrice] = useState("");
@@ -74,6 +78,9 @@ export default function PostEditor() {
           setProductName("");
           setPrice("");
           resetMediaUploads();
+          toast({ description: "Annonce mise en ligne avec succès !" }); // AJOUTÉ
+          router.push("/"); // REDIRECTION VERS L'ACCUEIL
+          router.refresh();
         },
       },
     );
@@ -147,7 +154,6 @@ export default function PostEditor() {
         <div className="flex items-center gap-3">
           <AddAttachmentsButton
             onFilesSelected={startUpload}
-            // Correction 1 : Autorisation jusqu'à 10 fichiers
             disabled={isUploading || attachments.length >= 10}
           />
           {isUploading && (
@@ -178,13 +184,7 @@ export default function PostEditor() {
   );
 }
 
-// --- SOUS-COMPOSANTS ---
-
-interface AddAttachmentsButtonProps {
-  onFilesSelected: (files: File[]) => void;
-  disabled: boolean;
-}
-
+// Les autres sous-composants restent identiques à ta version...
 function AddAttachmentsButton({ onFilesSelected, disabled }: AddAttachmentsButtonProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -192,7 +192,6 @@ function AddAttachmentsButton({ onFilesSelected, disabled }: AddAttachmentsButto
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
 
-    // Correction 2 : Taille max 512 Mo et durée max 300s (5 min)
     const MAX_SIZE_MB = 512; 
     const MAX_VIDEO_DURATION = 300; 
 
@@ -225,7 +224,6 @@ function AddAttachmentsButton({ onFilesSelected, disabled }: AddAttachmentsButto
     if (validatedFiles.length) {
       onFilesSelected(validatedFiles);
     }
-
     e.target.value = ""; 
   };
 
@@ -236,7 +234,6 @@ function AddAttachmentsButton({ onFilesSelected, disabled }: AddAttachmentsButto
         size="icon"
         className="text-primary hover:bg-primary/10 transition-transform active:scale-90"
         disabled={disabled}
-        title="Prendre une photo/vidéo ou choisir un fichier"
         onClick={() => fileInputRef.current?.click()}
       >
         <Camera size={26} />
@@ -253,14 +250,8 @@ function AddAttachmentsButton({ onFilesSelected, disabled }: AddAttachmentsButto
   );
 }
 
-interface AttachmentPreviewsProps {
-  attachments: Attachment[];
-  removeAttachment: (fileName: string) => void;
-}
-
 function AttachmentPreviews({ attachments, removeAttachment }: AttachmentPreviewsProps) {
   return (
-    // Correction 3 : Grid de 3 colonnes pour supporter plus d'images sans prendre trop de place verticale
     <div className={cn(
       "flex flex-col gap-3", 
       attachments.length > 1 && "sm:grid sm:grid-cols-2",
@@ -277,18 +268,14 @@ function AttachmentPreviews({ attachments, removeAttachment }: AttachmentPreview
   );
 }
 
-interface AttachmentPreviewProps {
-  attachment: Attachment;
-  onRemoveClick: () => void;
-}
-
 function AttachmentPreview({ attachment: { file, isUploading }, onRemoveClick }: AttachmentPreviewProps) {
   const [src, setSrc] = useState<string>("");
 
-  // Utilisation d'un useEffect pour créer l'URL et la nettoyer proprement
-  useState(() => {
-    setSrc(URL.createObjectURL(file));
-  });
+  useEffect(() => {
+    const objectUrl = URL.createObjectURL(file);
+    setSrc(objectUrl);
+    return () => URL.revokeObjectURL(objectUrl);
+  }, [file]);
 
   return (
     <div className={cn("relative mx-auto w-full", isUploading && "opacity-50")}>
