@@ -9,7 +9,8 @@ import {
   Download, 
   Copy, 
   Share2,
-  ExternalLink 
+  ExternalLink,
+  Loader2 // Import pour le chargement
 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "../ui/button";
@@ -22,6 +23,7 @@ import {
 } from "../ui/dropdown-menu";
 import DeletePostDialog from "./DeletePostDialog";
 import { useToast } from "@/components/ui/use-toast";
+import { useRouter } from "next/navigation";
 
 interface PostMoreButtonProps {
   post: PostData;
@@ -34,20 +36,20 @@ export default function PostMoreButton({
 }: PostMoreButtonProps) {
   const { user } = useSession();
   const { toast } = useToast();
+  const router = useRouter();
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [isReporting, setIsReporting] = useState(false); // État de chargement pour le signalement
 
   if (!user) return null;
 
   // --- ACTIONS ---
 
-  // 1. Copier le lien
   async function copyLink() {
     const url = `${window.location.origin}/posts/${post.id}`;
     await navigator.clipboard.writeText(url);
     toast({ description: "Lien copié dans le presse-papier." });
   }
 
-  // 2. Partager (Menu natif mobile ou copie lien)
   async function handleShare() {
     const shareData = {
       title: `DealCity - ${post.user.displayName}`,
@@ -66,10 +68,8 @@ export default function PostMoreButton({
     }
   }
 
-  // 3. Télécharger les médias
   async function downloadMedia() {
     if (post.attachments.length === 0) return;
-    
     toast({ description: "Préparation du téléchargement..." });
 
     for (const [index, media] of post.attachments.entries()) {
@@ -91,17 +91,40 @@ export default function PostMoreButton({
     }
   }
 
-  // 4. Signaler
+  // --- LOGIQUE DE SIGNALEMENT ---
   async function handleReport() {
+    if (isReporting) return;
+    setIsReporting(true);
+
     try {
-      const response = await fetch(`/api/posts/${post.id}/report`, { method: "POST" });
+      const response = await fetch(`/api/posts/${post.id}/report`, { 
+        method: "POST",
+        headers: { "Content-Type": "application/json" }
+      });
+
+      const data = await response.json();
+
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Erreur lors du signalement");
+        // Le serveur renvoie maintenant un statut 400 si déjà signalé
+        throw new Error(data.error || "Erreur lors du signalement");
       }
-      toast({ description: "Merci ! Ce contenu a été signalé." });
+
+      toast({ 
+        description: data.message, 
+        variant: data.message.includes("supprimé") ? "destructive" : "default" 
+      });
+
+      if (data.message.includes("supprimé")) {
+        router.refresh(); 
+      }
+
     } catch (error: any) {
-      toast({ variant: "destructive", description: error.message || "Déjà signalé." });
+      toast({ 
+        variant: "destructive", 
+        description: error.message // Affichera "Vous avez déjà signalé ce contenu."
+      });
+    } finally {
+      setIsReporting(false);
     }
   }
 
@@ -115,7 +138,6 @@ export default function PostMoreButton({
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-56">
           
-          {/* OPTIONS DE PARTAGE & ACCÈS */}
           <DropdownMenuItem onClick={handleShare}>
             <Share2 className="mr-2 size-4" />
             {"Partager l'annonce"}
@@ -133,7 +155,6 @@ export default function PostMoreButton({
             </a>
           </DropdownMenuItem>
 
-          {/* OPTION TÉLÉCHARGEMENT */}
           {post.attachments.length > 0 && (
             <DropdownMenuItem onClick={downloadMedia}>
               <Download className="mr-2 size-4" />
@@ -143,7 +164,6 @@ export default function PostMoreButton({
 
           <DropdownMenuSeparator />
 
-          {/* ACTIONS SENSIBLES */}
           {post.user.id === user.id ? (
             <DropdownMenuItem
               onClick={() => setShowDeleteDialog(true)}
@@ -153,9 +173,17 @@ export default function PostMoreButton({
               Supprimer mon annonce
             </DropdownMenuItem>
           ) : (
-            <DropdownMenuItem onClick={handleReport} className="text-amber-600 focus:text-amber-600">
-              <ShieldAlert className="mr-2 size-4" />
-              Signaler le contenu
+            <DropdownMenuItem 
+              onClick={handleReport} 
+              disabled={isReporting}
+              className="text-amber-600 focus:text-amber-600 font-medium cursor-pointer"
+            >
+              {isReporting ? (
+                <Loader2 className="mr-2 size-4 animate-spin" />
+              ) : (
+                <ShieldAlert className="mr-2 size-4" />
+              )}
+              {isReporting ? "Vérification..." : "Signaler le contenu"}
             </DropdownMenuItem>
           )}
 
