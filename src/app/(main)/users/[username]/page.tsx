@@ -13,9 +13,17 @@ import { notFound } from "next/navigation";
 import { cache } from "react";
 import EditProfileButton from "./EditProfileButton";
 import UserPosts from "./UserPosts";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import BookmarksFeed from "@/app/(main)/bookmarks/Bookmarks"; 
 
 interface PageProps {
   params: { username: string };
+}
+
+// --- AJOUT DE L'INTERFACE MANQUANTE ---
+interface UserProfileProps {
+  user: UserData;
+  loggedInUserId: string;
 }
 
 const getUser = cache(async (username: string, loggedInUserId: string) => {
@@ -38,11 +46,8 @@ export async function generateMetadata({
   params: { username },
 }: PageProps): Promise<Metadata> {
   const { user: loggedInUser } = await validateRequest();
-
   if (!loggedInUser) return {};
-
   const user = await getUser(username, loggedInUser.id);
-
   return {
     title: `${user.displayName} (@${user.username})`,
   };
@@ -54,32 +59,49 @@ export default async function Page({ params: { username } }: PageProps) {
   if (!loggedInUser) {
     return (
       <p className="text-destructive">
-        You&apos;re not authorized to view this page.
+        Vous n&apos;êtes pas autorisé à voir cette page.
       </p>
     );
   }
 
   const user = await getUser(username, loggedInUser.id);
+  const isUserProfile = user.id === loggedInUser.id;
 
   return (
     <main className="flex w-full min-w-0 gap-5">
       <div className="w-full min-w-0 space-y-5">
         <UserProfile user={user} loggedInUserId={loggedInUser.id} />
-        <div className="rounded-2xl bg-card p-5 shadow-sm">
-          <h2 className="text-center text-2xl font-bold">
-            {user.displayName}&apos;s posts
-          </h2>
-        </div>
-        <UserPosts userId={user.id} />
+        
+        <Tabs defaultValue="posts" className="w-full">
+          <TabsList className="bg-card border w-full justify-start rounded-2xl p-1">
+            <TabsTrigger value="posts" className="px-6">Annonces</TabsTrigger>
+            {isUserProfile && (
+              <TabsTrigger value="bookmarks" className="px-6">Mes Favoris</TabsTrigger>
+            )}
+          </TabsList>
+
+          <TabsContent value="posts" className="space-y-5">
+            <div className="rounded-2xl bg-card p-5 shadow-sm border mt-5">
+              <h2 className="text-center text-xl font-bold">
+                {isUserProfile ? "Mes annonces" : `Annonces de ${user.displayName}`}
+              </h2>
+            </div>
+            <UserPosts userId={user.id} />
+          </TabsContent>
+
+          {isUserProfile && (
+            <TabsContent value="bookmarks" className="space-y-5">
+               <div className="rounded-2xl bg-card p-5 shadow-sm border mt-5">
+                <h2 className="text-center text-xl font-bold">Mes articles enregistrés</h2>
+              </div>
+              <BookmarksFeed />
+            </TabsContent>
+          )}
+        </Tabs>
       </div>
       <TrendsSidebar />
     </main>
   );
-}
-
-interface UserProfileProps {
-  user: UserData;
-  loggedInUserId: string;
 }
 
 async function UserProfile({ user, loggedInUserId }: UserProfileProps) {
@@ -91,7 +113,7 @@ async function UserProfile({ user, loggedInUserId }: UserProfileProps) {
   };
 
   return (
-    <div className="h-fit w-full space-y-5 rounded-2xl bg-card p-5 shadow-sm">
+    <div className="h-fit w-full space-y-5 rounded-2xl bg-card p-5 shadow-sm border">
       <UserAvatar
         avatarUrl={user.avatarUrl}
         size={250}
@@ -103,13 +125,12 @@ async function UserProfile({ user, loggedInUserId }: UserProfileProps) {
             <h1 className="text-3xl font-bold">{user.displayName}</h1>
             <div className="text-muted-foreground">@{user.username}</div>
           </div>
-          <div>Member since {formatDate(user.createdAt, "MMM d, yyyy")}</div>
-          <div className="flex items-center gap-3">
+          <div className="text-sm text-muted-foreground">
+            Membre depuis {formatDate(user.createdAt, "MMM d, yyyy")}
+          </div>
+          <div className="flex items-center gap-3 text-sm">
             <span>
-              Posts:{" "}
-              <span className="font-semibold">
-                {formatNumber(user._count.posts)}
-              </span>
+              Annonces: <span className="font-semibold">{formatNumber(user._count.posts)}</span>
             </span>
             <FollowerCount userId={user.id} initialState={followerInfo} />
           </div>
@@ -124,7 +145,7 @@ async function UserProfile({ user, loggedInUserId }: UserProfileProps) {
         <>
           <hr />
           <Linkify>
-            <div className="overflow-hidden whitespace-pre-line break-words">
+            <div className="overflow-hidden whitespace-pre-line break-words italic text-muted-foreground text-sm">
               {user.bio}
             </div>
           </Linkify>

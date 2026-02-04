@@ -42,8 +42,7 @@ export default function BookmarkButton({
       
       await request;
 
-      // 2. 🚀 SIGNAL CRUCIAL POUR L'ALGO
-      // Si l'utilisateur enregistre, on considère cela comme un "FAVORITE" (Poids max)
+      // 2. 🚀 SIGNAL ALGO : Si enregistrement, on track l'intérêt
       if (!data.isBookmarkedByUser) {
         await fetch("/api/posts/track", {
           method: "POST",
@@ -57,8 +56,11 @@ export default function BookmarkButton({
       }
     },
     onMutate: async () => {
+      // Message plus sympa en français
       toast({
-        description: `Post ${data.isBookmarkedByUser ? "un" : ""}bookmarked`,
+        description: data.isBookmarkedByUser 
+          ? "Retiré des favoris" 
+          : "Enregistré dans vos favoris",
       });
 
       await queryClient.cancelQueries({ queryKey });
@@ -76,17 +78,29 @@ export default function BookmarkButton({
       console.error(error);
       toast({
         variant: "destructive",
-        description: "Something went wrong. Please try again.",
+        description: "Une erreur est survenue. Veuillez réessayer.",
       });
     },
+    // On invalide pour forcer la mise à jour des flux de favoris ailleurs
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["bookmarks-feed"] });
+    }
   });
 
   return (
-    <button onClick={() => mutate()} className="flex items-center gap-2">
+    <button 
+      onClick={(e) => {
+        e.preventDefault(); // Évite de cliquer sur le post si le bouton est dans une carte
+        mutate();
+      }} 
+      className="flex items-center gap-2 group"
+    >
       <Bookmark
         className={cn(
-          "size-5",
-          data.isBookmarkedByUser && "fill-primary text-primary",
+          "size-5 transition-colors group-hover:text-primary",
+          data.isBookmarkedByUser 
+            ? "fill-primary text-primary" 
+            : "text-muted-foreground",
         )}
       />
     </button>
