@@ -12,7 +12,8 @@ import {
   Sun, 
   UserIcon, 
   Store, 
-  Languages 
+  Languages,
+  LayoutDashboard // Ajout de l'icône Dashboard
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import Link from "next/link";
@@ -41,9 +42,7 @@ export default function UserButton({ className }: UserButtonProps) {
   const { t, lang, setLang } = useLanguage(); 
   const queryClient = useQueryClient();
 
-  // --- CORRECTION 1 : Empêche l'erreur "'user' is possibly 'null'" ---
   if (!user) return null;
- 
 
   return (
     <DropdownMenu>
@@ -54,11 +53,20 @@ export default function UserButton({ className }: UserButtonProps) {
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56">
         <DropdownMenuLabel>
-          {/* --- CORRECTION 2 : Utilise les clés du dictionnaire --- */}
           {t.logged_in_as} @{user.username}
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         
+        {/* --- ÉTAPE 1 : AJOUT DU DASHBOARD POUR LES VENDEURS --- */}
+        {user.isSeller && (
+          <Link href="/seller/dashboard">
+            <DropdownMenuItem className="font-bold text-primary focus:text-primary">
+              <LayoutDashboard className="mr-2 size-4" />
+              Tableau de Bord
+            </DropdownMenuItem>
+          </Link>
+        )}
+
         <Link href={`/users/${user.username}`}>
           <DropdownMenuItem>
             <UserIcon className="mr-2 size-4" />
@@ -66,6 +74,7 @@ export default function UserButton({ className }: UserButtonProps) {
           </DropdownMenuItem>
         </Link>
 
+        {/* --- ÉTAPE 2 : GARDER "DEVENIR VENDEUR" POUR LES AUTRES --- */}
         {!user.isSeller && (
           <Link href="/become-seller">
             <DropdownMenuItem>

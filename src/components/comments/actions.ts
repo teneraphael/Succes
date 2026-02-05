@@ -5,22 +5,41 @@ import prisma from "@/lib/prisma";
 import { getCommentDataInclude, PostData } from "@/lib/types";
 import { createCommentSchema } from "@/lib/validation";
 import { sendPushNotification } from "@/lib/push-notifications";
+import { UTApi } from "uploadthing/server"; // Ajout de l'API UploadThing
+
+const utapi = new UTApi();
 
 export async function submitComment({
   post,
   content,
+  media,
 }: {
   post: PostData;
   content: string;
+  media?: File | null;
 }) {
   const { user: loggedInUser } = await validateRequest();
   if (!loggedInUser) throw new Error("Unauthorized");
 
   const { content: contentValidated } = createCommentSchema.parse({ content });
 
+  // --- LOGIQUE D'UPLOAD RÉELLE ---
+  let mediaUrl: string | null = null;
+  
+  if (media instanceof File) {
+    try {
+      const uploadResult = await utapi.uploadFiles(media);
+      if (uploadResult.data) {
+        mediaUrl = uploadResult.data.url; // On récupère l'URL générée
+      }
+    } catch (error) {
+      console.error("Erreur UploadThing:", error);
+      // Optionnel: on peut continuer sans image ou stopper ici
+    }
+  }
+
   const mentionMatch = contentValidated.match(/^@(\w+)/);
   const mentionedUsername = mentionMatch ? mentionMatch[1] : null;
-
   let recipientId = post.user.id;
 
   if (mentionedUsername) {
@@ -37,6 +56,7 @@ export async function submitComment({
         content: contentValidated,
         postId: post.id,
         userId: loggedInUser.id,
+        mediaUrl: mediaUrl, // L'URL est maintenant sauvegardée !
       },
       include: getCommentDataInclude(loggedInUser.id),
     }),
@@ -54,20 +74,18 @@ export async function submitComment({
       : []),
   ]);
 
+  // Notifications...
   if (recipientId !== loggedInUser.id) {
     const title = mentionedUsername ? "Nouvelle réponse ! ↩️" : "Nouveau commentaire ! 💬";
     const body = mentionedUsername
-      ? `${loggedInUser.displayName} vous a répondu : "${contentValidated.slice(0, 30)}..."`
-      : `${loggedInUser.displayName} a commenté votre post : "${contentValidated.slice(0, 30)}..."`;
-
-    // AJOUT DU 4ème ARGUMENT (URL)
+      ? `${loggedInUser.displayName} vous a répondu.`
+      : `${loggedInUser.displayName} a commenté votre post.`;
     sendPushNotification(recipientId, title, body, `/posts/${post.id}`);
   }
 
   return newComment;
 }
-
-// Correction : Ajout de l'export explicite
+// ... garde deleteComment identique
 export async function deleteComment(id: string) {
   const { user } = await validateRequest();
   if (!user) throw new Error("Unauthorized");

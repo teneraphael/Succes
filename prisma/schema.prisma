@@ -176,6 +176,8 @@ enum MediaType {
 model Comment {
   id        String   @id @default(cuid())
   content   String
+  image   String?
+  mediaUrl String?
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   postId    String

@@ -15,7 +15,10 @@ export function useSubmitCommentMutation(postId: string) {
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
-    mutationFn: submitComment,
+    // On modifie l'argument pour accepter "media"
+    mutationFn: ({ post, content, media }: { post: any, content: string, media?: File | null }) => 
+      submitComment({ post, content, media }), // L'action devra gérer le media
+    
     onSuccess: async (newComment) => {
       const queryKey: QueryKey = ["comments", postId];
 
@@ -32,7 +35,8 @@ export function useSubmitCommentMutation(postId: string) {
               pages: [
                 {
                   previousCursor: firstPage.previousCursor,
-                  comments: [...firstPage.comments, newComment],
+                  // On place le nouveau commentaire en haut de la liste
+                  comments: [newComment, ...firstPage.comments], 
                 },
                 ...oldData.pages.slice(1),
               ],
@@ -63,6 +67,8 @@ export function useSubmitCommentMutation(postId: string) {
 
   return mutation;
 }
+
+
 
 export function useDeleteCommentMutation() {
   const { toast } = useToast();

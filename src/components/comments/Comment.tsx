@@ -3,17 +3,18 @@
 import { useSession } from "@/app/(main)/SessionProvider";
 import { CommentData } from "@/lib/types";
 import { formatRelativeDate } from "@/lib/utils";
-import { ChevronDown, ChevronUp } from "lucide-react"; // Pour l'icône ouvrir/fermer
+import { ChevronDown, ChevronUp } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import UserAvatar from "../UserAvatar";
 import UserTooltip from "../UserTooltip";
 import CommentMoreButton from "./CommentMoreButton";
+import Image from "next/image";
 
 interface CommentProps {
   comment: CommentData;
   onReply: (username: string) => void;
-  replies?: CommentData[]; // Nouvelle prop pour passer les réponses
+  replies?: CommentData[];
 }
 
 export default function Comment({ comment, onReply, replies = [] }: CommentProps) {
@@ -43,6 +44,19 @@ export default function Comment({ comment, onReply, replies = [] }: CommentProps
               <div className="text-sm whitespace-pre-wrap break-words text-foreground">
                 {comment.content}
               </div>
+
+              {/* AFFICHAGE DE L'IMAGE UGC (Optionnel) */}
+              {comment.mediaUrl && (
+                <div className="relative mt-2 h-40 w-40 overflow-hidden rounded-xl border border-black/5">
+                  <Image 
+                    src={comment.mediaUrl} 
+                    alt="Preuve client" 
+                    fill 
+                    className="object-cover"
+                    unoptimized 
+                  />
+                </div>
+              )}
             </div>
 
             {comment.user.id === user.id && (
@@ -65,7 +79,6 @@ export default function Comment({ comment, onReply, replies = [] }: CommentProps
             </button>
           </div>
 
-          {/* BOUTON "VOIR LES RÉPONSES" */}
           {replies.length > 0 && (
             <button
               onClick={() => setShowReplies(!showReplies)}
@@ -73,20 +86,15 @@ export default function Comment({ comment, onReply, replies = [] }: CommentProps
             >
               <span className="h-[1px] w-6 bg-muted-foreground/30" />
               {showReplies ? (
-                <>
-                  Masquer les réponses <ChevronUp className="size-3" />
-                </>
+                <>Masquer les réponses <ChevronUp className="size-3" /></>
               ) : (
-                <>
-                  Voir les {replies.length} réponses <ChevronDown className="size-3" />
-                </>
+                <>Voir les {replies.length} réponses <ChevronDown className="size-3" /></>
               )}
             </button>
           )}
         </div>
       </div>
 
-      {/* ZONE DES RÉPONSES (DÉCALÉE) */}
       {showReplies && replies.length > 0 && (
         <div className="ml-10 mt-1 space-y-1 border-l-2 border-muted ps-2">
           {replies.map((reply) => (
@@ -94,7 +102,6 @@ export default function Comment({ comment, onReply, replies = [] }: CommentProps
               key={reply.id} 
               comment={reply} 
               onReply={onReply} 
-              // Si tu as plusieurs niveaux, tu peux passer replies={reply.replies} ici
             />
           ))}
         </div>
