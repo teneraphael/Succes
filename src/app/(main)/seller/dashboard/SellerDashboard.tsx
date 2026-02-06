@@ -2,7 +2,7 @@
 
 import { UserData, PostData } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { MessageCircle, Eye, Heart, Share2, TrendingUp, Rocket, Loader2, Package } from "lucide-react";
+import { MessageCircle, Heart, Share2, TrendingUp, Rocket, Loader2, Package } from "lucide-react";
 import DashboardHeader from "./DashboardHeader";
 import { useTransition } from "react";
 import { boostPost } from "./actions";
@@ -11,12 +11,9 @@ import { cn, formatRelativeDate } from "@/lib/utils";
 export default function SellerDashboard({ posts, user }: { posts: PostData[], user: UserData }) {
   const [isPending, startTransition] = useTransition();
   
-  // CALCUL DES STATS RÉELLES
   const totalLikes = posts.reduce((acc, p) => acc + (p._count?.likes || 0), 0);
   const totalComments = posts.reduce((acc, p) => acc + (p._count?.comments || 0), 0);
   
-  // EXTRACTION DES VRAIES INTERACTIONS (Commentaires)
-  // On utilise (post as any) pour éviter l'erreur TS si ton include Prisma n'est pas encore mis à jour
   const recentInteractions = posts
     .flatMap(post => 
       ((post as any).comments || []).map((comment: any) => ({
@@ -40,43 +37,43 @@ export default function SellerDashboard({ posts, user }: { posts: PostData[], us
   };
   
   return (
-    <div className="space-y-8 pb-10">
+    <div className="space-y-6 pb-10 px-2 md:px-0">
       <DashboardHeader user={user} />
 
-      {/* 1. CHIFFRES RÉELS */}
-      <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+      {/* 1. STATS EN GRILLE : 2 colonnes sur mobile, 4 sur ordi */}
+      <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
         <QuickStat 
-          title="Intérêt Client" 
+          title="Intérêt" 
           value={totalLikes.toString()} 
-          icon={<Heart className="text-red-500" />} 
-          description="Total des likes"
+          icon={<Heart className="size-4 text-red-500" />} 
+          description="Total likes"
         />
         <QuickStat 
           title="Discussions" 
           value={totalComments.toString()} 
-          icon={<MessageCircle className="text-primary" />} 
-          description="Commentaires reçus"
+          icon={<MessageCircle className="size-4 text-primary" />} 
+          description="Commentaires"
         />
         <QuickStat 
           title="Articles" 
           value={posts.length.toString()} 
-          icon={<Package className="text-blue-500" />} 
-          description="Annonces en ligne"
+          icon={<Package className="size-4 text-blue-500" />} 
+          description="En ligne"
         />
         <QuickStat 
           title="Partages" 
           value="--" 
-          icon={<Share2 className="text-orange-500" />} 
-          description="Bientôt disponible"
+          icon={<Share2 className="size-4 text-orange-500" />} 
+          description="Bientôt"
         />
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
-        {/* 2. VRAIES INTERACTIONS RÉCENTES */}
+        {/* 2. INTERACTIONS RÉCENTES */}
         <Card className="border-none shadow-sm bg-primary/5 border-l-4 border-l-primary">
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <MessageCircle className="size-5" /> Interactions Récentes
+          <CardHeader className="pb-2">
+            <CardTitle className="text-md flex items-center gap-2">
+              <MessageCircle className="size-4 text-primary" /> Interactions
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -90,31 +87,34 @@ export default function SellerDashboard({ posts, user }: { posts: PostData[], us
                 />
               ))
             ) : (
-              <p className="text-sm text-muted-foreground text-center py-4">
-                Aucune interaction récente sur vos articles.
+              <p className="text-xs text-muted-foreground text-center py-4 italic">
+                Aucune interaction récente.
               </p>
             )}
-            <p className="text-[10px] text-center text-muted-foreground uppercase pt-2 font-black italic">
-              Répondez vite pour conclure vos ventes !
+            <p className="text-[9px] text-center text-muted-foreground uppercase font-black italic border-t border-primary/10 pt-2">
+              Répondez vite pour vendre !
             </p>
           </CardContent>
         </Card>
 
-        {/* 3. ARTICLES RÉELS ET BOOST */}
-        <Card className="border-none shadow-sm">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-lg">Gérer mes articles</CardTitle>
+        {/* 3. GESTION ARTICLES ET BOOST */}
+        <Card className="border-none shadow-sm overflow-hidden">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-md">Mes Articles</CardTitle>
             <Rocket className={cn("size-4 text-primary", isPending ? "animate-spin" : "animate-bounce")} />
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-3">
             {posts.length > 0 ? (
               posts.slice(0, 5).map((post) => (
-                <div key={post.id} className="flex items-center justify-between group p-2 rounded-xl hover:bg-muted/50 transition-all border border-transparent hover:border-primary/10">
-                  <div className="flex flex-col min-w-0 flex-1 mr-4">
-                    <span className="text-sm font-bold truncate">{post.content}</span>
-                    <div className="flex gap-2 mt-1">
-                      <span className="text-[9px] font-bold text-primary">{post._count?.comments || 0} avis</span>
-                      <span className="text-[9px] text-muted-foreground">{post._count?.likes || 0} likes</span>
+                <div key={post.id} className="flex items-center justify-between gap-3 p-2.5 rounded-xl border bg-card/50 hover:border-primary/20 transition-colors">
+                  {/* min-w-0 et truncate sont essentiels pour le mobile */}
+                  <div className="flex flex-col min-w-0 flex-1">
+                    <span className="text-xs font-bold truncate leading-none mb-1">
+                      {post.content}
+                    </span>
+                    <div className="flex gap-2 items-center">
+                      <span className="text-[10px] font-bold text-primary">{post._count?.comments || 0} avis</span>
+                      <span className="text-[10px] text-muted-foreground">{post._count?.likes || 0} likes</span>
                     </div>
                   </div>
 
@@ -122,21 +122,17 @@ export default function SellerDashboard({ posts, user }: { posts: PostData[], us
                     disabled={isPending}
                     onClick={() => handleBoost(post.id)}
                     className={cn(
-                      "flex items-center gap-1.5 bg-primary text-white px-3 py-1.5 rounded-lg text-[10px] font-black shadow-sm transition-all active:scale-95",
-                      isPending ? "opacity-50 cursor-not-allowed" : "hover:scale-105"
+                      "flex items-center gap-1.5 bg-primary text-white px-3 py-1.5 rounded-lg text-[10px] font-black shadow-sm shrink-0",
+                      isPending ? "opacity-50" : "active:scale-90"
                     )}
                   >
-                    {isPending ? (
-                      <Loader2 className="size-3 animate-spin" />
-                    ) : (
-                      <TrendingUp className="size-3" />
-                    )}
-                    {isPending ? "BOOST..." : "BOOST"}
+                    {isPending ? <Loader2 className="size-3 animate-spin" /> : <TrendingUp className="size-3" />}
+                    {isPending ? "..." : "BOOST"}
                   </button>
                 </div>
               ))
             ) : (
-              <p className="text-sm text-muted-foreground text-center py-4">Aucun article trouvé.</p>
+              <p className="text-xs text-muted-foreground text-center py-4">Aucun article.</p>
             )}
           </CardContent>
         </Card>
@@ -147,26 +143,26 @@ export default function SellerDashboard({ posts, user }: { posts: PostData[], us
 
 function ProspectItem({ name, article, time }: { name: string, article: string, time: string }) {
   return (
-    <div className="flex items-center justify-between border-b border-primary/10 pb-3 last:border-0 last:pb-0">
-      <div className="min-w-0 flex-1 pr-2">
-        <p className="text-sm font-bold truncate">{name} a interagi :</p>
-        <p className="text-xs text-muted-foreground truncate italic">&quot;{article}&quot;</p>
+    <div className="flex items-center justify-between gap-2 border-b border-primary/5 pb-2 last:border-0 last:pb-0">
+      <div className="min-w-0 flex-1">
+        <p className="text-xs font-bold truncate text-foreground">{name}</p>
+        <p className="text-[10px] text-muted-foreground truncate italic opacity-80">&quot;{article}&quot;</p>
       </div>
-      <div className="text-right whitespace-nowrap text-[10px] text-muted-foreground font-medium">{time}</div>
+      <div className="text-[9px] text-muted-foreground font-medium shrink-0">{time}</div>
     </div>
   );
 }
 
 function QuickStat({ title, value, icon, description }: { title: string, value: string, icon: React.ReactNode, description: string }) {
   return (
-    <Card className="border-none shadow-sm">
-      <CardContent className="p-4">
-        <div className="flex items-center justify-between mb-2">
-          <div className="p-2 bg-muted rounded-lg">{icon}</div>
-          <span className="text-2xl font-black tracking-tighter">{value}</span>
+    <Card className="border-none shadow-sm overflow-hidden">
+      <CardContent className="p-3 sm:p-4">
+        <div className="flex items-center justify-between mb-1">
+          <div className="p-1.5 bg-primary/10 rounded-lg text-primary">{icon}</div>
+          <span className="text-xl sm:text-2xl font-black tracking-tighter">{value}</span>
         </div>
-        <p className="text-[11px] font-bold uppercase text-muted-foreground leading-none">{title}</p>
-        <p className="text-[9px] text-muted-foreground mt-1 leading-tight">{description}</p>
+        <p className="text-[10px] font-bold uppercase text-muted-foreground truncate">{title}</p>
+        <p className="text-[8px] text-muted-foreground mt-0.5 truncate">{description}</p>
       </CardContent>
     </Card>
   );
