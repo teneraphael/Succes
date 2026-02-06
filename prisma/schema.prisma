@@ -33,6 +33,7 @@ model User {
   googleId        String?        @unique
   avatarUrl       String?
   bio             String?
+  allowNotifications Boolean   @default(true)
   sessions        Session[]
   posts           Post[]
   deals         Deal[]

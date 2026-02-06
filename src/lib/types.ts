@@ -8,6 +8,7 @@ export function getUserDataSelect(loggedInUserId: string) {
     avatarUrl: true,
     bio: true,
     isSeller: true,
+    allowNotifications: true, // Ajouté ici
     createdAt: true,
     followers: {
       where: {
