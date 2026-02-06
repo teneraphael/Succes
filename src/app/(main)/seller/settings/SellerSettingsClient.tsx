@@ -2,12 +2,12 @@
 
 import { UserData } from "@/lib/types";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {MyCustomSwitch} from "@/components/ui/MyCustomSwitch"; // Assure-toi d'avoir fait: npx shadcn@latest add switch
-import { Trash2, Store, Bell, ShieldAlert, Loader2 } from "lucide-react";
+import { MyCustomSwitch } from "@/components/ui/MyCustomSwitch";
+import { Trash2, Store, Bell, ShieldAlert, Loader2, ArrowLeft } from "lucide-react"; // Ajout de ArrowLeft
 import { useState } from "react";
 import { updateShopSettings, deleteSellerAccount, toggleNotifications } from "./actions";
 import { useRouter } from "next/navigation";
@@ -27,43 +27,57 @@ export default function SellerSettingsPage({ user }: { user: UserData }) {
       await updateShopSettings({ displayName, bio }); 
       alert("Profil mis à jour !");
     } catch (e) {
-      console.error(e);
       alert("Erreur lors de la mise à jour");
     } finally {
       setIsUpdating(false);
     }
   }
 
-  // 2. GESTION DES NOTIFICATIONS (Activation/Désactivation)
+  // 2. GESTION DES NOTIFICATIONS
   async function handleNotifChange(checked: boolean) {
     setIsTogglingNotifs(true);
     try {
       await toggleNotifications(checked);
     } catch (e) {
-      alert("Erreur lors de la modification des notifications");
+      alert("Erreur");
     } finally {
       setIsTogglingNotifs(false);
     }
   }
 
-  // 3. SUPPRESSION DU COMPTE
+  // 3. SUPPRESSION
   async function handleDelete() {
-    if (!confirm("Es-tu certain ? Tous tes articles seront supprimés et tu perdras ton accès vendeur.")) return;
-    
+    if (!confirm("Es-tu certain ? Action irréversible.")) return;
     setIsDeleting(true);
     try {
       await deleteSellerAccount();
       router.push("/");
       router.refresh();
     } catch (e) {
-      alert("Erreur lors de la suppression");
+      alert("Erreur");
       setIsDeleting(false);
     }
   }
 
   return (
-    <div className="max-w-3xl mx-auto space-y-8 pb-10 px-2">
-      <h1 className="text-3xl font-black italic uppercase tracking-tighter text-primary">Paramètres Boutique</h1>
+    <div className="max-w-3xl mx-auto space-y-6 pb-10 px-2">
+      
+      {/* BARRE DE RETOUR MOBILE (Visible uniquement sur Android/iPhone) */}
+      <div className="flex items-center gap-3 md:hidden pt-4">
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          onClick={() => router.back()} // Retourne à la page précédente (sidebar)
+          className="rounded-full bg-muted/50"
+        >
+          <ArrowLeft className="size-6" />
+        </Button>
+        <span className="font-bold">Paramètres</span>
+      </div>
+
+      <h1 className="text-3xl font-black italic uppercase tracking-tighter text-primary md:pt-6">
+        Paramètres Boutique
+      </h1>
 
       {/* SECTION 1 : PROFIL PUBLIC */}
       <form action={handleSave}>
@@ -83,28 +97,28 @@ export default function SellerSettingsPage({ user }: { user: UserData }) {
               <Textarea name="bio" id="bio" defaultValue={user.bio || ""} className="rounded-xl min-h-[100px]" />
             </div>
             <Button type="submit" disabled={isUpdating} className="w-full md:w-fit rounded-xl px-8 font-bold">
-              {isUpdating ? <Loader2 className="animate-spin size-4 mr-2" /> : null}
-              Enregistrer les modifications
+              {isUpdating && <Loader2 className="animate-spin size-4 mr-2" />}
+              Enregistrer
             </Button>
           </CardContent>
         </Card>
       </form>
 
-      {/* SECTION 2 : NOTIFICATIONS (Nouveau !) */}
+      {/* SECTION 2 : NOTIFICATIONS */}
       <Card className="border-none shadow-sm">
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">
-            <Bell className="size-5 text-primary" /> Notifications de vente
+            <Bell className="size-5 text-primary" /> Notifications
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center justify-between p-4 bg-muted/20 rounded-xl">
+          <div className="flex items-center justify-between p-4 bg-muted/20 rounded-xl border border-muted">
             <div className="space-y-0.5">
               <p className="text-sm font-bold">Alertes de nouveaux messages</p>
-              <p className="text-xs text-muted-foreground">Recevoir un push pour chaque client.</p>
+              <p className="text-[10px] text-muted-foreground uppercase">Recevoir un push client</p>
             </div>
             <MyCustomSwitch 
-              checked={user.allowNotifications} // Assure-toi que allowNotifications existe dans ton type UserData
+              checked={user.allowNotifications} 
               onCheckedChange={handleNotifChange}
               disabled={isTogglingNotifs}
             />
@@ -129,7 +143,7 @@ export default function SellerSettingsPage({ user }: { user: UserData }) {
               onClick={handleDelete}
               disabled={isDeleting}
               variant="destructive" 
-              className="rounded-xl gap-2 font-black"
+              className="rounded-xl gap-2 font-black w-full md:w-auto"
             >
               {isDeleting ? <Loader2 className="animate-spin size-4" /> : <Trash2 className="size-4" />}
               Supprimer
