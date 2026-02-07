@@ -8,17 +8,17 @@ export const metadata: Metadata = {
 };
 
 export default async function Page() {
-  // 1. On vérifie l'identité et le statut de l'utilisateur côté serveur
   const { user } = await validateRequest();
 
-  // 2. Sécurité : Si pas connecté ou pas vendeur, redirection immédiate
   if (!user || !user.isSeller) {
-    redirect("/"); // Tu peux remplacer par "/become-seller" si tu as cette page
+    redirect("/");
   }
 
   return (
-    <main className="flex w-full justify-center p-5">
-      <div className="w-full max-w-2xl space-y-5">
+    <main className="flex w-full justify-center p-5 bg-muted/20 min-h-screen">
+      <div className="w-full max-w-2xl space-y-8 pt-6">
+        
+        {/* TES TITRES D'ORIGINE (Inchangés) */}
         <div className="flex flex-col gap-2">
           <h1 className="text-2xl font-bold text-center">Mettre un article en vente</h1>
           <p className="text-center text-muted-foreground text-sm">
@@ -26,8 +26,23 @@ export default async function Page() {
           </p>
         </div>
         
-        {/* L'éditeur ne s'affiche que si la condition ci-dessus est respectée */}
-        <PostEditor />
+        {/* LE STYLE SE CONCENTRE ICI : LE CONTENEUR DE POST */}
+        <div className="relative group">
+          {/* Effet de lueur en arrière-plan au survol */}
+          <div className="absolute -inset-1 bg-gradient-to-r from-primary to-[#83c5be] rounded-[2.5rem] blur opacity-25 group-hover:opacity-40 transition duration-1000 group-hover:duration-200"></div>
+          
+          <div className="relative bg-card rounded-[2.5rem] p-4 md:p-8 shadow-2xl border border-border/50 ring-1 ring-black/5">
+             <PostEditor />
+          </div>
+        </div>
+
+        {/* PETITE INFO DE RÉASSURANCE EN BAS */}
+        <div className="flex justify-center items-center gap-4 py-4 opacity-50">
+          <div className="h-px w-12 bg-border" />
+          <span className="text-[10px] font-bold uppercase tracking-widest">DealCity Seller Studio</span>
+          <div className="h-px w-12 bg-border" />
+        </div>
+
       </div>
     </main>
   );

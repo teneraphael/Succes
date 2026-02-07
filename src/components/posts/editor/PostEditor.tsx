@@ -10,20 +10,20 @@ import Placeholder from "@tiptap/extension-placeholder";
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { useDropzone } from "@uploadthing/react";
-import { Camera, Loader2, X, Tag, Banknote, ShoppingBag } from "lucide-react";
+import { Camera, Loader2, X, Tag, Banknote, ShoppingBag, Sparkles, ImageIcon } from "lucide-react";
 import Image from "next/image";
 import { ClipboardEvent, useRef, useState, useEffect } from "react";
 import { useSubmitPostMutation } from "./mutations";
-import { useRouter } from "next/navigation"; // AJOUTÉ
-import { useToast } from "@/components/ui/use-toast"; // AJOUTÉ
+import { useRouter } from "next/navigation";
+import { useToast } from "@/components/ui/use-toast";
 import "./styles.css";
 import useMediaUpload, { Attachment } from "./useMediaUpload";
 
 export default function PostEditor() {
   const { user } = useSession();
   const mutation = useSubmitPostMutation();
-  const router = useRouter(); // AJOUTÉ
-  const { toast } = useToast(); // AJOUTÉ
+  const router = useRouter();
+  const { toast } = useToast();
 
   const [productName, setProductName] = useState("");
   const [price, setPrice] = useState("");
@@ -45,26 +45,19 @@ export default function PostEditor() {
 
   const editor = useEditor({
     extensions: [
-      StarterKit.configure({
-        bold: false,
-        italic: false,
-      }),
+      StarterKit.configure({ bold: false, italic: false }),
       Placeholder.configure({
-        placeholder: "Détails de l'offre (état, stock, livraison...)",
+        placeholder: "Décrivez l'état, le stock ou les options de livraison...",
       }),
     ],
     immediatelyRender: false,
   });
 
-  const description = editor?.getText({
-    blockSeparator: "\n",
-  }) || "";
-
+  const description = editor?.getText({ blockSeparator: "\n" }) || "";
   const isFormValid = productName.trim() !== "" && price.trim() !== "" && description.trim() !== "";
 
   function onSubmit() {
     if (!isFormValid) return;
-
     const formattedContent = `🛍️ PRODUIT : ${productName}\n💰 PRIX : ${price} FCFA\n\n📝 DESCRIPTION :\n${description}`;
     
     mutation.mutate(
@@ -78,8 +71,8 @@ export default function PostEditor() {
           setProductName("");
           setPrice("");
           resetMediaUploads();
-          toast({ description: "Annonce mise en ligne avec succès !" }); // AJOUTÉ
-          router.push("/"); // REDIRECTION VERS L'ACCUEIL
+          toast({ description: "Annonce propulsée avec succès !" });
+          router.push("/");
           router.refresh();
         },
       },
@@ -94,170 +87,125 @@ export default function PostEditor() {
   }
 
   return (
-    <div className="flex flex-col gap-5 rounded-2xl bg-card p-5 shadow-sm border-2 border-[#4a90e2]/10">
-      <div className="flex items-center gap-2 pb-2 border-b border-border/50">
-        <ShoppingBag className="size-5 text-[#6ab344]" />
-        <h3 className="font-bold text-[#4a90e2] text-sm uppercase tracking-wider">Créer une annonce</h3>
-      </div>
-
-      <div className="flex gap-5">
-        <UserAvatar avatarUrl={user?.avatarUrl} className="hidden sm:inline" />
-        <div className="flex w-full flex-col gap-4">
-          
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div className="relative">
-              <Tag className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Nom de l'article"
-                value={productName}
-                onChange={(e) => setProductName(e.target.value)}
-                className="bg-background pl-10 border-none ring-1 ring-primary/20 focus-visible:ring-[#4a90e2]"
-              />
-            </div>
-            <div className="relative">
-              <Banknote className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Prix"
-                type="number"
-                value={price}
-                onChange={(e) => setPrice(e.target.value)}
-                className="bg-background pl-10 pr-16 border-none ring-1 ring-primary/20 focus-visible:ring-[#4a90e2]"
-              />
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] font-bold text-[#6ab344]">
-                FCFA
-              </span>
-            </div>
+    <div className="flex flex-col gap-6">
+      {/* SECTION INPUTS : NOM ET PRIX */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="group relative">
+          <div className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors">
+            <Tag className="size-5" />
           </div>
+          <Input
+            placeholder="Nom de l'article"
+            value={productName}
+            onChange={(e) => setProductName(e.target.value)}
+            className="h-14 pl-12 rounded-[1.2rem] border-none bg-muted/50 focus-visible:ring-2 focus-visible:ring-primary/20 text-base font-semibold"
+          />
+        </div>
 
-          <div {...rootProps} className="w-full">
-            <EditorContent
-              editor={editor}
-              className={cn(
-                "max-h-[20rem] w-full overflow-y-auto rounded-2xl bg-background px-5 py-3 ring-1 ring-primary/10",
-                isDragActive && "outline-dashed outline-[#4a90e2]",
-              )}
-              onPaste={onPaste}
-            />
-            <input {...getInputProps()} />
+        <div className="group relative">
+          <div className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-[#6ab344] transition-colors">
+            <Banknote className="size-5" />
           </div>
+          <Input
+            placeholder="Prix"
+            type="number"
+            value={price}
+            onChange={(e) => setPrice(e.target.value)}
+            className="h-14 pl-12 pr-16 rounded-[1.2rem] border-none bg-muted/50 focus-visible:ring-2 focus-visible:ring-primary/20 text-base font-semibold"
+          />
+          <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-[#6ab344] bg-[#6ab344]/10 px-2 py-1 rounded-md italic">
+            FCFA
+          </span>
         </div>
       </div>
 
+      {/* ZONE DESCRIPTION */}
+      <div className="relative rounded-[1.5rem] bg-muted/30 border border-transparent focus-within:border-primary/10 focus-within:bg-card transition-all">
+        <div {...rootProps} className="w-full">
+          <EditorContent
+            editor={editor}
+            className={cn(
+              "min-h-[160px] w-full px-6 py-4 prose prose-sm focus:outline-none",
+              isDragActive && "opacity-30"
+            )}
+            onPaste={onPaste}
+          />
+          <input {...getInputProps()} />
+        </div>
+        
+        {/* OVERLAY DRAG & DROP */}
+        {isDragActive && (
+          <div className="absolute inset-0 flex items-center justify-center bg-primary/5 backdrop-blur-[2px] rounded-[1.5rem] border-2 border-dashed border-primary/40 animate-in fade-in">
+            <p className="text-sm font-black uppercase italic text-primary">Déposez les médias ici</p>
+          </div>
+        )}
+      </div>
+
+      {/* PRÉVIEWS DES ATTACHEMENTS */}
       {!!attachments.length && (
-        <AttachmentPreviews
-          attachments={attachments}
-          removeAttachment={removeAttachment}
-        />
+        <div className="px-1">
+          <AttachmentPreviews attachments={attachments} removeAttachment={removeAttachment} />
+        </div>
       )}
 
-      <div className="flex items-center justify-between gap-3 border-t border-border/50 pt-3">
-        <div className="flex items-center gap-3">
-          <AddAttachmentsButton
-            onFilesSelected={startUpload}
-            disabled={isUploading || attachments.length >= 10}
-          />
+      {/* FOOTER ACTIONS */}
+      <div className="flex items-center justify-between p-2 rounded-[2rem] bg-muted/40 border border-border/40 backdrop-blur-sm">
+        <div className="flex items-center gap-2">
+          <AddAttachmentsButton onFilesSelected={startUpload} disabled={isUploading || attachments.length >= 10} />
           {isUploading && (
-            <div className="flex items-center gap-2">
-              <Loader2 className="size-4 animate-spin text-primary" />
-              <span className="text-xs font-medium text-muted-foreground">{uploadProgress ?? 0}%</span>
+            <div className="flex items-center gap-2 px-3 py-1 bg-background/50 rounded-full border border-primary/10">
+              <Loader2 className="size-3 animate-spin text-primary" />
+              <span className="text-[10px] font-black text-primary">{uploadProgress}%</span>
             </div>
           )}
         </div>
 
-        <div className="flex items-center gap-3">
-          {!isFormValid && (
-            <span className="hidden text-[11px] font-medium text-destructive/80 sm:inline">
-              Veuillez remplir tous les champs
-            </span>
-          )}
-          <LoadingButton
-            onClick={onSubmit}
-            loading={mutation.isPending}
-            disabled={!isFormValid || isUploading}
-            className="min-w-32 rounded-full font-bold bg-[#6ab344] hover:bg-[#5a9c39] text-white"
-          >
-            Mettre en vente
-          </LoadingButton>
-        </div>
+        <LoadingButton
+          onClick={onSubmit}
+          loading={mutation.isPending}
+          disabled={!isFormValid || isUploading}
+          className="h-12 px-8 rounded-[1.2rem] font-black uppercase italic tracking-tighter bg-primary text-white shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
+        >
+          <Sparkles className="size-4 mr-2" />
+         Mettre en vente
+        </LoadingButton>
       </div>
+
+      {!isFormValid && (
+        <p className="text-center text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 italic">
+          Remplissez tous les champs pour vendre
+        </p>
+      )}
     </div>
   );
 }
 
-// Les autres sous-composants restent identiques à ta version...
-function AddAttachmentsButton({ onFilesSelected, disabled }: AddAttachmentsButtonProps) {
+function AddAttachmentsButton({ onFilesSelected, disabled }: any) {
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    if (!files.length) return;
-
-    const MAX_SIZE_MB = 512; 
-    const MAX_VIDEO_DURATION = 300; 
-
-    const validatedFiles: File[] = [];
-
-    files.forEach((file) => {
-      const fileSizeMB = file.size / (1024 * 1024);
-      if (fileSizeMB > MAX_SIZE_MB) {
-        alert(`Le fichier ${file.name} est trop lourd (max ${MAX_SIZE_MB}Mo).`);
-        return;
-      }
-
-      if (file.type.startsWith("video/")) {
-        const video = document.createElement("video");
-        video.preload = "metadata";
-        video.onloadedmetadata = () => {
-          window.URL.revokeObjectURL(video.src);
-          if (video.duration > MAX_VIDEO_DURATION) {
-            alert(`La vidéo ${file.name} est trop longue (max ${MAX_VIDEO_DURATION}s).`);
-          } else {
-            onFilesSelected([file]);
-          }
-        };
-        video.src = URL.createObjectURL(file);
-      } else {
-        validatedFiles.push(file);
-      }
-    });
-
-    if (validatedFiles.length) {
-      onFilesSelected(validatedFiles);
-    }
-    e.target.value = ""; 
-  };
-
   return (
     <>
       <Button
         variant="ghost"
         size="icon"
-        className="text-primary hover:bg-primary/10 transition-transform active:scale-90"
+        className="rounded-full size-11 text-primary hover:bg-primary/10 transition-all"
         disabled={disabled}
         onClick={() => fileInputRef.current?.click()}
       >
-        <Camera size={26} />
+        <Camera size={24} />
       </Button>
-      <input
-        type="file"
-        accept="image/*,video/*"
-        multiple
-        ref={fileInputRef}
-        className="hidden"
-        onChange={handleFileChange}
-      />
+      <input type="file" accept="image/*,video/*" multiple ref={fileInputRef} className="hidden" onChange={(e) => {
+        const files = Array.from(e.target.files || []);
+        if (files.length) onFilesSelected(files);
+        e.target.value = "";
+      }} />
     </>
   );
 }
 
-function AttachmentPreviews({ attachments, removeAttachment }: AttachmentPreviewsProps) {
+function AttachmentPreviews({ attachments, removeAttachment }: any) {
   return (
-    <div className={cn(
-      "flex flex-col gap-3", 
-      attachments.length > 1 && "sm:grid sm:grid-cols-2",
-      attachments.length > 2 && "lg:grid-cols-3"
-    )}>
-      {attachments.map((attachment) => (
+    <div className={cn("grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4")}>
+      {attachments.map((attachment: any) => (
         <AttachmentPreview
           key={attachment.file.name}
           attachment={attachment}
@@ -268,7 +216,7 @@ function AttachmentPreviews({ attachments, removeAttachment }: AttachmentPreview
   );
 }
 
-function AttachmentPreview({ attachment: { file, isUploading }, onRemoveClick }: AttachmentPreviewProps) {
+function AttachmentPreview({ attachment: { file, isUploading }, onRemoveClick }: any) {
   const [src, setSrc] = useState<string>("");
 
   useEffect(() => {
@@ -278,26 +226,18 @@ function AttachmentPreview({ attachment: { file, isUploading }, onRemoveClick }:
   }, [file]);
 
   return (
-    <div className={cn("relative mx-auto w-full", isUploading && "opacity-50")}>
+    <div className={cn("relative group overflow-hidden rounded-2xl border bg-muted/20", isUploading && "opacity-50")}>
       {file.type.startsWith("image") ? (
-        <Image
-          src={src}
-          alt="Preview"
-          width={500}
-          height={500}
-          className="aspect-square w-full rounded-2xl object-cover shadow-sm"
-        />
+        <Image src={src} alt="Preview" width={200} height={200} className="aspect-square w-full object-cover" />
       ) : (
-        <video controls className="aspect-video w-full rounded-2xl shadow-lg bg-black">
-          <source src={src} type={file.type} />
-        </video>
+        <video className="aspect-square w-full object-cover bg-black"><source src={src} /></video>
       )}
       {!isUploading && (
         <button
           onClick={onRemoveClick}
-          className="absolute right-2 top-2 rounded-full bg-foreground/80 p-1.5 text-background backdrop-blur-sm transition-colors hover:bg-foreground"
+          className="absolute top-2 right-2 p-1 bg-black/60 backdrop-blur-md text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
         >
-          <X size={16} />
+          <X size={14} />
         </button>
       )}
     </div>
