@@ -10,31 +10,58 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { businessName, businessDomain, businessEmail, businessProducts } = body;
 
-    // 1. Préparation du nouveau nom d'utilisateur 
-    // On transforme "Ma Super Boutique" en "masuperboutique" pour l'URL
-    const newUsername = businessName
+    // 1. Génération d'un username propre (slugification)
+    let newUsername = businessName
       .toLowerCase()
       .trim()
-      .replace(/\s+/g, "") // Enlève les espaces
-      .replace(/[^\w\s]/gi, ""); // Enlève les caractères spéciaux
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "") // Supprime les accents
+      .replace(/\s+/g, "")             // Supprime les espaces
+      .replace(/[^\w]/gi, "");         // Supprime tout ce qui n'est pas alphanumérique
 
-    // 2. Mise à jour de l'utilisateur
+    // 2. Vérification de collision d'username
+    const existingUser = await prisma.user.findUnique({
+      where: { username: newUsername },
+    });
+
+    // Si le nom est déjà pris par un autre compte, on ajoute un suffixe
+    if (existingUser && existingUser.id !== user.id) {
+      newUsername = `${newUsername}-${Math.floor(1000 + Math.random() * 9000)}`;
+    }
+
+    // 3. Mise à jour de l'utilisateur
     await prisma.user.update({
       where: { id: user.id },
       data: {
         isSeller: true,
-        username: newUsername, // Le nom d'utilisateur change ici
-        displayName: businessName, // On met aussi à jour le nom affiché (plus joli)
-        businessName: businessName,
-        businessDomain: businessDomain,
-        businessEmail: businessEmail,
-        businessProducts: businessProducts,
+        username: newUsername,
+        displayName: businessName,
+        // Ces colonnes doivent exister dans schema.prisma
+        businessName,
+        businessDomain,
+        businessEmail,
+        businessProducts,
       },
     });
 
-    return NextResponse.json({ success: true });
-  } catch (error) {
+    return NextResponse.json({ success: true, newUsername });
+
+  } catch (error: unknown) {
     console.error("Erreur lors de la mise à jour du vendeur:", error);
-    return new NextResponse("Erreur interne", { status: 500 });
+
+    // ✅ Gestion sécurisée du type 'unknown' pour TypeScript
+    if (typeof error === "object" && error !== null) {
+      // Vérification spécifique pour les erreurs Prisma (code P2002 = Unique constraint failed)
+      if ("code" in error && error.code === "P2002") {
+        return new NextResponse("Ce nom de boutique ou ce nom d'utilisateur est déjà utilisé", { status: 400 });
+      }
+      
+      // Si c'est une erreur standard, on peut extraire le message
+      if (error instanceof Error) {
+        return new NextResponse(error.message, { status: 500 });
+      }
+    }
+
+    return new NextResponse("Une erreur interne est survenue", { status: 500 });
   }
 }

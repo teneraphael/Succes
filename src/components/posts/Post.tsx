@@ -4,11 +4,12 @@ import { useSession } from "@/app/(main)/SessionProvider";
 import { PostData } from "@/lib/types";
 import { cn, formatRelativeDate } from "@/lib/utils";
 import { Media } from "@prisma/client";
-import { MessageSquare, ChevronLeft, ChevronRight } from "lucide-react";
+import { MessageSquare, ChevronLeft, ChevronRight, Lock } from "lucide-react";
 import Image from "next/image";
 import VideoPost from "../VideoPost";
 import Link from "next/link";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Comments from "../comments/Comments";
 import Linkify from "../Linkify";
 import UserAvatar from "../UserAvatar";
@@ -42,15 +43,24 @@ interface PostProps {
 
 export default function Post({ post }: PostProps) {
   const { user } = useSession();
+  const router = useRouter();
   const [isExpanded, setIsExpanded] = useState(false);
   
-  // Détecte si on est sur Desktop (largeur >= 768px)
   const isDesktop = useMediaQuery("(min-width: 768px)");
 
   const charLimit = 250;
   const isLongText = post.content.length > charLimit;
 
-  // Le bouton qui ouvre les commentaires (réutilisé pour Sheet et Drawer)
+  // Gestion du clic sur "Discuter"
+  const handleChatClick = () => {
+    if (!user) {
+      // Redirige vers login et revient sur le post après connexion
+      router.push(`/login?callbackUrl=/posts/${post.id}`);
+      return;
+    }
+    window.location.href = `/messages?userId=${post.user.id}&postId=${post.id}`;
+  };
+
   const CommentTrigger = (
     <button className="flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors">
       <MessageSquare className="size-5" />
@@ -122,12 +132,19 @@ export default function Post({ post }: PostProps) {
         <MediaPreviews attachments={post.attachments} />
       )}
 
+      {/* BOUTON DISCUTER SÉCURISÉ */}
       <div className="flex justify-center mt-2 px-1 md:px-0">
         <button 
-          onClick={() => window.location.href = `/messages?userId=${post.user.id}&postId=${post.id}`} 
-          className="w-full text-center bg-[#6ab344] text-white py-3 rounded-xl font-bold cursor-pointer hover:bg-[#5a9c39] transition-all active:scale-[0.98]"
+          onClick={handleChatClick}
+          className={cn(
+            "w-full flex items-center justify-center gap-2 py-3 rounded-xl font-bold transition-all active:scale-[0.98]",
+            user 
+              ? "bg-[#6ab344] text-white hover:bg-[#5a9c39]" 
+              : "bg-muted text-muted-foreground border border-border hover:bg-muted/80"
+          )}
         >
-          Discuter
+          {!user && <Lock className="size-4" />}
+          {user ? "Discuter" : "Connectez-vous pour discuter"}
         </button>
       </div>
 
@@ -143,7 +160,6 @@ export default function Post({ post }: PostProps) {
             }}
           />
 
-          {/* LOGIQUE RESPONSIVE : SHEET (PC) vs DRAWER (MOBILE) */}
           {isDesktop ? (
             <Sheet>
               <SheetTrigger asChild>
