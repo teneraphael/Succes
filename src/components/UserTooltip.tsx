@@ -22,10 +22,11 @@ interface UserTooltipProps extends PropsWithChildren {
 export default function UserTooltip({ children, user }: UserTooltipProps) {
   const { user: loggedInUser } = useSession();
 
+  // ✅ Sécurisé : on vérifie si loggedInUser existe avant de chercher dans ses followers
   const followerState: FollowerInfo = {
     followers: user._count.followers,
     isFollowedByUser: !!user.followers.some(
-      ({ followerId }) => followerId === loggedInUser.id,
+      ({ followerId }) => followerId === loggedInUser?.id,
     ),
   };
 
@@ -39,7 +40,8 @@ export default function UserTooltip({ children, user }: UserTooltipProps) {
               <Link href={`/users/${user.username}`}>
                 <UserAvatar size={70} avatarUrl={user.avatarUrl} />
               </Link>
-              {loggedInUser.id !== user.id && (
+              {/* ✅ Sécurisé : On utilise le chaînage optionnel ?.id */}
+              {loggedInUser?.id !== user.id && (
                 <FollowButton userId={user.id} initialState={followerState} />
               )}
             </div>

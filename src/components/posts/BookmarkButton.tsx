@@ -11,6 +11,7 @@ import {
 } from "@tanstack/react-query";
 import { Bookmark } from "lucide-react";
 import { useToast } from "../ui/use-toast";
+import { useSession } from "@/app/(main)/SessionProvider"; // ✅ Import de la session
 
 interface BookmarkButtonProps {
   postId: string;
@@ -21,6 +22,7 @@ export default function BookmarkButton({
   postId,
   initialState,
 }: BookmarkButtonProps) {
+  const { user: loggedInUser } = useSession(); // ✅ Récupération de l'utilisateur
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const queryKey: QueryKey = ["bookmark-info", postId];
@@ -35,14 +37,12 @@ export default function BookmarkButton({
 
   const { mutate } = useMutation({
     mutationFn: async () => {
-      // 1. Action de Bookmark/Unbookmark en DB
       const request = data.isBookmarkedByUser
         ? kyInstance.delete(`/api/posts/${postId}/bookmark`)
         : kyInstance.post(`/api/posts/${postId}/bookmark`);
       
       await request;
 
-      // 2. 🚀 SIGNAL ALGO : Si enregistrement, on track l'intérêt
       if (!data.isBookmarkedByUser) {
         await fetch("/api/posts/track", {
           method: "POST",
@@ -56,7 +56,6 @@ export default function BookmarkButton({
       }
     },
     onMutate: async () => {
-      // Message plus sympa en français
       toast({
         description: data.isBookmarkedByUser 
           ? "Retiré des favoris" 
@@ -81,7 +80,6 @@ export default function BookmarkButton({
         description: "Une erreur est survenue. Veuillez réessayer.",
       });
     },
-    // On invalide pour forcer la mise à jour des flux de favoris ailleurs
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["bookmarks-feed"] });
     }
@@ -90,7 +88,17 @@ export default function BookmarkButton({
   return (
     <button 
       onClick={(e) => {
-        e.preventDefault(); // Évite de cliquer sur le post si le bouton est dans une carte
+        e.preventDefault();
+        
+        // ✅ PROTECTION : On bloque si l'utilisateur est null
+        if (!loggedInUser) {
+          toast({
+            variant: "destructive",
+            description: "Veuillez vous connecter pour enregistrer ce post.",
+          });
+          return;
+        }
+
         mutate();
       }} 
       className="flex items-center gap-2 group"

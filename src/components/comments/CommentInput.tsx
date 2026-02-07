@@ -1,12 +1,13 @@
 "use client";
 
 import { PostData } from "@/lib/types";
-import { Loader2, SendHorizonal, X, Camera } from "lucide-react"; // Ajout de Camera
+import { Loader2, SendHorizonal, X, Camera } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { useSubmitCommentMutation } from "./mutations";
 import Image from "next/image";
+import { useSession } from "@/app/(main)/SessionProvider"; // ✅ Ajouté
 
 interface CommentInputProps {
   post: PostData;
@@ -15,6 +16,7 @@ interface CommentInputProps {
 }
 
 export default function CommentInput({ post, replyTarget, onClearReply }: CommentInputProps) {
+  const { user } = useSession(); // ✅ Récupération de l'utilisateur
   const [input, setInput] = useState("");
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -32,17 +34,24 @@ export default function CommentInput({ post, replyTarget, onClearReply }: Commen
     }
   }, [replyTarget, input]);
 
-  // Gérer la sélection de l'image
+  // ✅ Nettoyage de l'URL de prévisualisation pour éviter les fuites de mémoire
+  useEffect(() => {
+    return () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+    };
+  }, [previewUrl]);
+
   function handleImageSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (file) {
+      if (previewUrl) URL.revokeObjectURL(previewUrl); // ✅ Libère l'ancienne URL
       setSelectedImage(file);
       setPreviewUrl(URL.createObjectURL(file));
     }
   }
 
-  // Annuler l'image choisie
   function removeImage() {
+    if (previewUrl) URL.revokeObjectURL(previewUrl); // ✅ Libère l'URL
     setSelectedImage(null);
     setPreviewUrl(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
@@ -50,16 +59,18 @@ export default function CommentInput({ post, replyTarget, onClearReply }: Commen
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+
+    // ✅ SÉCURITÉ : On ne fait rien si l'utilisateur n'est pas connecté
+    if (!user) return;
+
     const trimmedInput = input.trim();
-    
-    // On autorise l'envoi si il y a du texte OU une image
     if ((!trimmedInput && !selectedImage) || mutation.isPending) return;
 
     mutation.mutate(
       {
         post,
         content: trimmedInput,
-        media: selectedImage, // On passe l'image à la mutation
+        media: selectedImage,
       },
       {
         onSuccess: () => {
@@ -81,9 +92,11 @@ export default function CommentInput({ post, replyTarget, onClearReply }: Commen
     );
   }
 
+  // ✅ Si pas d'utilisateur, on ne rend rien (le parent Comments gère déjà l'affichage du message)
+  if (!user) return null;
+
   return (
     <div className="border-t bg-card p-3 shadow-sm">
-      {/* Aperçu de l'image avant envoi */}
       {previewUrl && (
         <div className="relative mb-3 inline-block">
           <div className="relative h-20 w-20 overflow-hidden rounded-xl border border-border shadow-sm">
@@ -92,9 +105,11 @@ export default function CommentInput({ post, replyTarget, onClearReply }: Commen
               alt="Preview" 
               fill 
               className="object-cover" 
+              unoptimized 
             />
           </div>
           <button
+            type="button"
             onClick={removeImage}
             className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-destructive text-white shadow-md hover:bg-destructive/90"
           >
@@ -113,8 +128,9 @@ export default function CommentInput({ post, replyTarget, onClearReply }: Commen
       )}
 
       <form className="mx-auto flex max-w-4xl items-center gap-2" onSubmit={onSubmit}>
-        {/* Input de fichier caché */}
         <input 
+          type="file" 
+          // eslint-disable-next-line react/jsx-no-duplicate-props
           type="file" 
           accept="image/*" 
           className="hidden" 
@@ -122,7 +138,6 @@ export default function CommentInput({ post, replyTarget, onClearReply }: Commen
           onChange={handleImageSelect}
         />
         
-        {/* Bouton pour ouvrir l'appareil photo/galerie */}
         <Button
           type="button"
           variant="ghost"

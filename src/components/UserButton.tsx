@@ -13,7 +13,8 @@ import {
   UserIcon, 
   Store, 
   Languages,
-  LayoutDashboard // Ajout de l'icône Dashboard
+  LayoutDashboard,
+  Settings
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import Link from "next/link";
@@ -31,116 +32,133 @@ import {
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
 import UserAvatar from "./UserAvatar";
+import { User } from "lucia"; // Assure-toi d'importer le type User de Lucia ou ton interface
 
 interface UserButtonProps {
   className?: string;
+  user?: User; // On accepte maintenant l'user en prop
 }
 
-export default function UserButton({ className }: UserButtonProps) {
-  const { user } = useSession();
+export default function UserButton({ className, user: propUser }: UserButtonProps) {
+  const { user: sessionUser } = useSession();
   const { theme, setTheme } = useTheme();
   const { t, lang, setLang } = useLanguage(); 
   const queryClient = useQueryClient();
+
+  // On utilise l'user passé en prop, sinon celui de la session
+  const user = propUser || sessionUser;
 
   if (!user) return null;
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button className={cn("flex-none rounded-full", className)}>
-          <UserAvatar avatarUrl={user.avatarUrl} size={40} />
+        <button className={cn("flex-none rounded-full transition-transform active:scale-95 outline-none", className)}>
+          <UserAvatar avatarUrl={user.avatarUrl} size={40} className="border-2 border-primary/10" />
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-56">
-        <DropdownMenuLabel>
-          {t.logged_in_as} @{user.username}
+      
+      <DropdownMenuContent className="w-64 rounded-[1.5rem] p-2 shadow-xl border-primary/5" align="end">
+        <DropdownMenuLabel className="px-4 py-3 flex flex-col">
+          <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">
+            {t.logged_in_as}
+          </span>
+          <span className="text-[#4a90e2] font-black italic text-base truncate">
+            @{user.username}
+          </span>
         </DropdownMenuLabel>
-        <DropdownMenuSeparator />
         
-        {/* --- ÉTAPE 1 : AJOUT DU DASHBOARD POUR LES VENDEURS --- */}
-        {user.isSeller && (
+        <DropdownMenuSeparator className="mx-2" />
+        
+        {/* SECTION VENDEUR */}
+        {user.isSeller ? (
           <Link href="/seller/dashboard">
-            <DropdownMenuItem className="font-bold text-primary focus:text-primary">
-              <LayoutDashboard className="mr-2 size-4" />
+            <DropdownMenuItem className="rounded-xl py-3 cursor-pointer font-bold text-primary focus:bg-primary/5 focus:text-primary">
+              <LayoutDashboard className="mr-3 size-5" />
               Tableau de Bord
             </DropdownMenuItem>
           </Link>
-        )}
-
-        <Link href={`/users/${user.username}`}>
-          <DropdownMenuItem>
-            <UserIcon className="mr-2 size-4" />
-            {t.profile}
-          </DropdownMenuItem>
-        </Link>
-
-        {/* --- ÉTAPE 2 : GARDER "DEVENIR VENDEUR" POUR LES AUTRES --- */}
-        {!user.isSeller && (
+        ) : (
           <Link href="/become-seller">
-            <DropdownMenuItem>
-              <Store className="mr-2 size-4 text-[#83c5be]" />
-              {t.become_seller}
+            <DropdownMenuItem className="rounded-xl py-3 cursor-pointer">
+              <Store className="mr-3 size-5 text-[#6ab344]" />
+              <span className="font-bold">{t.become_seller}</span>
             </DropdownMenuItem>
           </Link>
         )}
 
-        <DropdownMenuSeparator />
+        {/* SECTION PROFIL / SETTINGS */}
+        <Link href={`/users/${user.username}`}>
+          <DropdownMenuItem className="rounded-xl py-3 cursor-pointer">
+            <UserIcon className="mr-3 size-5 text-muted-foreground" />
+            <span className="font-medium">{t.profile}</span>
+          </DropdownMenuItem>
+        </Link>
 
+        <Link href="/settings">
+          <DropdownMenuItem className="rounded-xl py-3 cursor-pointer">
+            <Settings className="mr-3 size-5 text-muted-foreground" />
+            <span className="font-medium">Paramètres</span>
+          </DropdownMenuItem>
+        </Link>
+
+        <DropdownMenuSeparator className="mx-2" />
+
+        {/* PRÉFÉRENCES (LANGUE & THÈME) */}
         <DropdownMenuSub>
-          <DropdownMenuSubTrigger>
-            <Languages className="mr-2 size-4" />
-            {t.language}
+          <DropdownMenuSubTrigger className="rounded-xl py-3 cursor-pointer">
+            <Languages className="mr-3 size-5 text-muted-foreground" />
+            <span className="font-medium">{t.language}</span>
           </DropdownMenuSubTrigger>
           <DropdownMenuPortal>
-            <DropdownMenuSubContent>
-              <DropdownMenuItem onClick={() => setLang("fr")}>
+            <DropdownMenuSubContent className="rounded-2xl p-2 shadow-lg border-primary/5">
+              <DropdownMenuItem className="rounded-lg py-2" onClick={() => setLang("fr")}>
                 Français
-                {lang === "fr" && <Check className="ms-2 size-4" />}
+                {lang === "fr" && <Check className="ms-auto size-4 text-primary" />}
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setLang("en")}>
+              <DropdownMenuItem className="rounded-lg py-2" onClick={() => setLang("en")}>
                 English
-                {lang === "en" && <Check className="ms-2 size-4" />}
+                {lang === "en" && <Check className="ms-auto size-4 text-primary" />}
               </DropdownMenuItem>
             </DropdownMenuSubContent>
           </DropdownMenuPortal>
         </DropdownMenuSub>
 
         <DropdownMenuSub>
-          <DropdownMenuSubTrigger>
-            <Monitor className="mr-2 size-4" />
-            {t.theme}
+          <DropdownMenuSubTrigger className="rounded-xl py-3 cursor-pointer">
+            <Monitor className="mr-3 size-5 text-muted-foreground" />
+            <span className="font-medium">{t.theme}</span>
           </DropdownMenuSubTrigger>
           <DropdownMenuPortal>
-            <DropdownMenuSubContent>
-              <DropdownMenuItem onClick={() => setTheme("system")}>
-                <Monitor className="mr-2 size-4" />
-                {t.system}
-                {theme === "system" && <Check className="ms-2 size-4" />}
+            <DropdownMenuSubContent className="rounded-2xl p-2 shadow-lg border-primary/5">
+              <DropdownMenuItem className="rounded-lg py-2" onClick={() => setTheme("system")}>
+                <Monitor className="mr-3 size-4" /> {t.system}
+                {theme === "system" && <Check className="ms-auto size-4 text-primary" />}
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setTheme("light")}>
-                <Sun className="mr-2 size-4" />
-                {t.light}
-                {theme === "light" && <Check className="ms-2 size-4" />}
+              <DropdownMenuItem className="rounded-lg py-2" onClick={() => setTheme("light")}>
+                <Sun className="mr-3 size-4" /> {t.light}
+                {theme === "light" && <Check className="ms-auto size-4 text-primary" />}
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setTheme("dark")}>
-                <Moon className="mr-2 size-4" />
-                {t.dark}
-                {theme === "dark" && <Check className="ms-2 size-4" />}
+              <DropdownMenuItem className="rounded-lg py-2" onClick={() => setTheme("dark")}>
+                <Moon className="mr-3 size-4" /> {t.dark}
+                {theme === "dark" && <Check className="ms-auto size-4 text-primary" />}
               </DropdownMenuItem>
             </DropdownMenuSubContent>
           </DropdownMenuPortal>
         </DropdownMenuSub>
         
-        <DropdownMenuSeparator />
+        <DropdownMenuSeparator className="mx-2" />
+        
+        {/* DÉCONNEXION */}
         <DropdownMenuItem
-          className="text-destructive focus:text-destructive"
+          className="rounded-xl py-3 cursor-pointer text-destructive focus:bg-destructive/10 focus:text-destructive"
           onClick={() => {
             queryClient.clear();
             logout();
           }}
         >
-          <LogOutIcon className="mr-2 size-4" />
-          {t.logout}
+          <LogOutIcon className="mr-3 size-5" />
+          <span className="font-black uppercase italic tracking-tighter">{t.logout}</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

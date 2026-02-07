@@ -12,7 +12,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { signUpSchema, SignUpValues } from "@/lib/validation";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { User, Mail, Lock } from "lucide-react"; 
+import { User, Mail, Lock, Rocket } from "lucide-react"; 
 import { useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { signUp } from "./actions";
@@ -41,9 +41,15 @@ export default function SignUpForm() {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
-        {error && <p className="text-center text-destructive text-sm font-medium">{error}</p>}
+        {error && (
+          <div className="bg-destructive/10 p-3 rounded-2xl border border-destructive/20 animate-in fade-in zoom-in duration-300">
+            <p className="text-center text-destructive text-xs font-bold uppercase tracking-tight">
+              {error}
+            </p>
+          </div>
+        )}
         
-        {/* Champ Nom (Username) */}
+        {/* Champ Nom d'utilisateur */}
         <FormField
           control={form.control}
           name="username"
@@ -51,17 +57,17 @@ export default function SignUpForm() {
             <FormItem>
               <FormControl>
                 <div className="relative group">
-                  <div className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-500">
+                  <div className="absolute left-5 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors">
                     <User size={20} />
                   </div>
                   <Input 
-                    placeholder="Nom" 
+                    placeholder="Nom d'utilisateur" 
                     {...field} 
-                    className="h-[60px] rounded-full pl-14 bg-white border-none shadow-sm text-lg focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-0"
+                    className="h-[65px] rounded-[1.5rem] pl-14 bg-muted/30 border-none shadow-inner text-base font-semibold focus-visible:ring-2 focus-visible:ring-primary/20 transition-all"
                   />
                 </div>
               </FormControl>
-              <FormMessage className="ml-5 text-xs" />
+              <FormMessage className="ml-5 text-[10px] font-black uppercase tracking-widest text-destructive/80" />
             </FormItem>
           )}
         />
@@ -74,18 +80,18 @@ export default function SignUpForm() {
             <FormItem>
               <FormControl>
                 <div className="relative group">
-                  <div className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-500">
+                  <div className="absolute left-5 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors">
                     <Mail size={20} />
                   </div>
                   <Input 
-                    placeholder="Email" 
+                    placeholder="Adresse Email" 
                     type="email" 
                     {...field} 
-                    className="h-[60px] rounded-full pl-14 bg-white border-none shadow-sm text-lg focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-0"
+                    className="h-[65px] rounded-[1.5rem] pl-14 bg-muted/30 border-none shadow-inner text-base font-semibold focus-visible:ring-2 focus-visible:ring-primary/20 transition-all"
                   />
                 </div>
               </FormControl>
-              <FormMessage className="ml-5 text-xs" />
+              <FormMessage className="ml-5 text-[10px] font-black uppercase tracking-widest text-destructive/80" />
             </FormItem>
           )}
         />
@@ -98,28 +104,29 @@ export default function SignUpForm() {
             <FormItem>
               <FormControl>
                 <div className="relative group">
-                  <div className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-500 z-10 size-5">
+                  <div className="absolute left-5 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors z-10">
                     <Lock size={20} />
                   </div>
                   <PasswordInput 
-                    placeholder="Mot de passe" 
+                    placeholder="Créer un mot de passe" 
                     {...field} 
-                    className="h-[60px] rounded-full pl-14 bg-white border-none shadow-sm text-lg focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-0"
+                    className="h-[65px] rounded-[1.5rem] pl-14 bg-muted/30 border-none shadow-inner text-base font-semibold focus-visible:ring-2 focus-visible:ring-primary/20 transition-all"
                   />
                 </div>
               </FormControl>
-              <FormMessage className="ml-5 text-xs" />
+              <FormMessage className="ml-5 text-[10px] font-black uppercase tracking-widest text-destructive/80" />
             </FormItem>
           )}
         />
 
-        {/* Bouton Créer un compte Vert */}
+        {/* Bouton Créer un compte */}
         <LoadingButton 
           loading={isPending} 
           type="submit" 
-          className="w-full h-[60px] rounded-full bg-[#5cb85c] hover:bg-[#4ea84e] text-white text-xl font-medium shadow-md transition-all active:scale-[0.98]"
+          className="w-full h-[65px] rounded-[1.5rem] bg-[#5cb85c] hover:bg-[#4ea84e] text-white text-lg font-black uppercase italic tracking-tighter shadow-lg shadow-[#5cb85c]/20 transition-all active:scale-[0.97]"
         >
-          Créer un compte
+          <Rocket className="size-5 mr-2" />
+          C&apos;est parti !
         </LoadingButton>
       </form>
     </Form>

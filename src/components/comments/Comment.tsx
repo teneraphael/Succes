@@ -18,7 +18,7 @@ interface CommentProps {
 }
 
 export default function Comment({ comment, onReply, replies = [] }: CommentProps) {
-  const { user } = useSession();
+  const { user } = useSession(); // Peut être null
   const [showReplies, setShowReplies] = useState(false);
 
   return (
@@ -45,7 +45,6 @@ export default function Comment({ comment, onReply, replies = [] }: CommentProps
                 {comment.content}
               </div>
 
-              {/* AFFICHAGE DE L'IMAGE UGC (Optionnel) */}
               {comment.mediaUrl && (
                 <div className="relative mt-2 h-40 w-40 overflow-hidden rounded-xl border border-black/5">
                   <Image 
@@ -59,7 +58,8 @@ export default function Comment({ comment, onReply, replies = [] }: CommentProps
               )}
             </div>
 
-            {comment.user.id === user.id && (
+            {/* ✅ CORRECTION : Ajout du "?" pour éviter "cannot access id of null" */}
+            {comment.user.id === user?.id && (
               <CommentMoreButton
                 comment={comment}
                 className="opacity-0 transition-opacity group-hover/comment:opacity-100"

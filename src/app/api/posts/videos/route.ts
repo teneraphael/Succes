@@ -5,33 +5,30 @@ import { NextRequest } from "next/server";
 
 export async function GET(req: NextRequest) {
   try {
-    // 1. On récupère le curseur pour la pagination et on définit la taille de la page
     const cursor = req.nextUrl.searchParams.get("cursor") || undefined;
     const pageSize = 10;
 
-    // 2. On vérifie si l'utilisateur est connecté
+    // 1. On récupère la session (user sera null si non connecté)
     const { user } = await validateRequest();
 
-    if (!user) {
-      return Response.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    // ❌ ON SUPPRIME LE BLOC "if (!user)" POUR AUTORISER LES INVITÉS
 
-    // 3. Requête Prisma filtrée pour les vidéos
+    // 2. Requête Prisma filtrée pour les vidéos
     const posts = await prisma.post.findMany({
       where: {
         attachments: {
           some: {
-            type: "VIDEO", // On ne récupère que les posts qui ont au moins une vidéo
+            type: "VIDEO", 
           },
         },
       },
-      include: getPostDataInclude(user.id),
+      // ✅ On utilise user?.id (passera undefined si user est null)
+      include: getPostDataInclude(user?.id),
       orderBy: { createdAt: "desc" },
       take: pageSize + 1,
       cursor: cursor ? { id: cursor } : undefined,
     });
 
-    // 4. Gestion du curseur pour la page suivante
     const nextCursor = posts.length > pageSize ? posts[pageSize].id : null;
 
     const data: PostsPage = {

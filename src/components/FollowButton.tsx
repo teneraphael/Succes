@@ -6,6 +6,7 @@ import { FollowerInfo } from "@/lib/types";
 import { QueryKey, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "./ui/button";
 import { useToast } from "./ui/use-toast";
+import { useSession } from "@/app/(main)/SessionProvider"; // ✅ Import de la session
 
 interface FollowButtonProps {
   userId: string;
@@ -16,6 +17,7 @@ export default function FollowButton({
   userId,
   initialState,
 }: FollowButtonProps) {
+  const { user: loggedInUser } = useSession(); // ✅ Récupération de l'utilisateur
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -46,7 +48,7 @@ export default function FollowButton({
       console.error(error);
       toast({
         variant: "destructive",
-        description: "Something went wrong. Please try again.",
+        description: "Une erreur est survenue. Veuillez réessayer.",
       });
     },
   });
@@ -54,11 +56,20 @@ export default function FollowButton({
   return (
     <Button
       variant={data.isFollowedByUser ? "secondary" : "default"}
-      onClick={() => mutate()}
-      // --- SÉCURITÉ : Empêche le clic multiple tant que la requête est en cours ---
+      onClick={() => {
+        // ✅ PROTECTION : On empêche l'action si l'utilisateur est null
+        if (!loggedInUser) {
+          toast({
+            variant: "destructive",
+            description: "Veuillez vous connecter pour suivre cet utilisateur.",
+          });
+          return;
+        }
+        mutate();
+      }}
       disabled={isPending} 
     >
-      {data.isFollowedByUser ? "Unfollow" : "Follow"}
+      {data.isFollowedByUser ? "Se désabonner" : "Suivre"}
     </Button>
   );
 }

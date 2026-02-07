@@ -6,9 +6,18 @@ export default async function Layout({
 }: {
   children: React.ReactNode;
 }) {
-  const { user } = await validateRequest();
+  const { session } = await validateRequest();
 
-  if (user) redirect("/");
+  // Si une session existe déjà, on redirige vers l'accueil
+  // On laisse l'accès libre uniquement aux visiteurs non-connectés
+  if (session) {
+    redirect("/");
+  }
 
-  return <>{children}</>;
+  return (
+    <div className="min-h-screen w-full">
+      {/* Tu pourrais ajouter ici un composant commun aux pages auth si besoin */}
+      {children}
+    </div>
+  );
 }

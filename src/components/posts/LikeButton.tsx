@@ -11,6 +11,7 @@ import {
 } from "@tanstack/react-query";
 import { Heart } from "lucide-react";
 import { useToast } from "../ui/use-toast";
+import { useSession } from "@/app/(main)/SessionProvider"; // ✅ Import de la session
 
 interface LikeButtonProps {
   postId: string;
@@ -18,6 +19,7 @@ interface LikeButtonProps {
 }
 
 export default function LikeButton({ postId, initialState }: LikeButtonProps) {
+  const { user: loggedInUser } = useSession(); // ✅ Récupération de l'utilisateur (peut être null)
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const queryKey: QueryKey = ["like-info", postId];
@@ -30,7 +32,6 @@ export default function LikeButton({ postId, initialState }: LikeButtonProps) {
     staleTime: Infinity,
   });
 
-  // Ajout de isPending ici
   const { mutate, isPending } = useMutation({
     mutationFn: async () => {
       // 1. Action de Like/Unlike en DB
@@ -71,19 +72,28 @@ export default function LikeButton({ postId, initialState }: LikeButtonProps) {
       console.error(error);
       toast({
         variant: "destructive",
-        description: "Something went wrong. Please try again.",
+        description: "Une erreur est survenue. Veuillez réessayer.",
       });
     },
   });
 
   return (
     <button 
-      onClick={() => mutate()} 
-      // Sécurité : empêche le clic frénétique
+      onClick={() => {
+        // ✅ PROTECTION : Si l'utilisateur n'est pas connecté, on bloque
+        if (!loggedInUser) {
+          toast({
+            variant: "destructive",
+            description: "Veuillez vous connecter pour aimer ce post.",
+          });
+          return;
+        }
+        mutate();
+      }} 
       disabled={isPending} 
       className={cn(
         "flex items-center gap-2 transition-opacity",
-        isPending && "opacity-50 cursor-not-allowed" // Feedback visuel optionnel
+        isPending && "opacity-50 cursor-not-allowed"
       )}
     >
       <Heart

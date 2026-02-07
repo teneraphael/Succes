@@ -1,6 +1,7 @@
 import { validateRequest } from "@/auth";
 import prisma from "@/lib/prisma";
 import { getPostDataInclude, PostsPage } from "@/lib/types";
+import { $Enums } from "@prisma/client";
 import { NextRequest } from "next/server";
 
 const KEYWORDS_MAP: Record<string, string[]> = {
@@ -16,14 +17,10 @@ export async function GET(req: NextRequest) {
     const pageSize = 10;
     const { user } = await validateRequest();
 
-    if (!user) {
-      return Response.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
+    // --- ÉTAPE 1 : ANALYSE DES GOÛTS (Uniquement si connecté) ---
     let detectedKeywords: string[] = [];
 
-    // 1. ANALYSE DU COMPORTEMENT
-    if (!cursor) {
+    if (user && !cursor) {
       const lastInteractions = await prisma.userInteraction.findMany({
         where: { userId: user.id },
         include: { post: { select: { content: true } } },
@@ -49,14 +46,14 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    // 2. RÉCUPÉRATION HYBRIDE (On prend plus de posts pour pouvoir mixer)
+    // --- ÉTAPE 2 : RÉCUPÉRATION DES POSTS (Accès libre) ---
     const rawPosts = await prisma.post.findMany({
-      where: {
-        NOT: { userId: user.id }
-      },
-      include: getPostDataInclude(user.id),
+      where: user ? {
+        NOT: { userId: user.id } // Un membre ne voit pas ses propres posts
+      } : {}, // Un visiteur voit tout
+      include: getPostDataInclude(user?.id), // user?.id sera undefined si non connecté
       orderBy: { createdAt: "desc" },
-      take: pageSize * 2, // On en prend 20 pour en choisir 10 variés
+      take: pageSize * 2,
       cursor: cursor ? { id: cursor } : undefined,
     });
 
@@ -64,43 +61,45 @@ export async function GET(req: NextRequest) {
       return Response.json({ posts: [], nextCursor: null });
     }
 
-    // 3. LOGIQUE DE MÉLANGE (ALGO CIBLÉ vs DÉCOUVERTE)
-    const uniqueKeywords = Array.from(new Set(detectedKeywords));
-    
-    // On sépare les posts qui matchent les goûts des posts "Discovery"
-    const recommended = rawPosts.filter(post => 
-      uniqueKeywords.some(word => post.content.toLowerCase().includes(word))
-    );
-    
-    const discovery = rawPosts.filter(post => !recommended.includes(post));
+    // --- ÉTAPE 3 : MÉLANGE INTELLIGENT ---
+    // Si visiteur : on envoie juste les posts récents mélangés
+    // Si membre : on applique l'algo recommandé
+    let finalSelection: ({ user: { id: string; username: string; displayName: string; avatarUrl: string | null; bio: string | null; allowNotifications: boolean; isSeller: boolean; createdAt: Date; followers: { followerId: string; followingId: string; }[]; _count: { posts: number; followers: number; }; }; likes: { userId: string; postId: string; }[]; bookmarks: { id: string; createdAt: Date; userId: string; postId: string; }[]; _count: { likes: number; comments: number; }; attachments: { id: string; createdAt: Date; type: $Enums.MediaType; url: string; postId: string | null; }[]; } & { id: string; createdAt: Date; content: string; userId: string; category: string; views: number; })[] = [];
 
-    // On compose notre sélection finale (ex: 60% recommandé, 40% discovery)
-    // Cela évite la répétition infinie d'un seul sujet.
-    let finalSelection = [
-      ...recommended.slice(0, Math.ceil(pageSize * 0.6)),
-      ...discovery.slice(0, Math.floor(pageSize * 0.4))
-    ];
+    if (!user || detectedKeywords.length === 0) {
+      // Pour les visiteurs, on mélange simplement pour la découverte
+      finalSelection = rawPosts.slice(0, pageSize).sort(() => Math.random() - 0.5);
+    } else {
+      const uniqueKeywords = Array.from(new Set(detectedKeywords));
+      
+      const recommended = rawPosts.filter(post => 
+        uniqueKeywords.some(word => post.content.toLowerCase().includes(word))
+      );
+      
+      const discovery = rawPosts.filter(post => !recommended.includes(post));
 
-    // Si on n'a pas assez de posts après le mix (ex: pas de discovery), on complète avec le reste
-    if (finalSelection.length < pageSize) {
-      const remaining = rawPosts.filter(p => !finalSelection.includes(p));
-      finalSelection = [...finalSelection, ...remaining].slice(0, pageSize);
+      finalSelection = [
+        ...recommended.slice(0, Math.ceil(pageSize * 0.6)),
+        ...discovery.slice(0, Math.floor(pageSize * 0.4))
+      ];
+
+      if (finalSelection.length < pageSize) {
+        const remaining = rawPosts.filter(p => !finalSelection.includes(p));
+        finalSelection = [...finalSelection, ...remaining].slice(0, pageSize);
+      }
+      
+      finalSelection.sort(() => Math.random() - 0.5);
     }
-
-    // 4. RANDOMISATION DE L'ORDRE (Shuffle)
-    // Pour que le feed ne soit pas figé par date uniquement
-    finalSelection.sort(() => Math.random() - 0.5);
 
     const nextCursor = rawPosts.length > pageSize ? rawPosts[pageSize].id : null;
 
-    const data: PostsPage = {
+    return Response.json({
       posts: finalSelection,
       nextCursor,
-    };
+    });
 
-    return Response.json(data);
   } catch (error) {
-    console.error("ERREUR ALGO HYBRIDE:", error);
+    console.error("ERREUR FEED PUBLIC/PRIVÉ:", error);
     return Response.json({ error: "Internal server error" }, { status: 500 });
   }
 }

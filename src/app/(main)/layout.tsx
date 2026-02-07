@@ -1,5 +1,4 @@
 import { validateRequest } from "@/auth";
-import { redirect } from "next/navigation";
 import MenuBar from "./MenuBar";
 import ChatInitializer from "@/components/ChatInitializer";
 import Navbar from "./Navbar";
@@ -14,12 +13,15 @@ export default async function Layout({
 }) {
   const session = await validateRequest();
 
-  if (!session.user) redirect("/login");
+  // --- LA CORRECTION CLÉ : On ne redirige plus vers /login ---
+  // L'utilisateur non connecté aura session.user === null
+  // Le SessionProvider gérera cet état pour tous les composants enfants.
 
   return (
     <LanguageProvider>
       <SessionProvider value={session}>
-        <ChatInitializer />
+        {/* On n'initialise le Chat que si l'utilisateur est authentifié */}
+        {session.user && <ChatInitializer />}
         
         <LayoutClientWrapper
           navbar={<Navbar />}
