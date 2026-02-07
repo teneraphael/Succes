@@ -24,21 +24,18 @@ export default async function Layout({
         <LayoutClientWrapper
           navbar={<Navbar />}
           menuBar={
-            /* SUR ORDINATEUR (sm:block) : On garde notre largeur de 280px.
-               SUR MOBILE (hidden) : La sidebar est totalement cachée pour laisser la place au Dashboard.
-            */
-            <aside className="sticky top-[5.25rem] hidden h-fit w-72 flex-none space-y-3 rounded-2xl bg-card px-3 py-5 shadow-sm sm:block lg:px-5">
+            /* Largeur réduite à w-52 (208px) pour un look plus fin */
+            <aside className="sticky top-[5.25rem] hidden h-fit w-52 flex-none space-y-3 rounded-2xl bg-card px-3 py-5 shadow-sm sm:block lg:w-60">
                <MenuBar />
             </aside>
           }
           mobileMenu={
-            /* SUR MOBILE : On affiche le menu tout en bas de l'écran, bien centré. */
-            <div className="sticky bottom-0 z-50 flex w-full justify-center border-t bg-card p-3 sm:hidden">
-               <MenuBar className="flex flex-row gap-8" />
+            /* Menu mobile avec flou d'arrière-plan (glassmorphism) */
+            <div className="sticky bottom-0 z-50 flex w-full justify-center border-t bg-card/80 backdrop-blur-md p-3 sm:hidden">
+               <MenuBar className="flex flex-row gap-8 items-center" />
             </div>
           }
         >
-          {/* SUR MOBILE : 'flex-1' permet au dashboard de prendre 100% de la largeur du téléphone. */}
           <main className="flex-1 min-w-0 w-full px-2 sm:px-0">
             {children}
           </main>
