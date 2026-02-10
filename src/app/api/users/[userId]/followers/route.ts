@@ -1,11 +1,14 @@
+export const dynamic = "force-dynamic"; // ✅ Fix indispensable pour le build Vercel
+
 import { validateRequest } from "@/auth";
 import prisma from "@/lib/prisma";
 import { FollowerInfo } from "@/lib/types";
-import { sendPushNotification } from "@/lib/push-notifications"; // 1. On importe la fonction d'envoi
+import { sendPushNotification } from "@/lib/push-notifications"; 
 
 export async function GET(
   req: Request,
-  { params: { userId } }: { params: { userId: string } },
+  // 🚀 Next.js 15 : params est une Promise
+  { params }: { params: Promise<{ userId: string }> },
 ) {
   try {
     const { user: loggedInUser } = await validateRequest();
@@ -13,6 +16,8 @@ export async function GET(
     if (!loggedInUser) {
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    const { userId } = await params; // ✅ On attend la résolution de params
 
     const user = await prisma.user.findUnique({
       where: { id: userId },
@@ -51,16 +56,16 @@ export async function GET(
 
 export async function POST(
   req: Request,
-  { params: { userId } }: { params: { userId: string } },
+  { params }: { params: Promise<{ userId: string }> }, // ✅ Promise
 ) {
   try {
     const { user: loggedInUser } = await validateRequest();
+    const { userId } = await params; // ✅ Await obligatoire
 
     if (!loggedInUser) {
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // On ne s'auto-suit pas, mais on vérifie quand même pour éviter l'envoi de notification inutile
     if (loggedInUser.id === userId) {
         return Response.json({ error: "Cannot follow yourself" }, { status: 400 });
     }
@@ -88,8 +93,7 @@ export async function POST(
       }),
     ]);
 
-    // --- 2. ENVOI DE LA NOTIFICATION PUSH FIREBASE ---
-    // On notifie l'utilisateur qui vient de gagner un follower (userId)
+    // Notification Push
     sendPushNotification(
       userId,
       "Nouveau follower ! 👤",
@@ -105,10 +109,11 @@ export async function POST(
 
 export async function DELETE(
   req: Request,
-  { params: { userId } }: { params: { userId: string } },
+  { params }: { params: Promise<{ userId: string }> }, // ✅ Promise
 ) {
   try {
     const { user: loggedInUser } = await validateRequest();
+    const { userId } = await params; // ✅ Await
 
     if (!loggedInUser) {
       return Response.json({ error: "Unauthorized" }, { status: 401 });
