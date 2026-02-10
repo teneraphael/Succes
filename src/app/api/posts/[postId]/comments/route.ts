@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic"; // ✅ Indispensable pour éviter l'erreur au build
+
 import { validateRequest } from "@/auth";
 import prisma from "@/lib/prisma";
 import { CommentsPage, getCommentDataInclude } from "@/lib/types";

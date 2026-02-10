@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic"; // ✅ Ajouté pour corriger l'erreur de Build Vercel
+
 import { validateRequest } from "@/auth";
 import prisma from "@/lib/prisma";
 import { BookmarkInfo } from "@/lib/types";
@@ -46,7 +48,6 @@ export async function POST(
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-
     const { postId } = await params;
 
     await prisma.bookmark.upsert({
@@ -80,7 +81,6 @@ export async function DELETE(
     if (!loggedInUser) {
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
-
 
     const { postId } = await params;
 

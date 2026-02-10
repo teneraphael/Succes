@@ -1,9 +1,10 @@
-"use server";
+// ✅ On remplace "use server" par force-dynamic pour Vercel
+export const dynamic = "force-dynamic";
 
 import { validateRequest } from "@/auth";
 import prisma from "@/lib/prisma";
-// Importe ici ton service d'envoi push (Firebase Admin)
-// import { sendPushNotification } from "@/lib/firebase-admin"; 
+// Importe ton service ici
+// import { sendPushNotification } from "@/lib/push-notifications"; 
 
 export async function POST(
   req: Request,
@@ -41,7 +42,7 @@ export async function POST(
       );
     }
 
-    // 2. VÉRIFICATION DU DOUBLON (Essentiel pour ton message d'erreur)
+    // 2. VÉRIFICATION DU DOUBLON
     const existingReport = await prisma.report.findUnique({
       where: {
         userId_postId: {
@@ -54,7 +55,7 @@ export async function POST(
     if (existingReport) {
       return Response.json(
         { error: "Vous avez déjà signalé ce contenu." },
-        { status: 400 } // Le frontend ira dans le bloc 'catch'
+        { status: 400 }
       );
     }
 
@@ -75,7 +76,7 @@ export async function POST(
     // 5. SEUIL DE SUPPRESSION (3 signalements)
     if (reportCount >= 3) {
       await prisma.$transaction(async (tx) => {
-        // A. Créer la notification interne dans la DB
+        // A. Créer la notification interne
         await tx.notification.create({
           data: {
             issuerId: loggedInUser.id,
@@ -94,12 +95,11 @@ export async function POST(
       // 6. ENVOI DU PUSH FIREBASE
       if (post.user.fcmToken) {
         try {
-          // Décommente cette ligne quand ton firebase-admin est prêt
-          /* await sendPushNotification(
-            post.user.fcmToken,
-            "Annonce supprimée ⚠️",
-            "Votre annonce a été retirée suite à plusieurs signalements."
-          ); */
+           /* await sendPushNotification(
+             post.user.fcmToken,
+             "Annonce supprimée ⚠️",
+             "Votre annonce a été retirée suite à plusieurs signalements."
+           ); */
         } catch (pushError) {
           console.error("FCM_PUSH_ERROR:", pushError);
         }
@@ -110,7 +110,6 @@ export async function POST(
       });
     }
 
-    // Signalement réussi (premier signalement)
     return Response.json({ message: "Signalement enregistré." });
 
   } catch (error) {

@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic"; // ✅ Toujours nécessaire pour les routes avec Prisma/Auth
+
 import { validateRequest } from "@/auth";
 import prisma from "@/lib/prisma";
 import { getPostDataInclude } from "@/lib/types";
@@ -5,7 +7,6 @@ import { NextResponse } from "next/server";
 
 export async function GET(
   req: Request,
-  // 🚀 CORRECTION : params est maintenant une Promise en Next.js 15
   { params }: { params: Promise<{ postId: string }> }
 ) {
   try {
@@ -15,7 +16,7 @@ export async function GET(
       return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
     }
 
-    // 🚀 CORRECTION : On attend la résolution de params avant d'accéder à postId
+    // ✅ Super, tu as bien anticipé le await de Next.js 15
     const { postId } = await params;
 
     const post = await prisma.post.findUnique({

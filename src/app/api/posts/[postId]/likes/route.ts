@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic"; // ✅ INDISPENSABLE pour Vercel
+
 import { validateRequest } from "@/auth";
 import prisma from "@/lib/prisma";
 import { LikeInfo } from "@/lib/types";
@@ -72,7 +74,7 @@ export async function POST(
       return Response.json({ error: "Post not found" }, { status: 404 });
     }
 
-    // 1. On gère le Like avec upsert (indestructible)
+    // 1. Gestion du Like
     await prisma.like.upsert({
       where: {
         userId_postId: {
@@ -87,7 +89,7 @@ export async function POST(
       update: {},
     });
 
-    // 2. On gère la notification à part pour ne pas bloquer le Like en cas d'erreur de doublon
+    // 2. Gestion de la notification
     if (loggedInUser.id !== post.userId) {
       try {
         await prisma.notification.create({
@@ -99,15 +101,15 @@ export async function POST(
           },
         });
 
-        // Envoi Push uniquement si la notification en base a réussi
-        sendPushNotification(
+        // 🔥 Note : Assure-toi que sendPushNotification prend l'ID ou le Token.
+        // Si ta fonction attend un token, tu devras d'abord récupérer le token du destinataire.
+        await sendPushNotification(
           post.userId,
           "Nouveau Like ! ❤️",
           `${loggedInUser.displayName} a aimé votre post : "${post.content.slice(0, 30)}..."`
         );
       } catch (e) {
-        // On ignore l'erreur si la notification existe déjà
-        console.log("Notification déjà existante, passée.");
+        console.log("Notification déjà existante ou erreur push, passée.");
       }
     }
 
@@ -140,7 +142,6 @@ export async function DELETE(
       return Response.json({ error: "Post not found" }, { status: 404 });
     }
 
-    // On utilise deleteMany qui ne crash pas si l'élément est déjà supprimé
     await prisma.like.deleteMany({
       where: {
         userId: loggedInUser.id,
