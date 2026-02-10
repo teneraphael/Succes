@@ -1,19 +1,43 @@
-// src/lib/push-notifications.ts
 import admin from "firebase-admin";
 import prisma from "@/lib/prisma";
 
-// Initialisation
+// ✅ 1. Sécurisation de l'initialisation pour le Build
 if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert({
-        projectId: process.env.FIREBASE_PROJECT_ID,
-        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-        privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n"),
-    }),
-  });
+  const projectId = process.env.FIREBASE_PROJECT_ID;
+  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+  const privateKey = process.env.FIREBASE_PRIVATE_KEY;
+
+  // On n'initialise QUE si les variables existent (évite le crash au build)
+  if (projectId && clientEmail && privateKey) {
+    try {
+      admin.initializeApp({
+        credential: admin.credential.cert({
+          projectId,
+          clientEmail,
+          privateKey: privateKey.replace(/\\n/g, "\n"),
+        }),
+      });
+      console.log("✅ Firebase Admin initialisé");
+    } catch (error) {
+      console.error("❌ Erreur initialisation Firebase Admin:", error);
+    }
+  } else {
+    console.warn("⚠️ Firebase Admin : Variables manquantes (normal durant le build Vercel)");
+  }
 }
 
-export async function sendPushNotification(userId: string, title: string, body: string, p0: { type: string; channelId: any; senderId: any; }) {
+export async function sendPushNotification(
+  userId: string, 
+  title: string, 
+  body: string, 
+  dataPayload?: { type: string; channelId?: string; senderId?: string; }
+) {
+  // ✅ 2. Vérification supplémentaire avant d'utiliser admin
+  if (!admin.apps.length) {
+    console.error("Firebase Admin non initialisé. Notification annulée.");
+    return;
+  }
+
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: { fcmToken: true }
@@ -22,16 +46,19 @@ export async function sendPushNotification(userId: string, title: string, body: 
   if (user?.fcmToken) {
     const message = {
       notification: { title, body },
-      // --- AJOUT : Le lien que le Service Worker utilisera ---
       data: {
-        url: "/notifications", 
+        url: "/notifications",
+        // On passe les infos reçues en paramètre s'il y en a
+        type: dataPayload?.type || "GENERAL",
+        channelId: dataPayload?.channelId || "",
+        senderId: dataPayload?.senderId || "",
       },
       token: user.fcmToken,
     };
 
     try {
       await admin.messaging().send(message);
-      console.log(" Notification envoyée avec lien vers /notifications");
+      console.log("🚀 Notification envoyée avec succès");
     } catch (error) {
       console.error("Erreur d'envoi FCM:", error);
     }
