@@ -47,7 +47,7 @@ export function getPostDataInclude(loggedInUserId?: string) {
         postId: true,
       },
     },
-    // ✅ CORRECTION : Ajout de id et createdAt pour correspondre au type strict de Prisma
+
     bookmarks: {
       where: {
         userId: loggedInUserId || "ANONYMOUS_USER",

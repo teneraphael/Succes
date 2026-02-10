@@ -6,7 +6,7 @@ import { FollowerInfo } from "@/lib/types";
 import { QueryKey, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "./ui/button";
 import { useToast } from "./ui/use-toast";
-import { useSession } from "@/app/(main)/SessionProvider"; // ✅ Import de la session
+import { useSession } from "@/app/(main)/SessionProvider";
 
 interface FollowButtonProps {
   userId: string;
@@ -17,7 +17,7 @@ export default function FollowButton({
   userId,
   initialState,
 }: FollowButtonProps) {
-  const { user: loggedInUser } = useSession(); // ✅ Récupération de l'utilisateur
+  const { user: loggedInUser } = useSession();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -57,7 +57,7 @@ export default function FollowButton({
     <Button
       variant={data.isFollowedByUser ? "secondary" : "default"}
       onClick={() => {
-        // ✅ PROTECTION : On empêche l'action si l'utilisateur est null
+        //  PROTECTION : On empêche l'action si l'utilisateur est null
         if (!loggedInUser) {
           toast({
             variant: "destructive",

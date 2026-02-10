@@ -58,7 +58,7 @@ export default function Comment({ comment, onReply, replies = [] }: CommentProps
               )}
             </div>
 
-            {/* ✅ CORRECTION : Ajout du "?" pour éviter "cannot access id of null" */}
+            {/*  CORRECTION : Ajout du "?" pour éviter "cannot access id of null" */}
             {comment.user.id === user?.id && (
               <CommentMoreButton
                 comment={comment}

@@ -6,10 +6,10 @@ import { PostsPage } from "@/lib/types";
 import { Loader2 } from "lucide-react";
 import InfiniteScrollContainer from "@/components/InfiniteScrollContainer";
 import Post from "@/components/posts/Post";
-import { useSession } from "@/app/(main)/SessionProvider"; // ✅ Ajouté pour la cohérence
+import { useSession } from "@/app/(main)/SessionProvider"; 
 
 export default function VideoFeed() {
-  const { user } = useSession(); // ✅ On récupère l'utilisateur (peut être null)
+  const { user } = useSession(); 
 
   const {
     data,

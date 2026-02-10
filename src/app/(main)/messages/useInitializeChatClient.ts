@@ -41,19 +41,19 @@ export default function useInitializeChatClient() {
         if (!isMounted) return;
 
         setChatClient(client);
-        console.log("🚀 Stream connecté avec succès !");
+        console.log(" Stream connecté avec succès !");
 
         // 3. Activation des notifications SEULEMENT après la connexion réussie
-        // On attend un tout petit peu que le socket soit bien stable
+     
         setTimeout(async () => {
           if (isMounted) {
-            console.log("🔔 Enregistrement du device pour les notifications...");
+            console.log(" Enregistrement du device pour les notifications...");
             await handlePermission(user.id, client);
           }
         }, 500);
 
       } catch (error) {
-        console.error("❌ Erreur lors de l'initialisation du chat:", error);
+        console.error(" Erreur lors de l'initialisation du chat:", error);
       }
     };
 
@@ -63,7 +63,7 @@ export default function useInitializeChatClient() {
       isMounted = false;
       setChatClient(null);
       client.disconnectUser()
-        .then(() => console.log("👋 Connexion Stream fermée"))
+        .then(() => console.log(" Connexion Stream fermée"))
         .catch((error) => console.error("Failed to disconnect", error));
     };
     

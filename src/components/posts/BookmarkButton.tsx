@@ -11,7 +11,7 @@ import {
 } from "@tanstack/react-query";
 import { Bookmark } from "lucide-react";
 import { useToast } from "../ui/use-toast";
-import { useSession } from "@/app/(main)/SessionProvider"; // ✅ Import de la session
+import { useSession } from "@/app/(main)/SessionProvider";
 
 interface BookmarkButtonProps {
   postId: string;
@@ -22,7 +22,7 @@ export default function BookmarkButton({
   postId,
   initialState,
 }: BookmarkButtonProps) {
-  const { user: loggedInUser } = useSession(); // ✅ Récupération de l'utilisateur
+  const { user: loggedInUser } = useSession(); 
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const queryKey: QueryKey = ["bookmark-info", postId];
@@ -90,7 +90,6 @@ export default function BookmarkButton({
       onClick={(e) => {
         e.preventDefault();
         
-        // ✅ PROTECTION : On bloque si l'utilisateur est null
         if (!loggedInUser) {
           toast({
             variant: "destructive",

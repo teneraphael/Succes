@@ -12,11 +12,6 @@ export default async function Layout({
   children: React.ReactNode;
 }) {
   const session = await validateRequest();
-
-  // --- LA CORRECTION CLÉ : On ne redirige plus vers /login ---
-  // L'utilisateur non connecté aura session.user === null
-  // Le SessionProvider gérera cet état pour tous les composants enfants.
-
   return (
     <LanguageProvider>
       <SessionProvider value={session}>
@@ -26,13 +21,11 @@ export default async function Layout({
         <LayoutClientWrapper
           navbar={<Navbar />}
           menuBar={
-            /* Largeur réduite à w-52 (208px) pour un look plus fin */
             <aside className="sticky top-[5.25rem] hidden h-fit w-52 flex-none space-y-3 rounded-2xl bg-card px-3 py-5 shadow-sm sm:block lg:w-60">
                <MenuBar />
             </aside>
           }
           mobileMenu={
-            /* Menu mobile avec flou d'arrière-plan (glassmorphism) */
             <div className="sticky bottom-0 z-50 flex w-full justify-center border-t bg-card/80 backdrop-blur-md p-3 sm:hidden">
                <MenuBar className="flex flex-row gap-8 items-center" />
             </div>

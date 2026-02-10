@@ -39,18 +39,15 @@ const ChannelPreviewCustom = useCallback(
 
         if (!onSelectUser) return;
 
-        // members peut être un objet indexé ; on le convertit en array et on le typed comme any[]
+       
         const members = Object.values(props.channel.state.members) as any[];
-
         // trouve le membre autre que l'utilisateur courant
         const otherMember = members.find((m) => {
-          // m.user_id (stream v1) ou m.user?.id (stream v2)
           const id1 = m?.user_id;
           const id2 = m?.user?.id;
           return (id1 && id1 !== user.id) || (id2 && id2 !== user.id);
         });
 
-        // normalise l'ID (priorise user_id)
         const otherUserId: string | undefined =
           (otherMember && (otherMember.user_id ?? otherMember.user?.id)) ?? undefined;
 

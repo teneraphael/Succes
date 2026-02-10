@@ -10,7 +10,7 @@ import {
   Copy, 
   Share2,
   ExternalLink,
-  Loader2 // Import pour le chargement
+  Loader2
 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "../ui/button";
@@ -38,7 +38,7 @@ export default function PostMoreButton({
   const { toast } = useToast();
   const router = useRouter();
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [isReporting, setIsReporting] = useState(false); // État de chargement pour le signalement
+  const [isReporting, setIsReporting] = useState(false); 
 
   if (!user) return null;
 

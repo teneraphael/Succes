@@ -41,9 +41,8 @@ export default function Chat({ initialSelectedUserId }: ChatProps) {
     } else {
       setPostPreview(null);
     }
-  }, [selectedUserId]); // Se relance quand on change d'utilisateur
+  }, [selectedUserId]);
 
-  // 3. Initialisation du canal
   useEffect(() => {
     if (!selectedUserId || !chatClient) {
       setChannel(null);
@@ -58,7 +57,6 @@ export default function Chat({ initialSelectedUserId }: ChatProps) {
         const members = [currentUserId, selectedUserId];
         const ch = chatClient.channel("messaging", { members });
         
-        // IMPORTANT: On attend que le canal soit prêt et on le surveille
         await ch.watch(); 
         setChannel(ch);
         setSidebarOpen(false);
@@ -93,19 +91,16 @@ export default function Chat({ initialSelectedUserId }: ChatProps) {
             open={sidebarOpen}
             onClose={() => setSidebarOpen(false)}
             onSelectUser={(userId: string) => {
-              // Si on clique sur le même utilisateur, on ferme juste la sidebar
               if (userId === selectedUserId) {
                 setSidebarOpen(false);
               } else {
-                setChannel(null); // Force le rechargement du nouveau canal
-                setSelectedUserId(userId);
+                setChannel(null);
               }
             }}
           />
 
           {channel ? (
             <div className={cn("flex-1 h-full flex flex-col min-h-0", sidebarOpen && "hidden md:flex")}>
-              {/* Ajout d'une key unique basée sur le canal pour forcer React à rafraîchir le composant */}
               <ChatChannel
                 key={channel.cid} 
                 open={!sidebarOpen}

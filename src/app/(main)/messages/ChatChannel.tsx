@@ -30,7 +30,6 @@ export default function ChatChannel({
 }: ChatChannelProps) {
   const [postToReply, setPostToReply] = useState<any>(null);
 
-  // --- NOUVEAU : Force le marquage comme lu quand le canal change ou s'ouvre ---
   useEffect(() => {
     if (open && channel) {
       channel.markRead();
@@ -90,9 +89,7 @@ export default function ChatChannel({
       <Channel 
         channel={channel} 
         key={channel.cid}
-        // ✅ On remet à true pour que le badge disparaisse au montage
         markReadOnMount={true}
-        // ❌ On a supprimé doMarkReadRequest qui bloquait l'envoi de l'info "lu"
       > 
         <div className="flex flex-col h-full overflow-hidden">
           <Window key={`window-${channel.id}`}>
