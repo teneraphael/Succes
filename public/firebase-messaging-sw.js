@@ -15,7 +15,7 @@ const messaging = firebase.messaging();
 
 // 1. GESTION DE LA RÉCEPTION (Affichage)
 messaging.onBackgroundMessage((payload) => {
-  console.log("📩 Payload reçu:", payload);
+  console.log(" Payload reçu:", payload);
 
   let title = "City App";
   let body = "Nouvelle interaction";
