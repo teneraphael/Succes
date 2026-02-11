@@ -12,7 +12,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { signUpSchema, SignUpValues } from "@/lib/validation";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { User, Mail, Lock, Rocket } from "lucide-react"; 
+import { User, Mail, Lock, Rocket, CheckCircle2 } from "lucide-react"; 
 import { useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { signUp } from "./actions";
@@ -34,7 +34,9 @@ export default function SignUpForm() {
     setError(undefined);
     startTransition(async () => {
       const { error } = await signUp(values);
-      if (error) setError(error);
+      if (error) {
+        setError(error);
+      }
     });
   }
 
@@ -57,13 +59,13 @@ export default function SignUpForm() {
             <FormItem>
               <FormControl>
                 <div className="relative group">
-                  <div className="absolute left-5 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors">
+                  <div className="absolute left-5 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-[#4a90e2] transition-colors z-10">
                     <User size={20} />
                   </div>
                   <Input 
                     placeholder="Nom d'utilisateur" 
                     {...field} 
-                    className="h-[65px] rounded-[1.5rem] pl-14 bg-muted/30 border-none shadow-inner text-base font-semibold focus-visible:ring-2 focus-visible:ring-primary/20 transition-all"
+                    className="h-[65px] rounded-[1.5rem] pl-14 bg-muted/30 border-none shadow-inner text-base font-semibold focus-visible:ring-2 focus-visible:ring-[#4a90e2]/20 transition-all"
                   />
                 </div>
               </FormControl>
@@ -80,14 +82,14 @@ export default function SignUpForm() {
             <FormItem>
               <FormControl>
                 <div className="relative group">
-                  <div className="absolute left-5 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors">
+                  <div className="absolute left-5 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-[#4a90e2] transition-colors z-10">
                     <Mail size={20} />
                   </div>
                   <Input 
                     placeholder="Adresse Email" 
                     type="email" 
                     {...field} 
-                    className="h-[65px] rounded-[1.5rem] pl-14 bg-muted/30 border-none shadow-inner text-base font-semibold focus-visible:ring-2 focus-visible:ring-primary/20 transition-all"
+                    className="h-[65px] rounded-[1.5rem] pl-14 bg-muted/30 border-none shadow-inner text-base font-semibold focus-visible:ring-2 focus-visible:ring-[#4a90e2]/20 transition-all"
                   />
                 </div>
               </FormControl>
@@ -104,13 +106,13 @@ export default function SignUpForm() {
             <FormItem>
               <FormControl>
                 <div className="relative group">
-                  <div className="absolute left-5 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors z-10">
+                  <div className="absolute left-5 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-[#4a90e2] transition-colors z-10">
                     <Lock size={20} />
                   </div>
                   <PasswordInput 
                     placeholder="Créer un mot de passe" 
                     {...field} 
-                    className="h-[65px] rounded-[1.5rem] pl-14 bg-muted/30 border-none shadow-inner text-base font-semibold focus-visible:ring-2 focus-visible:ring-primary/20 transition-all"
+                    className="h-[65px] rounded-[1.5rem] pl-14 bg-muted/30 border-none shadow-inner text-base font-semibold focus-visible:ring-2 focus-visible:ring-[#4a90e2]/20 transition-all"
                   />
                 </div>
               </FormControl>
@@ -119,14 +121,30 @@ export default function SignUpForm() {
           )}
         />
 
+        {/* Optionnel: Consentement Marketing */}
+        <div className="flex items-center gap-3 px-4 py-1">
+          <div className="relative flex items-center">
+            <input 
+              type="checkbox" 
+              id="marketing" 
+              defaultChecked
+              className="peer h-5 w-5 cursor-pointer appearance-none rounded-md border border-slate-300 checked:border-[#5cb85c] checked:bg-[#5cb85c] transition-all"
+            />
+            <CheckCircle2 className="absolute h-5 w-5 text-white opacity-0 peer-checked:opacity-100 pointer-events-none p-0.5" />
+          </div>
+          <label htmlFor="marketing" className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider cursor-pointer select-none">
+            Recevoir les bons plans DealCity
+          </label>
+        </div>
+
         {/* Bouton Créer un compte */}
         <LoadingButton 
           loading={isPending} 
           type="submit" 
-          className="w-full h-[65px] rounded-[1.5rem] bg-[#5cb85c] hover:bg-[#4ea84e] text-white text-lg font-black uppercase italic tracking-tighter shadow-lg shadow-[#5cb85c]/20 transition-all active:scale-[0.97]"
+          className="w-full h-[65px] rounded-[1.5rem] bg-[#5cb85c] hover:bg-[#4ea84e] text-white text-lg font-black uppercase italic tracking-tighter shadow-lg shadow-[#5cb85c]/20 transition-all active:scale-[0.97] flex items-center justify-center gap-2"
         >
-          <Rocket className="size-5 mr-2" />
-          C&apos;est parti !
+          {!isPending && <Rocket className="size-5" />}
+          {isPending ? "Création en cours..." : "C'est parti !"}
         </LoadingButton>
       </form>
     </Form>

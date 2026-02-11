@@ -9,6 +9,7 @@ import { generateIdFromEntropySize } from "lucia";
 import { isRedirectError } from "next/dist/client/components/redirect";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { sendWelcomeEmail } from "@/lib/mail"; // <-- AJOUTE CET IMPORT
 
 export async function signUp(
   credentials: SignUpValues,
@@ -36,7 +37,7 @@ export async function signUp(
 
     if (existingUsername) {
       return {
-        error: "Username already taken",
+        error: "Ce nom d'utilisateur est déjà pris",
       };
     }
 
@@ -51,7 +52,7 @@ export async function signUp(
 
     if (existingEmail) {
       return {
-        error: "Email already taken",
+        error: "Cet email est déjà utilisé",
       };
     }
 
@@ -72,6 +73,11 @@ export async function signUp(
       });
     });
 
+    // --- ENVOI DE L'EMAIL DE BIENVENUE ---
+    // On l'exécute sans 'await' pour ne pas faire attendre l'utilisateur 
+    // pendant que le serveur de mail répond
+    sendWelcomeEmail(email, username).catch(err => console.error("Email error:", err));
+
     const session = await lucia.createSession(userId, {});
     const sessionCookie = lucia.createSessionCookie(session.id);
     (await cookies()).set(
@@ -85,7 +91,7 @@ export async function signUp(
     if (isRedirectError(error)) throw error;
     console.error(error);
     return {
-      error: "Something went wrong. Please try again.",
+      error: "Une erreur est survenue. Veuillez réessayer.",
     };
   }
 }
