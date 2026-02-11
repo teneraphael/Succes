@@ -24,6 +24,15 @@ model Report {
   @@unique([userId, postId]) // Empêche un utilisateur de signaler plusieurs fois le même post
 }
 
+model PasswordResetToken {
+  id      String   @id @default(cuid())
+  email   String
+  token   String   @unique
+  expires DateTime
+
+  @@unique([email, token])
+}
+
 model User {
   id              String         @id
   username        String         @unique

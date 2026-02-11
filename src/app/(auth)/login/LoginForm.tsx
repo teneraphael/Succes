@@ -11,12 +11,12 @@ import { useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { login } from "./actions";
 import { useSearchParams } from "next/navigation";
+import Link from "next/link"; // IMPORT AJOUTÉ
 
 export default function LoginForm() {
   const [error, setError] = useState<string>();
   const [isPending, startTransition] = useTransition();
   
-  // Récupère l'URL de redirection (ex: /post/123) si elle existe
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get("redirectTo");
 
@@ -31,7 +31,6 @@ export default function LoginForm() {
   async function onSubmit(values: LoginValues) {
     setError(undefined);
     startTransition(async () => {
-      // On passe redirectTo à l'action de login si nécessaire
       const { error } = await login(values);
       if (error) setError(error);
     });
@@ -89,6 +88,17 @@ export default function LoginForm() {
                   />
                 </div>
               </FormControl>
+              
+              {/* AJOUT DU LIEN MOT DE PASSE OUBLIÉ */}
+              <div className="flex justify-end px-2">
+                <Link 
+                  href="/forgot-password" 
+                  className="text-[10px] font-black uppercase tracking-widest text-primary/60 hover:text-primary transition-colors italic active:scale-95"
+                >
+                  Mot de passe oublié ?
+                </Link>
+              </div>
+              
               <FormMessage className="ml-5 text-[10px] font-black uppercase tracking-widest" />
             </FormItem>
           )}
