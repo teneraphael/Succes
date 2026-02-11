@@ -5,7 +5,6 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 export const sendWelcomeEmail = async (email: string, name: string) => {
   try {
     await resend.emails.send({
-      // MAINTENANCE QUE C'EST VERIFIED : on utilise ton vrai domaine
       from: 'DealCity <bienvenue@dealcity.app>', 
       to: email,
       subject: 'Bienvenue chez DealCity ! 🇨🇲',
