@@ -25,9 +25,10 @@ const geistMono = localFont({
 export const metadata: Metadata = {
   title: {
     template: "%s | DealCity",
-    default: "DealCity",
+    default: "DealCity - Petites annonces et Deals au Cameroun",
   },
-  description: "The social media app for powernerds",
+  description: "La plateforme n°1 pour acheter et vendre à Douala, Yaoundé et dans tout le Cameroun. Trouvez les meilleures offres sur DealCity.",
+  keywords: ["Cameroun", "Douala", "Yaoundé", "vente en ligne", "petites annonces", "DealCity"],
 };
 
 export default async function RootLayout({
