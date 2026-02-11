@@ -3,6 +3,8 @@
 import { useState, useTransition } from "react";
 import { generateResetCode } from "@/actions/password-reset";
 import { useRouter } from "next/navigation";
+import { Mail, Send } from "lucide-react"; // Ajout d'icônes
+import LoadingButton from "@/components/LoadingButton"; // Utilisation de ton composant de bouton
 
 export default function ForgotPasswordForm() {
   const [email, setEmail] = useState("");
@@ -18,39 +20,69 @@ export default function ForgotPasswordForm() {
 
     startTransition(async () => {
       const res = await generateResetCode(email);
-      if (res?.error) setError(res.error);
+      
+      if (res?.error) {
+        setError(res.error);
+      }
+      
       if (res?.success) {
         setSuccess(res.success);
-        // On redirige vers la page de saisie du code après 2 secondes
+        
+        // CORRECTION : encodeURIComponent permet de gérer les e-mails avec des caractères spéciaux
+        const encodedEmail = encodeURIComponent(email);
+        
         setTimeout(() => {
-          router.push(`/reset-password?email=${email}`);
+          router.push(`/reset-password?email=${encodedEmail}`);
         }, 2000);
       }
     });
   };
 
   return (
-    <form onSubmit={onSubmit} className="space-y-4">
-      <input
-        disabled={isPending}
-        type="email"
-        placeholder="votre@email.com"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        required
-        className="w-full px-5 py-4 rounded-2xl bg-[#f0f7ff] border-none focus:ring-2 focus:ring-[#4a90e2] text-sm font-medium outline-none transition-all"
-      />
-      
-      {error && <p className="text-red-500 text-xs font-bold px-2">{error}</p>}
-      {success && <p className="text-green-500 text-xs font-bold px-2">{success}</p>}
+    <form onSubmit={onSubmit} className="space-y-6">
+      {/* Message d'erreur stylisé comme ton login */}
+      {error && (
+        <div className="bg-destructive/10 p-3 rounded-2xl border border-destructive/20 animate-in fade-in zoom-in">
+          <p className="text-center text-destructive text-[10px] font-black uppercase tracking-tight">
+            {error}
+          </p>
+        </div>
+      )}
 
-      <button
-        disabled={isPending}
+      {/* Message de succès stylisé */}
+      {success && (
+        <div className="bg-green-500/10 p-3 rounded-2xl border border-green-500/20 animate-in fade-in zoom-in">
+          <p className="text-center text-green-600 text-[10px] font-black uppercase tracking-tight">
+            {success}
+          </p>
+        </div>
+      )}
+
+      {/* Champ Email avec icône (Design DealCity) */}
+      <div className="relative group">
+        <div className="absolute left-5 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors">
+          <Mail size={20} />
+        </div>
+        <input
+          disabled={isPending}
+          type="email"
+          placeholder="votre@email.com"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+          className="w-full h-[65px] rounded-[1.5rem] pl-14 bg-muted/30 border-none shadow-inner text-base font-semibold focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+        />
+      </div>
+
+      {/* Bouton stylisé comme ton LoginForm */}
+      <LoadingButton
+        loading={isPending}
         type="submit"
-        className="w-full py-4 bg-[#4a90e2] text-white rounded-2xl font-black uppercase tracking-widest italic hover:bg-[#357abd] transition-all disabled:opacity-50"
+        className="w-full h-[65px] rounded-[1.5rem] bg-primary hover:bg-primary/90 text-white text-lg font-black uppercase italic tracking-tighter shadow-lg shadow-primary/20 transition-all active:scale-[0.97]"
       >
-        {isPending ? "Envoi en cours..." : "Envoyer le code"}
-      </button>
+        <Send className="size-5 mr-2" />
+        {isPending ? "Envoi..." : "Envoyer le code"}
+      </LoadingButton>
     </form>
   );
 }
