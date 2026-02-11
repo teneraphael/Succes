@@ -29,6 +29,28 @@ export const metadata: Metadata = {
   },
   description: "La plateforme n°1 pour acheter et vendre à Douala, Yaoundé et dans tout le Cameroun. Trouvez les meilleures offres sur DealCity.",
   keywords: ["Cameroun", "Douala", "Yaoundé", "vente en ligne", "petites annonces", "DealCity"],
+  openGraph: {
+    title: "DealCity - Petites annonces au Cameroun",
+    description: "Achetez et vendez en toute sécurité sur la plateforme n°1 au pays.",
+    url: "https://dealcity.app",
+    siteName: "DealCity",
+    images: [
+      {
+        url: "/logo.png", // Chemin vers ton image dans le dossier public
+        width: 1200,
+        height: 630,
+        alt: "Logo DealCity",
+      },
+    ],
+    locale: "fr_FR",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "DealCity",
+    description: "Les meilleures offres au Cameroun",
+    images: ["/logo.png"],
+  },
 };
 
 export default async function RootLayout({
@@ -39,8 +61,7 @@ export default async function RootLayout({
   const sessionValues = await validateRequest();
 
   return (
-    // suppressHydrationWarning est crucial ici
-    <html lang="en" suppressHydrationWarning>
+    <html lang="fr" suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
         <LanguageProvider>
           <LanguageSync>
