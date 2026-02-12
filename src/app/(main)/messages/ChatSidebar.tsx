@@ -1,3 +1,5 @@
+"use client";
+
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useQueryClient } from "@tanstack/react-query";
@@ -19,64 +21,73 @@ interface ChatSidebarProps {
 }
 
 export default function ChatSidebar({ open, onClose, onSelectUser }: ChatSidebarProps) {
-  const { user } = useSession();
+  const { user } = useSession(); // 'user' peut être null selon tes types
   const queryClient = useQueryClient();
-  const { channel } = useChatContext();
+  const { channel: activeChannel } = useChatContext();
 
+  // Invalider le cache des messages non lus
   useEffect(() => {
-    if (channel?.id) {
+    if (activeChannel?.id) {
       queryClient.invalidateQueries({ queryKey: ["unread-messages-count"] });
     }
-  }, [channel?.id, queryClient]);
+  }, [activeChannel?.id, queryClient]);
 
-const ChannelPreviewCustom = useCallback(
-  (props: ChannelPreviewUIComponentProps) => (
-    <ChannelPreviewMessenger
-      {...props}
-      onSelect={() => {
-        props.setActiveChannel?.(props.channel, props.watchers);
-        onClose();
+  const ChannelPreviewCustom = useCallback(
+    (props: ChannelPreviewUIComponentProps) => (
+      <ChannelPreviewMessenger
+        {...props}
+        onSelect={() => {
+          // 1. Activer le canal
+          if (props.setActiveChannel) {
+            props.setActiveChannel(props.channel, props.watchers);
+          }
 
-        if (!onSelectUser) return;
+          // 2. Fermer le sidebar
+          onClose();
 
-       
-        const members = Object.values(props.channel.state.members) as any[];
-        // trouve le membre autre que l'utilisateur courant
-        const otherMember = members.find((m) => {
-          const id1 = m?.user_id;
-          const id2 = m?.user?.id;
-          return (id1 && id1 !== user.id) || (id2 && id2 !== user.id);
-        });
+          // 3. Logique de sélection d'utilisateur (avec sécurité null)
+          if (onSelectUser && user) {
+            const members = Object.values(props.channel.state.members);
+            const otherMember = members.find((m: any) => m.user?.id !== user.id);
+            const otherUserId = otherMember?.user?.id;
 
-        const otherUserId: string | undefined =
-          (otherMember && (otherMember.user_id ?? otherMember.user?.id)) ?? undefined;
+            if (otherUserId) {
+              onSelectUser(otherUserId);
+            }
+          }
+        }}
+      />
+    ),
+    [onClose, onSelectUser, user], // On dépend de 'user' tout entier ici
+  );
 
-        if (otherUserId) {
-          onSelectUser(otherUserId);
-        }
-      }}
-    />
-  ),
-  [onClose, onSelectUser, user.id],
-);
-
+  // SI PAS D'UTILISATEUR, ON N'AFFICHE RIEN (C'est ici qu'on règle l'erreur TypeScript)
+  if (!user) return null;
 
   return (
     <div
       className={cn(
-        "size-full flex-col border-e md:flex md:w-72",
+        "size-full flex-col border-e md:flex md:w-72 bg-card",
         open ? "flex" : "hidden",
       )}
     >
       <MenuHeader onClose={onClose} />
+      
       <ChannelList
-        filters={{ type: "messaging", members: { $in: [user.id] } }}
+        filters={{ 
+          type: "messaging", 
+          members: { $in: [user.id] } // Ici TypeScript sait que user n'est pas null
+        }}
         showChannelSearch
-        options={{ state: true, presence: true, limit: 8 }}
+        options={{ state: true, presence: true, limit: 10 }}
         sort={{ last_message_at: -1 }}
         additionalChannelSearchProps={{
           searchForChannels: true,
-          searchQueryParams: { channelFilters: { filters: { members: { $in: [user.id] } } } },
+          searchQueryParams: { 
+            channelFilters: { 
+              filters: { members: { $in: [user.id] } } 
+            } 
+          },
         }}
         Preview={ChannelPreviewCustom}
       />
@@ -84,6 +95,9 @@ const ChannelPreviewCustom = useCallback(
   );
 }
 
+/**
+ * COMPOSANT HEADER DU MENU
+ */
 interface MenuHeaderProps {
   onClose: () => void;
 }
@@ -93,22 +107,23 @@ function MenuHeader({ onClose }: MenuHeaderProps) {
 
   return (
     <>
-      <div className="flex items-center gap-3 p-2">
+      <div className="flex items-center gap-3 p-4 border-b">
         <div className="h-full md:hidden">
           <Button size="icon" variant="ghost" onClick={onClose}>
             <X className="size-5" />
           </Button>
         </div>
-        <h1 className="me-auto text-xl  font-bold md:ms-20">Messages</h1>
+        <h1 className="me-auto text-xl font-bold">Messages</h1>
         <Button
           size="icon"
           variant="ghost"
-          title="Start new chat"
+          title="Nouvelle discussion"
           onClick={() => setShowNewChatDialog(true)}
         >
           <MailPlus className="size-5" />
         </Button>
       </div>
+
       {showNewChatDialog && (
         <NewChatDialog
           onOpenChange={setShowNewChatDialog}
