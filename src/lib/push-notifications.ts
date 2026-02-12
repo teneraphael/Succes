@@ -3,8 +3,8 @@ import prisma from "@/lib/prisma";
 
 // ✅ 1. Sécurisation de l'initialisation pour le Build
 if (!admin.apps.length) {
-  const projectId = process.env.FIREBASE_PROJECT_ID;
-  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+  const projectId = "city-1397c";
+  const clientEmail = "firebase-adminsdk-fbsvc@city-1397c.iam.gserviceaccount.com";
   const privateKey = process.env.FIREBASE_PRIVATE_KEY;
 
   // On n'initialise QUE si les variables existent (évite le crash au build)
