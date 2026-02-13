@@ -1,66 +1,70 @@
 import admin from "firebase-admin";
 import prisma from "@/lib/prisma";
 
-// ✅ 1. Sécurisation de l'initialisation pour le Build
 if (!admin.apps.length) {
-  const projectId = "city-1397c";
-  const clientEmail = "firebase-adminsdk-fbsvc@city-1397c.iam.gserviceaccount.com";
-  const privateKey = process.env.FIREBASE_PRIVATE_KEY;
+  const projectId = process.env.FIREBASE_PROJECT_ID || "city-1397c";
+  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+  let privateKey = process.env.FIREBASE_PRIVATE_KEY;
 
-  // On n'initialise QUE si les variables existent (évite le crash au build)
   if (projectId && clientEmail && privateKey) {
     try {
+      // NETTOYAGE SPÉCIFIQUE :
+      // On retire les guillemets, on normalise les sauts de ligne physiques 
+      // et on s'assure que les \n textuels sont convertis.
+      const formattedKey = privateKey
+        .replace(/^['"]|['"]$/g, '') 
+        .replace(/\\n/g, '\n')
+        .replace(/\r\n/g, '\n'); 
+
       admin.initializeApp({
         credential: admin.credential.cert({
           projectId,
           clientEmail,
-          privateKey: privateKey.replace(/\\n/g, "\n"),
+          privateKey: formattedKey,
         }),
       });
-      console.log("✅ Firebase Admin initialisé");
+      console.log("✅ Firebase Admin initialisé avec succès");
     } catch (error) {
-      console.error("❌ Erreur initialisation Firebase Admin:", error);
+      console.error("❌ Erreur critique initialisation Firebase Admin:", error);
     }
   } else {
-    console.warn("⚠️ Firebase Admin : Variables manquantes (normal durant le build Vercel)");
+    console.warn("⚠️ Firebase Admin : Variables manquantes");
   }
 }
 
 export async function sendPushNotification(
-  userId: string, 
-  title: string, 
-  body: string, 
+  userId: string,
+  title: string,
+  body: string,
   dataPayload?: { type: string; channelId?: string; senderId?: string; }
 ) {
-  // ✅ 2. Vérification supplémentaire avant d'utiliser admin
-  if (!admin.apps.length) {
-    console.error("Firebase Admin non initialisé. Notification annulée.");
-    return;
-  }
+  if (!admin.apps.length) return;
 
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: { fcmToken: true }
   });
 
-  if (user?.fcmToken) {
-    const message = {
+  if (!user?.fcmToken) return;
+
+  let targetUrl = "/notifications";
+  if (dataPayload?.type === "CHAT" && dataPayload?.channelId) {
+    targetUrl = `/messages?channelId=${dataPayload.channelId}`;
+  }
+
+  try {
+    await admin.messaging().send({
       notification: { title, body },
       data: {
-        url: "/notifications",
-        // On passe les infos reçues en paramètre s'il y en a
+        url: targetUrl,
         type: dataPayload?.type || "GENERAL",
         channelId: dataPayload?.channelId || "",
         senderId: dataPayload?.senderId || "",
       },
       token: user.fcmToken,
-    };
-
-    try {
-      await admin.messaging().send(message);
-      console.log("🚀 Notification envoyée avec succès");
-    } catch (error) {
-      console.error("Erreur d'envoi FCM:", error);
-    }
+    });
+    console.log("🚀 Notification envoyée avec succès");
+  } catch (error) {
+    console.error("Erreur d'envoi FCM:", error);
   }
 }
