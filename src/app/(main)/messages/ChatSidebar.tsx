@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils"; // Utilise ton utilitaire standard
+import { cn } from "@/lib/utils";
 import { useQueryClient } from "@tanstack/react-query";
 import { MailPlus, X } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
@@ -25,27 +25,20 @@ export default function ChatSidebar({ open, onClose, onSelectUser }: ChatSidebar
   const queryClient = useQueryClient();
   const { channel: activeChannel } = useChatContext();
 
-  // Invalider le cache des messages non lus quand on change de canal
   useEffect(() => {
     if (activeChannel?.id) {
       queryClient.invalidateQueries({ queryKey: ["unread-messages-count"] });
     }
   }, [activeChannel?.id, queryClient]);
 
-  // Rendu personnalisé pour chaque aperçu de conversation dans la liste
   const ChannelPreviewCustom = useCallback(
     (props: ChannelPreviewUIComponentProps) => (
       <div className="px-2 py-1">
         <ChannelPreviewMessenger
           {...props}
           onSelect={() => {
-            // 1. Activer le canal dans Stream
             props.setActiveChannel?.(props.channel, props.watchers);
-            
-            // 2. Fermer la sidebar (surtout important sur mobile)
             onClose();
-            
-            // 3. Notifier le parent du changement d'utilisateur
             if (onSelectUser) {
               const members = Object.values(props.channel.state.members);
               const otherMember = members.find((m) => m.user?.id !== user.id);
@@ -62,8 +55,8 @@ export default function ChatSidebar({ open, onClose, onSelectUser }: ChatSidebar
   return (
     <div
       className={cn(
-        "h-full flex-col border-e border-white/10 bg-white/5 dark:bg-black/20 backdrop-blur-md transition-all duration-300 md:flex md:w-80 lg:w-96",
-        open ? "flex absolute inset-0 z-50 w-full bg-background/95 md:relative" : "hidden",
+        "size-full flex-col border-e border-white/10 bg-white/5 dark:bg-black/20 backdrop-blur-md md:flex md:w-80",
+        open ? "flex" : "hidden",
       )}
     >
       <MenuHeader onClose={onClose} />
@@ -72,7 +65,7 @@ export default function ChatSidebar({ open, onClose, onSelectUser }: ChatSidebar
         <ChannelList
           filters={{ type: "messaging", members: { $in: [user.id] } }}
           showChannelSearch
-          options={{ state: true, presence: true, limit: 10 }}
+          options={{ state: true, presence: true, limit: 8 }}
           sort={{ last_message_at: -1 }}
           additionalChannelSearchProps={{
             searchForChannels: true,
@@ -87,28 +80,28 @@ export default function ChatSidebar({ open, onClose, onSelectUser }: ChatSidebar
   );
 }
 
-// --- Sous-composant pour l'en-tête ---
+// --- MenuHeader ---
 function MenuHeader({ onClose }: { onClose: () => void }) {
   const [showNewChatDialog, setShowNewChatDialog] = useState(false);
 
   return (
-    <div className="flex items-center justify-between p-4 pb-4 border-b border-border/20">
+    <div className="flex items-center justify-between p-4 pb-2">
       <div className="flex items-center gap-2">
         <div className="md:hidden">
           <Button size="icon" variant="ghost" className="rounded-full" onClick={onClose}>
             <X className="size-5" />
           </Button>
         </div>
-        <h1 className="text-xl font-black tracking-tighter bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent">
-          MESSAGES
+        <h1 className="text-2xl font-extrabold tracking-tight bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent">
+          Messages
         </h1>
       </div>
       
       <Button
         size="icon"
         variant="secondary"
-        className="rounded-full shadow-sm hover:scale-110 transition-transform active:scale-95"
-        title="Nouvelle discussion"
+        className="rounded-full shadow-sm hover:scale-105 transition-transform"
+        title="Démarrer une discussion"
         onClick={() => setShowNewChatDialog(true)}
       >
         <MailPlus className="size-5 text-primary" />
@@ -119,7 +112,7 @@ function MenuHeader({ onClose }: { onClose: () => void }) {
           onOpenChange={setShowNewChatDialog}
           onChatCreated={() => {
             setShowNewChatDialog(false);
-            onClose(); // Ferme la sidebar sur mobile après création
+            onClose();
           }}
         />
       )}

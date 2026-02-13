@@ -2,18 +2,18 @@
 
 import { useSearchParams } from "next/navigation";
 import Chat from "./Chat";
+import Head from "next/head";
 
-export default function MessagesPage() {
+export default function Page() {
   const searchParams = useSearchParams();
-  
-  // On récupère l'ID de l'utilisateur depuis l'URL (ex: /messages?userId=123)
   const selectedUserId = searchParams.get("userId");
 
   return (
-    // Le conteneur parent doit faire 100% de la hauteur pour que le chat puisse 
-    // utiliser h-full et s'afficher correctement.
-    <div className="h-screen w-full bg-background">
-      <Chat initialSelectedUserId={selectedUserId} />
-    </div>
+    <>
+      <Head>
+        <title>Messages</title>
+      </Head>
+      <Chat initialSelectedUserId={selectedUserId || null} />
+    </>
   );
 }

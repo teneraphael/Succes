@@ -9,7 +9,7 @@ import {
 } from "stream-chat-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { Menu, ArrowLeft, X, Reply } from "lucide-react";
+import { Menu, ArrowLeft, X } from "lucide-react";
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
@@ -85,7 +85,7 @@ export default function ChatChannel({
   if (!channel) return null;
 
   return (
-    <div className={cn("w-full h-full flex flex-col min-h-0 bg-background/50 backdrop-blur-sm", !open && "hidden")}>
+    <div className={cn("w-full h-full flex flex-col min-h-0", !open && "hidden")}>
       <Channel 
         channel={channel} 
         key={channel.cid}
@@ -94,63 +94,47 @@ export default function ChatChannel({
         <div className="flex flex-col h-full overflow-hidden">
           <Window key={`window-${channel.id}`}>
             <CustomChannelHeader openSidebar={openSidebar} />
+            <MessageList />
             
-            {/* Liste des messages avec un peu plus d'espace */}
-            <div className="flex-1 overflow-hidden">
-              <MessageList />
-            </div>
-            
-            {/* Zone de prévisualisation de réponse (Style Premium) */}
             {postToReply && (
-              <div className="mx-4 mb-2 animate-in slide-in-from-bottom-2 duration-300">
-                <div className="relative overflow-hidden rounded-2xl border border-primary/20 bg-primary/5 p-3 backdrop-blur-md">
-                  <div className="flex items-start gap-3">
-                    <div className="flex h-10 w-1 rounded-full bg-primary/40" />
-                    
-                    {postToReply.attachments?.[0]?.url && (
-                      <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg shadow-sm border border-background">
-                        <Image 
-                          src={postToReply.attachments[0].url} 
-                          alt="Aperçu"
-                          fill
-                          className="object-cover"
-                          unoptimized
-                        />
-                      </div>
-                    )}
-                    
-                    <div className="flex flex-1 flex-col overflow-hidden text-sm">
-                      <div className="flex items-center gap-2 text-primary">
-                        <Reply className="size-3" />
-                        <span className="text-[10px] font-bold uppercase tracking-wider">
-                          Réponse à {postToReply.user?.displayName}
-                        </span>
-                      </div>
-                      <p className="line-clamp-2 text-xs leading-relaxed text-muted-foreground/80 italic">
-                        &quot;{postToReply.content}&quot;
-                      </p>
+              <div className="flex items-center justify-between p-3 bg-blue-50 dark:bg-slate-900 border-t border-b border-blue-100 shrink-0">
+                <div className="flex items-center gap-3 overflow-hidden flex-1 min-w-0">
+                  {postToReply.attachments?.[0]?.url && (
+                    <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded border bg-white">
+                      <Image 
+                        src={postToReply.attachments[0].url} 
+                        alt="Aperçu"
+                        fill
+                        className="object-cover"
+                        unoptimized
+                      />
                     </div>
-
-                    <Button 
-                      size="icon" 
-                      variant="ghost" 
-                      className="size-7 rounded-full hover:bg-primary/10"
-                      onClick={() => { setPostToReply(null); clearPostFromUrl(); }}
-                    >
-                      <X className="size-4" />
-                    </Button>
+                  )}
+                  <div className="flex flex-col overflow-hidden text-sm min-w-0">
+                    <span className="font-bold text-blue-600 text-xs uppercase truncate">
+                      Réponse au post de {postToReply.user?.displayName}
+                    </span>
+                    <p className="italic line-clamp-2 leading-tight text-muted-foreground break-words">
+                      &quot;{postToReply.content}&quot;
+                    </p>
                   </div>
                 </div>
+                
+                <Button 
+                  size="icon" 
+                  variant="ghost" 
+                  className="shrink-0 ml-2"
+                  onClick={() => { setPostToReply(null); clearPostFromUrl(); }}
+                >
+                  <X className="size-4" />
+                </Button>
               </div>
             )}
 
-            {/* Input de message plus aéré */}
-            <div className="px-4 pb-4">
-              <MessageInput 
-                focus 
-                overrideSubmitHandler={postToReply ? (customSubmitHandler as any) : undefined} 
-              />
-            </div>
+            <MessageInput 
+              focus 
+              overrideSubmitHandler={postToReply ? (customSubmitHandler as any) : undefined} 
+            />
           </Window>
         </div>
       </Channel>
@@ -161,28 +145,15 @@ export default function ChatChannel({
 function CustomChannelHeader({ openSidebar }: { openSidebar: () => void }) {
   const router = useRouter();
   return (
-    <div className="flex items-center justify-between border-b border-border/40 p-3 bg-background/80 backdrop-blur-md sticky top-0 z-50 shrink-0">
-      <div className="flex items-center gap-3">
-        <Button 
-          size="icon" 
-          variant="ghost" 
-          className="rounded-full hover:bg-primary/5 transition-colors"
-          onClick={() => router.push("/")}
-        >
+    <div className="flex items-center justify-between border-b p-2 bg-card shrink-0">
+      <div className="flex items-center gap-2">
+        <Button size="icon" variant="ghost" onClick={() => router.push("/")}>
           <ArrowLeft className="size-5" />
         </Button>
-        <div className="flex flex-col">
-          <ChannelHeader />
-        </div>
+        <ChannelHeader />
       </div>
-      
       <div className="md:hidden">
-        <Button 
-          size="icon" 
-          variant="secondary" 
-          className="rounded-full shadow-sm"
-          onClick={openSidebar}
-        >
+        <Button size="icon" variant="ghost" onClick={openSidebar}>
           <Menu className="size-5" />
         </Button>
       </div>

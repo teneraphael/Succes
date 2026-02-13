@@ -1,5 +1,3 @@
-"use client";
-
 import LoadingButton from "@/components/LoadingButton";
 import {
   Dialog,
@@ -12,12 +10,11 @@ import { useToast } from "@/components/ui/use-toast";
 import UserAvatar from "@/components/UserAvatar";
 import useDebounce from "@/hooks/useDebounce";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Check, Loader2, SearchIcon, X, Users } from "lucide-react";
+import { Check, Loader2, SearchIcon, X } from "lucide-react";
 import { useState } from "react";
 import { UserResponse } from "stream-chat";
 import { DefaultStreamChatGenerics, useChatContext } from "stream-chat-react";
 import { useSession } from "../SessionProvider";
-import { cn } from "@/lib/utils";
 
 interface NewChatDialogProps {
   onOpenChange: (open: boolean) => void;
@@ -29,7 +26,9 @@ export default function NewChatDialog({
   onChatCreated,
 }: NewChatDialogProps) {
   const { client, setActiveChannel } = useChatContext();
+
   const { toast } = useToast();
+
   const { user: loggedInUser } = useSession();
 
   const [searchInput, setSearchInput] = useState("");
@@ -89,84 +88,72 @@ export default function NewChatDialog({
 
   return (
     <Dialog open onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md gap-0 overflow-hidden border-white/10 bg-background/80 p-0 shadow-2xl backdrop-blur-2xl">
-        <DialogHeader className="p-6 pb-2">
-          <div className="flex items-center gap-2">
-            <div className="rounded-full bg-primary/10 p-2">
-              <Users className="size-5 text-primary" />
-            </div>
-            <DialogTitle className="text-xl font-bold">Nouvelle discussion</DialogTitle>
-          </div>
+      <DialogContent className="bg-card p-0">
+        <DialogHeader className="px-6 pt-6">
+          <DialogTitle>New chat</DialogTitle>
         </DialogHeader>
-
-        <div className="px-6 py-2">
-          {/* Barre de recherche stylisée */}
-          <div className="group relative mt-2">
-            <SearchIcon className="absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted-foreground transition-colors group-focus-within:text-primary" />
+        <div>
+          <div className="group relative">
+            <SearchIcon className="absolute left-5 top-1/2 size-5 -translate-y-1/2 transform text-muted-foreground group-focus-within:text-primary" />
             <input
-              placeholder="Rechercher un utilisateur..."
-              className="h-11 w-full rounded-xl border border-border/50 bg-muted/30 pe-4 ps-11 text-sm outline-none transition-all focus:border-primary/50 focus:bg-background focus:ring-4 focus:ring-primary/5"
+              placeholder="Search users..."
+              className="h-12 w-full pe-4 ps-14 focus:outline-none"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
             />
           </div>
-
-          {/* Tags des utilisateurs sélectionnés */}
-          <div className="min-h-[50px] py-3">
-             <div className="flex flex-wrap gap-2">
-                {selectedUsers.map((user) => (
-                  <SelectedUserTag
-                    key={user.id}
-                    user={user}
-                    onRemove={() => {
-                      setSelectedUsers((prev) =>
-                        prev.filter((u) => u.id !== user.id),
-                      );
-                    }}
-                  />
-                ))}
-             </div>
+          {!!selectedUsers.length && (
+            <div className="mt-4 flex flex-wrap gap-2 p-2">
+              {selectedUsers.map((user) => (
+                <SelectedUserTag
+                  key={user.id}
+                  user={user}
+                  onRemove={() => {
+                    setSelectedUsers((prev) =>
+                      prev.filter((u) => u.id !== user.id),
+                    );
+                  }}
+                />
+              ))}
+            </div>
+          )}
+          <hr />
+          <div className="h-96 overflow-y-auto">
+            {isSuccess &&
+              data.users.map((user) => (
+                <UserResult
+                  key={user.id}
+                  user={user}
+                  selected={selectedUsers.some((u) => u.id === user.id)}
+                  onClick={() => {
+                    setSelectedUsers((prev) =>
+                      prev.some((u) => u.id === user.id)
+                        ? prev.filter((u) => u.id !== user.id)
+                        : [...prev, user],
+                    );
+                  }}
+                />
+              ))}
+            {isSuccess && !data.users.length && (
+              <p className="my-3 text-center text-muted-foreground">
+                No users found. Try a different name.
+              </p>
+            )}
+            {isFetching && <Loader2 className="mx-auto my-3 animate-spin" />}
+            {isError && (
+              <p className="my-3 text-center text-destructive">
+                An error occurred while loading users.
+              </p>
+            )}
           </div>
         </div>
-
-        <div className="relative h-80 overflow-y-auto border-t border-border/40 bg-muted/10 px-2">
-          {isSuccess &&
-            data.users.map((user) => (
-              <UserResult
-                key={user.id}
-                user={user}
-                selected={selectedUsers.some((u) => u.id === user.id)}
-                onClick={() => {
-                  setSelectedUsers((prev) =>
-                    prev.some((u) => u.id === user.id)
-                      ? prev.filter((u) => u.id !== user.id)
-                      : [...prev, user],
-                  );
-                }}
-              />
-            ))}
-          
-          {isSuccess && !data.users.length && (
-            <div className="flex h-full flex-col items-center justify-center py-10">
-              <p className="text-sm text-muted-foreground">Aucun utilisateur trouvé.</p>
-            </div>
-          )}
-          
-          {isFetching && (
-            <div className="flex h-full items-center justify-center">
-              <Loader2 className="size-6 animate-spin text-primary" />
-            </div>
-          )}
-        </div>
-
-        <DialogFooter className="border-t border-border/40 bg-background/50 p-6 backdrop-blur-md">
+        <DialogFooter className="px-6 pb-6">
           <LoadingButton
-            className="w-full rounded-xl py-6 text-base font-semibold shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] active:scale-95"
             disabled={!selectedUsers.length}
             loading={mutation.isPending}
             onClick={() => mutation.mutate()}
           >
-            Lancer la conversation
+            Start chat
           </LoadingButton>
         </DialogFooter>
       </DialogContent>
@@ -174,46 +161,44 @@ export default function NewChatDialog({
   );
 }
 
+interface UserResultProps {
+  user: UserResponse<DefaultStreamChatGenerics>;
+  selected: boolean;
+  onClick: () => void;
+}
+
 function UserResult({ user, selected, onClick }: UserResultProps) {
   return (
     <button
-      className={cn(
-        "flex w-full items-center justify-between rounded-xl px-4 py-3 transition-all duration-200 hover:bg-primary/5",
-        selected && "bg-primary/5"
-      )}
+      className="flex w-full items-center justify-between px-4 py-2.5 transition-colors hover:bg-muted/50"
       onClick={onClick}
     >
-      <div className="flex items-center gap-3">
-        <div className="relative">
-          <UserAvatar avatarUrl={user.image} size={44} />
-          {selected && (
-            <div className="absolute -bottom-1 -right-1 flex size-5 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm">
-              <Check className="size-3 stroke-[3px]" />
-            </div>
-          )}
-        </div>
+      <div className="flex items-center gap-2">
+        <UserAvatar avatarUrl={user.image} />
         <div className="flex flex-col text-start">
-          <p className="text-sm font-semibold">{user.name}</p>
-          <p className="text-xs text-muted-foreground">@{user.username}</p>
+          <p className="font-bold">{user.name}</p>
+          <p className="text-muted-foreground">@{user.username}</p>
         </div>
       </div>
+      {selected && <Check className="size-5 text-green-500" />}
     </button>
   );
 }
 
+interface SelectedUserTagProps {
+  user: UserResponse<DefaultStreamChatGenerics>;
+  onRemove: () => void;
+}
+
 function SelectedUserTag({ user, onRemove }: SelectedUserTagProps) {
   return (
-    <span
-      className="flex animate-in zoom-in-95 items-center gap-1.5 rounded-lg border border-primary/20 bg-primary/10 py-1 pl-1 pr-2 text-xs font-medium text-primary"
+    <button
+      onClick={onRemove}
+      className="flex items-center gap-2 rounded-full border p-1 hover:bg-muted/50"
     >
-      <UserAvatar avatarUrl={user.image} size={20} />
-      {user.name}
-      <button 
-        onClick={onRemove}
-        className="ml-1 rounded-full p-0.5 hover:bg-primary/20 transition-colors"
-      >
-        <X className="size-3" />
-      </button>
-    </span>
+      <UserAvatar avatarUrl={user.image} size={24} />
+      <p className="font-bold">{user.name}</p>
+      <X className="mx-2 size-5 text-muted-foreground" />
+    </button>
   );
 }
