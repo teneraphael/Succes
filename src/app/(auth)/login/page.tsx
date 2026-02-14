@@ -9,10 +9,11 @@ export const metadata: Metadata = {
 
 export default function Page() {
   return (
-    // Changement : min-h-svh et p-0 (plus de marges sur les côtés sur mobile)
+    // min-h-svh est crucial pour mobile pour éviter le bug de la barre d'adresse
+    // p-0 sur mobile pour prendre tout l'écran
     <main className="flex min-h-svh flex-col items-center justify-center bg-[#f0f7ff] dark:bg-[#0a0a0a] p-0 sm:p-6 font-sans relative transition-colors duration-300">
       
-      {/* BOUTON RETOUR */}
+      {/* BOUTON RETOUR : Adapté pour ne pas chevaucher le logo sur petit écran */}
       <Link 
         href="/" 
         className="absolute top-4 left-4 sm:top-8 sm:left-8 flex items-center gap-2 text-[#4b5563] dark:text-gray-400 hover:text-[#4a90e2] transition-colors group z-10"
@@ -23,10 +24,10 @@ export default function Page() {
         <span className="hidden sm:block text-xs font-black uppercase tracking-widest">Continuer la visite</span>
       </Link>
 
-      {/* Conteneur principal : px-0 sur mobile pour utiliser 100% de la largeur */}
-      <div className="w-full sm:max-w-[440px] flex flex-col items-center px-0 sm:px-0 py-8">
+      {/* Conteneur principal : w-full sur mobile */}
+      <div className="w-full sm:max-w-[440px] flex flex-col items-center px-4 sm:px-0 py-8">
         
-        {/* Ton Logo DealCity Exact */}
+        {/* Logo DealCity */}
         <div className="flex items-end gap-2 mb-6 sm:mb-8 scale-90 md:scale-100">
           <div className="flex items-end gap-[4px]">
             <div className="w-[7px] h-6 bg-[#4a90e2] rounded-sm animate-[bounce_2s_infinite_100ms]"></div>
@@ -37,8 +38,8 @@ export default function Page() {
           <span className="text-4xl font-bold text-[#6ab344] tracking-tight">DealCity</span>
         </div>
 
-        {/* Ton Bloc Titre Exact */}
-        <div className="text-center mb-6 sm:mb-10 space-y-2 px-4">
+        {/* Bloc Titre */}
+        <div className="text-center mb-6 sm:mb-10 space-y-2 px-2">
           <h1 className="text-[#4a90e2] dark:text-[#5ba1f3] text-2xl md:text-3xl font-black italic uppercase tracking-tighter">
             Content de vous revoir !
           </h1>
@@ -47,15 +48,15 @@ export default function Page() {
           </p>
         </div>
 
-        {/* LE FORMULAIRE : Adapté pour coller aux bords sur mobile (rounded-none et p-0) */}
-        <div className="w-full mb-8 bg-white dark:bg-zinc-900 p-0 sm:p-2 rounded-none sm:rounded-[2.5rem] shadow-xl shadow-[#4a90e2]/5 dark:shadow-none border-y sm:border border-transparent dark:border-white/5">
-          <div className="bg-white dark:bg-zinc-900 rounded-none sm:rounded-[2.3rem] p-6 sm:p-8">
+        {/* LE FORMULAIRE : Full width sur mobile, arrondi réduit sur mobile pour plus d'espace */}
+        <div className="w-full mb-8 bg-white dark:bg-zinc-900 p-1 sm:p-2 rounded-[2rem] sm:rounded-[2.5rem] shadow-xl shadow-[#4a90e2]/5 dark:shadow-none border border-transparent dark:border-white/5">
+          <div className="bg-white dark:bg-zinc-900 rounded-[1.8rem] sm:rounded-[2.3rem] p-5 sm:p-8">
              <LoginForm />
           </div>
         </div>
 
-        {/* Ton Pied de page Exact */}
-        <div className="flex flex-col items-center gap-6 w-full px-4">
+        {/* Pied de page */}
+        <div className="flex flex-col items-center gap-6 w-full">
             <p className="text-[#4b5563] dark:text-gray-400 text-sm font-medium">
               Pas encore de compte ?{" "}
               <Link href="/signup" className="text-[#4a90e2] dark:text-[#5ba1f3] font-black hover:underline uppercase tracking-tighter italic">
