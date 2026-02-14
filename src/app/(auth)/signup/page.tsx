@@ -9,58 +9,60 @@ export const metadata: Metadata = {
 
 export default function Page() {
   return (
-    // bg-[#f0f7ff] -> dark:bg-[#0a0a0a] (noir profond OLED)
-    <main className="flex min-h-screen flex-col items-center justify-center bg-[#f0f7ff] dark:bg-[#0a0a0a] p-6 font-sans relative transition-colors duration-300">
+    // min-h-svh : s'adapte au clavier mobile sans créer de scroll inutile
+    // p-0 sur mobile pour coller aux bords de l'écran
+    <main className="relative flex min-h-svh w-full flex-col items-center justify-center bg-[#f0f7ff] dark:bg-[#0a0a0a] p-0 sm:p-6 font-sans transition-colors duration-300">
       
-      {/* BOUTON RETOUR DISCRET */}
+      {/* BOUTON RETOUR : Repositionné pour le mobile */}
       <Link 
         href="/" 
-        className="absolute top-8 left-8 flex items-center gap-2 text-[#4b5563] dark:text-gray-400 hover:text-[#4a90e2] transition-colors group"
+        className="absolute top-4 left-4 sm:top-8 sm:left-8 flex items-center gap-2 text-[#4b5563] dark:text-gray-400 hover:text-[#4a90e2] transition-colors group z-20"
       >
-        <div className="p-2 rounded-full bg-white dark:bg-zinc-900 shadow-sm group-hover:shadow-md transition-all border border-transparent dark:border-white/5">
+        <div className="p-2 rounded-full bg-white dark:bg-zinc-900 shadow-sm border border-transparent dark:border-white/5">
           <ArrowLeft size={18} />
         </div>
-        <span className="text-xs font-black uppercase tracking-widest">Voir les annonces</span>
+        <span className="hidden sm:block text-xs font-black uppercase tracking-widest">Voir les annonces</span>
       </Link>
 
-      <div className="w-full max-w-[400px] flex flex-col items-center">
+      {/* Conteneur principal : w-full sur mobile */}
+      <div className="flex w-full flex-col items-center justify-center sm:max-w-[440px] px-0 sm:px-0 py-8">
         
         {/* Logo DealCity Animé */}
-        <div className="flex items-end gap-2 mb-8 scale-90 md:scale-100">
+        <div className="flex items-end gap-2 mb-6 sm:mb-8 scale-90 md:scale-100">
           <div className="flex items-end gap-[4px]">
-            <div className="w-[7px] h-6 bg-[#4a90e2] rounded-full animate-[bounce_2s_infinite_100ms]"></div>
-            <div className="w-[7px] h-10 bg-[#4a90e2] rounded-full animate-[bounce_2s_infinite_200ms]"></div>
-            <div className="w-[7px] h-12 bg-[#4a90e2] rounded-full animate-[bounce_2s_infinite_300ms]"></div>
-            <div className="w-[7px] h-8 bg-[#4a90e2] rounded-full animate-[bounce_2s_infinite_400ms]"></div>
+            <div className="w-[7px] h-6 bg-[#4a90e2] rounded-full animate-bounce"></div>
+            <div className="w-[7px] h-10 bg-[#4a90e2] rounded-full animate-bounce [animation-delay:0.2s]"></div>
+            <div className="w-[7px] h-12 bg-[#4a90e2] rounded-full animate-bounce [animation-delay:0.4s]"></div>
+            <div className="w-[7px] h-8 bg-[#4a90e2] rounded-full animate-bounce [animation-delay:0.6s]"></div>
           </div>
           <span className="text-4xl font-bold text-[#6ab344] tracking-tight">DealCity</span>
         </div>
 
         {/* Bloc Titre */}
-        <div className="text-center mb-10 space-y-2">
+        <div className="text-center mb-6 sm:mb-10 space-y-2 px-6">
           <div className="flex items-center justify-center gap-2 text-[#4a90e2] dark:text-[#5ba1f3]">
             <UserPlus size={24} />
-            <h1 className="text-2xl md:text-3xl font-black italic uppercase tracking-tighter">
+            <h1 className="text-2xl sm:text-3xl font-black italic uppercase tracking-tighter">
               Rejoindre l&apos;aventure
             </h1>
           </div>
-          <p className="text-sm text-[#4b5563]/70 dark:text-gray-400 font-medium px-4">
-            Créez votre profil en quelques secondes et commencez à vendre.
+          <p className="text-sm text-[#4b5563]/70 dark:text-gray-400 font-medium italic">
+            Créez votre profil et commencez à vendre.
           </p>
         </div>
 
-        {/* Conteneur Formulaire Premium (Adaptation Dark) */}
-        <div className="w-full mb-10 bg-white dark:bg-zinc-900 p-2 rounded-[2.5rem] shadow-xl shadow-[#4a90e2]/5 dark:shadow-none border border-transparent dark:border-white/5">
-          <div className="bg-white dark:bg-zinc-900 rounded-[2.3rem] p-6">
+        {/* Conteneur Formulaire : shadow-none et border-none sur mobile pour l'immersion */}
+        <div className="w-full bg-white dark:bg-zinc-900 sm:rounded-[2.5rem] shadow-none sm:shadow-2xl border-none sm:border sm:border-white/5">
+          <div className="w-full px-6 py-8 sm:p-10">
             <SignUpForm />
           </div>
         </div>
 
         {/* Pied de page */}
-        <div className="flex flex-col items-center gap-6">
+        <div className="mt-8 flex flex-col items-center gap-6 w-full px-6">
           <p className="text-[#4b5563] dark:text-gray-400 text-sm font-medium">
             Vous avez déjà un compte ?{" "}
-            <Link href="/login" className="text-[#4a90e2] dark:text-[#5ba1f3] font-black hover:underline uppercase tracking-tighter italic">
+            <Link href="/login" className="text-[#4a90e2] dark:text-[#5ba1f3] font-black hover:underline uppercase italic">
               Se connecter
             </Link>
           </p>
