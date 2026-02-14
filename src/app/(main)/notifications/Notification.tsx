@@ -29,6 +29,11 @@ export default function Notification({ notification }: NotificationProps) {
       icon: <Heart className="size-7 fill-red-500 text-red-500" />,
       href: `/posts/${notification.postId}`,
     },
+    REPORT_DELETION: {
+      message: "",
+      icon: undefined,
+      href: ""
+    }
   };
 
   const { message, icon, href } = notificationTypeMap[notification.type];
