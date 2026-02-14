@@ -2,6 +2,7 @@ import { validateRequest } from "@/auth";
 import MenuBar from "./MenuBar";
 import ChatInitializer from "@/components/ChatInitializer";
 import Navbar from "./Navbar";
+import { Analytics } from "@vercel/analytics/react";
 import SessionProvider from "./SessionProvider";
 import LayoutClientWrapper from "@/components/LayoutClientWrapper";
 import { LanguageProvider } from "@/components/LanguageProvider";
@@ -12,10 +13,11 @@ export default async function Layout({
   children: React.ReactNode;
 }) {
   const session = await validateRequest();
+
   return (
     <LanguageProvider>
       <SessionProvider value={session}>
-        {/* On n'initialise le Chat que si l'utilisateur est authentifié */}
+        {/* Initialisation du Chat si authentifié */}
         {session.user && <ChatInitializer />}
         
         <LayoutClientWrapper
@@ -35,6 +37,9 @@ export default async function Layout({
             {children}
           </main>
         </LayoutClientWrapper>
+
+        {/* Placé ici pour suivre toute l'application proprement */}
+        <Analytics />
       </SessionProvider>
     </LanguageProvider>
   );
