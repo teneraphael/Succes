@@ -162,7 +162,8 @@
     overflow: hidden;
   }
 
-  main {
+  /* MODIFICATION ICI : On cible uniquement si le chat est présent */
+  main:has(.str-chat) {
     padding: 0 !important;
     margin: 0 !important;
     max-width: 100% !important;

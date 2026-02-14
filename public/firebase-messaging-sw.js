@@ -1,6 +1,8 @@
+// Import compat Firebase pour Service Worker
 importScripts('https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/9.0.0/firebase-messaging-compat.js');
 
+// --- INITIALISATION FIREBASE ---
 firebase.initializeApp({
   apiKey: "AIzaSyDYTmdZpLhw04HNXLmnnmKqJf7umAKu35g",
   authDomain: "city-1397c.firebaseapp.com",
@@ -12,70 +14,62 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
-// 1. GESTION DE LA RÉCEPTION EN ARRIÈRE-PLAN
+// --- 1. GESTION DES NOTIFICATIONS EN ARRIÈRE-PLAN ---
 messaging.onBackgroundMessage((payload) => {
   console.log("[SW] Payload reçu en arrière-plan:", payload);
 
+  // Valeurs par défaut
   let title = "City App";
   let body = "Nouvelle interaction";
-  let url = "/notifications"; 
   let icon = "/logo.png";
   let image = null;
+  let url = "/notifications"; 
 
-  // CAS A : Payload venant de STREAM CHAT
-  // Stream envoie souvent les infos dans payload.data
+  // Cas A : Payload Stream Chat
   if (payload.data && (payload.data.sender_name || payload.data.message_id)) {
     title = payload.data.sender_name || "Nouveau message";
     body = payload.data.text || "Vous a envoyé un message";
-    icon = payload.data.sender_image || "/logo.png";
-    // Si tu as un channelId dans le payload, utilise-le
+    icon = payload.data.sender_image || icon;
     url = payload.data.channel_id ? `/messages?channelId=${payload.data.channel_id}` : "/messages";
   } 
-  
-  // CAS B : Payload venant de ton BACKEND (Firebase Admin)
+  // Cas B : Payload Firebase Admin ou autre
   else if (payload.notification || payload.data) {
     title = payload.notification?.title || payload.data?.title || title;
     body = payload.notification?.body || payload.data?.body || body;
+    icon = payload.notification?.icon || payload.data?.icon || icon;
     image = payload.notification?.image || payload.data?.image || null;
-    
-    // On récupère l'URL transmise par sendPushNotification (le champ 'url' dans data)
-    url = payload.data?.url || "/notifications";
+    url = payload.data?.url || url;
   }
 
-  const notificationOptions = {
-    body: body,
-    icon: icon,
-    image: image,
-    badge: "/badge-icon.png", 
-    tag: "city-notif-system", // Évite d'empiler 50 notifications, les écrase si même tag
+  const options = {
+    body,
+    icon,
+    image,
+    badge: "/badge-icon.png",
+    tag: "city-notif-system",  // Evite d'empiler trop de notifications
     renotify: true,
     vibrate: [200, 100, 200],
-    data: { 
-      url: url 
-    }
+    data: { url }
   };
 
-  return self.registration.showNotification(title, notificationOptions);
+  return self.registration.showNotification(title, options);
 });
 
-// 
-
-// 2. GESTION DU CLIC SUR LA NOTIFICATION
+// --- 2. GESTION DU CLIC SUR LA NOTIFICATION ---
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
 
-  // Récupération de l'URL stockée
-  const relativeUrl = event.notification.data?.url || '/';
-  // On construit l'URL absolue pour éviter les erreurs de navigation
-  const targetUrl = new URL(relativeUrl, self.location.origin).href;
+  const targetUrl = new URL(event.notification.data?.url || '/', self.location.origin).href;
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-      // Vérifier si un onglet est déjà ouvert sur le site
       for (const client of clientList) {
-        if (client.url.includes(self.location.origin) && 'navigate' in client) {
-          client.navigate(targetUrl);
-          return client.focus();
+        if ('focus' in client && 'navigate' in client) {
+          // Si un onglet est déjà ouvert sur le site, on le met au premier plan
+          if (client.url.includes(self.location.origin)) {
+            client.navigate(targetUrl);
+            return client.focus();
+          }
         }
       }
       // Sinon, ouvrir un nouvel onglet

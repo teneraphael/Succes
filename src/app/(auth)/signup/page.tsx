@@ -9,14 +9,15 @@ export const metadata: Metadata = {
 
 export default function Page() {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center bg-[#f0f7ff] p-6 font-sans relative">
+    // bg-[#f0f7ff] -> dark:bg-[#0a0a0a] (noir profond OLED)
+    <main className="flex min-h-screen flex-col items-center justify-center bg-[#f0f7ff] dark:bg-[#0a0a0a] p-6 font-sans relative transition-colors duration-300">
       
       {/* BOUTON RETOUR DISCRET */}
       <Link 
         href="/" 
-        className="absolute top-8 left-8 flex items-center gap-2 text-[#4b5563] hover:text-[#4a90e2] transition-colors group"
+        className="absolute top-8 left-8 flex items-center gap-2 text-[#4b5563] dark:text-gray-400 hover:text-[#4a90e2] transition-colors group"
       >
-        <div className="p-2 rounded-full bg-white shadow-sm group-hover:shadow-md transition-all">
+        <div className="p-2 rounded-full bg-white dark:bg-zinc-900 shadow-sm group-hover:shadow-md transition-all border border-transparent dark:border-white/5">
           <ArrowLeft size={18} />
         </div>
         <span className="text-xs font-black uppercase tracking-widest">Voir les annonces</span>
@@ -37,41 +38,41 @@ export default function Page() {
 
         {/* Bloc Titre */}
         <div className="text-center mb-10 space-y-2">
-          <div className="flex items-center justify-center gap-2 text-[#4a90e2]">
+          <div className="flex items-center justify-center gap-2 text-[#4a90e2] dark:text-[#5ba1f3]">
             <UserPlus size={24} />
             <h1 className="text-2xl md:text-3xl font-black italic uppercase tracking-tighter">
               Rejoindre l&apos;aventure
             </h1>
           </div>
-          <p className="text-sm text-[#4b5563]/70 font-medium px-4">
+          <p className="text-sm text-[#4b5563]/70 dark:text-gray-400 font-medium px-4">
             Créez votre profil en quelques secondes et commencez à vendre.
           </p>
         </div>
 
-        {/* Conteneur Formulaire Premium */}
-        <div className="w-full mb-10 bg-white p-2 rounded-[2.5rem] shadow-xl shadow-[#4a90e2]/5">
-          <div className="bg-white rounded-[2.3rem] p-6">
+        {/* Conteneur Formulaire Premium (Adaptation Dark) */}
+        <div className="w-full mb-10 bg-white dark:bg-zinc-900 p-2 rounded-[2.5rem] shadow-xl shadow-[#4a90e2]/5 dark:shadow-none border border-transparent dark:border-white/5">
+          <div className="bg-white dark:bg-zinc-900 rounded-[2.3rem] p-6">
             <SignUpForm />
           </div>
         </div>
 
         {/* Pied de page */}
         <div className="flex flex-col items-center gap-6">
-          <p className="text-[#4b5563] text-sm font-medium">
+          <p className="text-[#4b5563] dark:text-gray-400 text-sm font-medium">
             Vous avez déjà un compte ?{" "}
-            <Link href="/login" className="text-[#4a90e2] font-black hover:underline uppercase tracking-tighter italic">
+            <Link href="/login" className="text-[#4a90e2] dark:text-[#5ba1f3] font-black hover:underline uppercase tracking-tighter italic">
               Se connecter
             </Link>
           </p>
 
           {/* Badge Garantie */}
-          <div className="px-5 py-2.5 bg-white/60 rounded-full border border-white shadow-sm flex items-center gap-3">
+          <div className="px-5 py-2.5 bg-white/60 dark:bg-zinc-800/50 rounded-full border border-white dark:border-white/10 shadow-sm flex items-center gap-3 backdrop-blur-sm">
             <div className="flex -space-x-2">
                {[1,2,3].map((i) => (
-                 <div key={i} className="size-5 rounded-full border-2 border-white bg-muted" />
+                 <div key={i} className="size-5 rounded-full border-2 border-white dark:border-zinc-800 bg-gray-200 dark:bg-zinc-700" />
                ))}
             </div>
-            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+            <span className="text-[10px] font-bold text-muted-foreground dark:text-gray-400 uppercase tracking-widest">
               Rejoins +1000 vendeurs
             </span>
           </div>
