@@ -8,6 +8,7 @@ import { extractRouterConfig } from "uploadthing/server";
 import { fileRouter } from "./api/uploadthing/core";
 import "./globals.css";
 import ReactQueryProvider from "./ReactQueryProvider";
+import NotificationHandler from "@/components/NotificationHandler";
 import SessionProvider from "./(main)/SessionProvider";
 import { validateRequest } from "@/auth"; 
 import { LanguageProvider } from "@/components/LanguageProvider";
@@ -69,6 +70,7 @@ export default async function RootLayout({
             <ReactQueryProvider>
               <SessionProvider value={sessionValues}>
                 <ChatInitializer />
+                <NotificationHandler />
                 <ThemeProvider
                   attribute="class"
                   defaultTheme="system"
