@@ -58,7 +58,7 @@ export default function NotificationPopup() {
         if (token) {
           console.log("🚀 Token généré :", token.substring(0, 20) + "...");
           
-          const response = await fetch('/api/notifications/register-token', {
+          const response = await fetch('/api/notifications/save-token', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ userId: user.id, token: token }),
