@@ -19,7 +19,6 @@ export default function NotificationPopup() {
   const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
-    // La condition 'user' ici est la première sécurité
     if (user && typeof window !== 'undefined' && 'Notification' in window) {
       const hasAsked = localStorage.getItem('dealcity_notif_asked');
       
@@ -31,37 +30,49 @@ export default function NotificationPopup() {
   }, [user]);
 
   const handleAccept = async () => {
-    // DEUXIÈME SÉCURITÉ : On vérifie que user existe avant de continuer
     if (!user) return; 
 
-    setIsOpen(false);
-    localStorage.setItem('dealcity_notif_asked', 'true');
-
     try {
-      const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
-      const messaging = getMessaging(app);
-
       const permission = await Notification.requestPermission();
       
+      // On ferme la popup et on marque comme demandé peu importe le choix
+      setIsOpen(false);
+      localStorage.setItem('dealcity_notif_asked', 'true');
+
       if (permission === 'granted') {
+        // 1. Enregistrement du Service Worker
         const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+        
+        // 2. ATTENTE CRUCIALE : On attend que le SW soit actif pour éviter l'AbortError
+        await navigator.serviceWorker.ready;
+
+        const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+        const messaging = getMessaging(app);
+
+        // 3. Récupération du token
         const token = await getToken(messaging, {
           serviceWorkerRegistration: registration,
           vapidKey: 'BOFuO3gXPZPcvGvfbMGtxch6q9H4kmAqN2EDFzK6xMIjPoYeOd2VWe_5s1IOoRk4zrw4KeCFFyxXz0td1g9iSmY' 
         });
 
         if (token) {
-          // Utilisation sécurisée de user.id car on a vérifié au début de la fonction
-          await fetch('/api/notifications/register-token', {
+          console.log("🚀 Token généré :", token.substring(0, 20) + "...");
+          
+          const response = await fetch('/api/notifications/register-token', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ userId: user.id, token: token }),
           });
-          console.log("✅ Token enregistré pour DealCity");
+
+          if (response.ok) {
+            console.log("✅ Token enregistré en base de données pour DealCity");
+          } else {
+            console.error("❌ Erreur réponse API:", response.status);
+          }
         }
       }
     } catch (error) {
-      console.error("Erreur FCM:", error);
+      console.error("❌ Erreur FCM détaillée:", error);
     }
   };
 
@@ -70,7 +81,6 @@ export default function NotificationPopup() {
     localStorage.setItem('dealcity_notif_asked', 'true');
   };
 
-  // TROISIÈME SÉCURITÉ : Si user est null, on n'affiche absolument rien
   if (!user || !isOpen) return null;
 
   return (
@@ -78,12 +88,12 @@ export default function NotificationPopup() {
       <div className="w-full max-w-[360px] bg-[#0a0a0a] border border-zinc-800 rounded-[35px] overflow-hidden shadow-[0_0_50px_rgba(74,144,226,0.15)] animate-in zoom-in-95 duration-300">
         <div className="p-10 flex flex-col items-center text-center">
           <div className="w-24 h-24 bg-[#4a90e2]/10 rounded-full flex items-center justify-center mb-8 border border-[#4a90e2]/20">
-            <span className="text-5xl animate-bounce">🔔</span>
+            <span className="text-5xl">🔔</span>
           </div>
           
           <h2 className="text-white text-2xl font-extrabold mb-3">Restez connecté !</h2>
           <p className="text-zinc-400 text-sm mb-10 leading-relaxed px-2">
-            Recevez une alerte immédiate dès qu&apos;un acheteur vous envoie un message  ou qu&apos;une nouvelle offre est publiée.
+            Recevez une alerte immédiate dès qu&apos;un acheteur vous envoie un message ou qu&apos;une nouvelle offre est publiée.
           </p>
 
           <div className="flex flex-col w-full gap-4">

@@ -2,6 +2,14 @@
 importScripts('https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/9.0.0/firebase-messaging-compat.js');
 
+self.addEventListener('install', (event) => {
+  self.skipWaiting(); // Force l'activation immédiate
+});
+
+self.addEventListener('activate', (event) => {
+  event.waitUntil(clients.claim()); // Prend le contrôle des pages ouvertes
+});
+
 // --- INITIALISATION FIREBASE ---
 firebase.initializeApp({
   apiKey: "AIzaSyDYTmdZpLhw04HNXLmnnmKqJf7umAKu35g",
