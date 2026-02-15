@@ -3,6 +3,7 @@ import MenuBar from "./MenuBar";
 import ChatInitializer from "@/components/ChatInitializer";
 import Navbar from "./Navbar";
 import { Analytics } from "@vercel/analytics/react";
+import NotificationHandler from "@/components/NotificationHandler";
 import SessionProvider from "./SessionProvider";
 import LayoutClientWrapper from "@/components/LayoutClientWrapper";
 import { LanguageProvider } from "@/components/LanguageProvider";
@@ -18,7 +19,7 @@ export default async function Layout({
     <LanguageProvider>
       <SessionProvider value={session}>
         {/* Initialisation du Chat si authentifié */}
-        {session.user && <ChatInitializer />}
+        {session.user && <><ChatInitializer /><NotificationHandler /></>}
         
         <LayoutClientWrapper
           navbar={<Navbar />}
