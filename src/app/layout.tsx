@@ -3,6 +3,8 @@ import { NextSSRPlugin } from "@uploadthing/react/next-ssr-plugin";
 import type { Metadata } from "next";
 import { ThemeProvider } from "next-themes";
 import localFont from "next/font/local";
+import CookieBanner from "@/components/CookieBanner";
+import { Toaster as SonnerToaster } from "sonner";
 import ChatInitializer from "@/components/ChatInitializer";
 import { extractRouterConfig } from "uploadthing/server";
 import { fileRouter } from "./api/uploadthing/core";
@@ -78,7 +80,9 @@ export default async function RootLayout({
                   disableTransitionOnChange
                 >
                   {children}
+                  <CookieBanner />
                 </ThemeProvider>
+                <SonnerToaster richColors />
               </SessionProvider>
             </ReactQueryProvider>
             <Toaster />

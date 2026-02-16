@@ -2,6 +2,7 @@ import { validateRequest } from "@/auth";
 import MenuBar from "./MenuBar";
 import ChatInitializer from "@/components/ChatInitializer";
 import Navbar from "./Navbar";
+import CookieBanner from "@/components/CookieBanner";
 import { Analytics } from "@vercel/analytics/react";
 import NotificationHandler from "@/components/NotificationHandler";
 import SessionProvider from "./SessionProvider";
@@ -38,7 +39,7 @@ export default async function Layout({
             {children}
           </main>
         </LayoutClientWrapper>
-
+         <CookieBanner />
         {/* Placé ici pour suivre toute l'application proprement */}
         <Analytics />
       </SessionProvider>
