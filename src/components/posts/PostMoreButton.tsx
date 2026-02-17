@@ -10,7 +10,8 @@ import {
   Copy, 
   Share2,
   ExternalLink,
-  Loader2
+  Loader2,
+  Store
 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "../ui/button";
@@ -105,7 +106,6 @@ export default function PostMoreButton({
       const data = await response.json();
 
       if (!response.ok) {
-        // Le serveur renvoie maintenant un statut 400 si déjà signalé
         throw new Error(data.error || "Erreur lors du signalement");
       }
 
@@ -121,7 +121,7 @@ export default function PostMoreButton({
     } catch (error: any) {
       toast({ 
         variant: "destructive", 
-        description: error.message // Affichera "Vous avez déjà signalé ce contenu."
+        description: error.message 
       });
     } finally {
       setIsReporting(false);
@@ -136,19 +136,37 @@ export default function PostMoreButton({
             <MoreHorizontal className="size-5 text-muted-foreground" />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-56">
+        <DropdownMenuContent align="end" className="w-60 shadow-xl border-border/50">
           
-          <DropdownMenuItem onClick={handleShare}>
+          {/* LIEN SOCIAL DU VENDEUR (TIKTOK / INSTA) */}
+          {post.user.socialLink && (
+            <>
+              <DropdownMenuItem asChild>
+                <a 
+                  href={post.user.socialLink.startsWith('http') ? post.user.socialLink : `https://${post.user.socialLink}`} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="flex items-center text-[#4a90e2] font-bold cursor-pointer focus:bg-blue-50 dark:focus:bg-blue-900/20 focus:text-[#4a90e2]"
+                >
+                  <Store className="mr-2 size-4 text-[#4a90e2]" />
+                  Voir la boutique TikTok/Insta
+                </a>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+            </>
+          )}
+
+          <DropdownMenuItem onClick={handleShare} className="cursor-pointer">
             <Share2 className="mr-2 size-4" />
-            {"Partager l'annonce"}
+            Partager l&apos;annonce
           </DropdownMenuItem>
 
-          <DropdownMenuItem onClick={copyLink}>
+          <DropdownMenuItem onClick={copyLink} className="cursor-pointer">
             <Copy className="mr-2 size-4" />
             Copier le lien
           </DropdownMenuItem>
 
-          <DropdownMenuItem asChild>
+          <DropdownMenuItem asChild className="cursor-pointer">
             <a href={`/posts/${post.id}`} target="_blank" rel="noopener noreferrer">
               <ExternalLink className="mr-2 size-4" />
               Ouvrir dans un onglet
@@ -156,7 +174,7 @@ export default function PostMoreButton({
           </DropdownMenuItem>
 
           {post.attachments.length > 0 && (
-            <DropdownMenuItem onClick={downloadMedia}>
+            <DropdownMenuItem onClick={downloadMedia} className="cursor-pointer">
               <Download className="mr-2 size-4" />
               Enregistrer les médias
             </DropdownMenuItem>
@@ -164,10 +182,11 @@ export default function PostMoreButton({
 
           <DropdownMenuSeparator />
 
+          {/* ACTIONS DE MODÉRATION / PROPRIÉTAIRE */}
           {post.user.id === user.id ? (
             <DropdownMenuItem
               onClick={() => setShowDeleteDialog(true)}
-              className="text-destructive focus:text-destructive"
+              className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer font-medium"
             >
               <Trash2 className="mr-2 size-4" />
               Supprimer mon annonce
@@ -176,7 +195,7 @@ export default function PostMoreButton({
             <DropdownMenuItem 
               onClick={handleReport} 
               disabled={isReporting}
-              className="text-amber-600 focus:text-amber-600 font-medium cursor-pointer"
+              className="text-amber-600 focus:text-amber-600 focus:bg-amber-50 dark:focus:bg-amber-900/10 font-medium cursor-pointer"
             >
               {isReporting ? (
                 <Loader2 className="mr-2 size-4 animate-spin" />

@@ -21,8 +21,10 @@ export const lucia = new Lucia(adapter, {
       displayName: databaseUserAttributes.displayName,
       avatarUrl: databaseUserAttributes.avatarUrl,
       googleId: databaseUserAttributes.googleId,
-      // AJOUT : On expose isSeller à l'application
-      isSeller: databaseUserAttributes.isSeller, 
+      isSeller: databaseUserAttributes.isSeller,
+      // ✅ On expose les nouveaux champs à la session Lucia
+      isPioneer: databaseUserAttributes.isPioneer,
+      isVerified: databaseUserAttributes.isVerified,
     };
   },
 });
@@ -34,24 +36,16 @@ declare module "lucia" {
   }
 }
 
+// ✅ UNE SEULE interface avec TOUS les champs
 interface DatabaseUserAttributes {
   id: string;
   username: string;
   displayName: string;
   avatarUrl: string | null;
   googleId: string | null;
-  // AJOUT : Indique à TypeScript que ce champ existe en base de données
-  isSeller: boolean; 
-}
-
-// ... le reste de ton code (google, validateRequest) reste identique
-
-interface DatabaseUserAttributes {
-  id: string;
-  username: string;
-  displayName: string;
-  avatarUrl: string | null;
-  googleId: string | null;
+  isSeller: boolean;
+  isPioneer: boolean;
+  isVerified: boolean;
 }
 
 export const google = new Google(

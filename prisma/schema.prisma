@@ -52,6 +52,12 @@ model User {
   likes           Like[]
   bookmarks       Bookmark[]
   comments        Comment[]
+  isPioneer        Boolean        @default(false) 
+  isVerified       Boolean        @default(false)
+  whatsappUrl      String?
+  facebookUrl      String?
+  instagramUrl     String?
+  phoneNumber      String?
   
   // RELATION AJOUTÉE POUR LES SIGNALEMENTS
   reports         Report[]       

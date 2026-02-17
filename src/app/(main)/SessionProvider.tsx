@@ -5,6 +5,8 @@ import React, { createContext, useContext } from "react";
 
 // On définit notre propre type User qui inclut tes champs personnalisés
 interface User extends LuciaUser {
+  isPioneer: boolean;   // Assure-toi que c'est bien : boolean
+  isVerified: boolean;
   isSeller: boolean;
   businessName?: string | null;
 }

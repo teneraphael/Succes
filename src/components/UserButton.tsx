@@ -14,7 +14,9 @@ import {
   Store, 
   Languages,
   LayoutDashboard,
-  Settings
+  Settings,
+  ShieldCheck, // Ajouté pour l'admin
+  Users // Ajouté pour le répertoire
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import Link from "next/link";
@@ -32,11 +34,11 @@ import {
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
 import UserAvatar from "./UserAvatar";
-import { User } from "lucia"; // Assure-toi d'importer le type User de Lucia ou ton interface
+import { User } from "lucia";
 
 interface UserButtonProps {
   className?: string;
-  user?: User; // On accepte maintenant l'user en prop
+  user?: User;
 }
 
 export default function UserButton({ className, user: propUser }: UserButtonProps) {
@@ -45,10 +47,12 @@ export default function UserButton({ className, user: propUser }: UserButtonProp
   const { t, lang, setLang } = useLanguage(); 
   const queryClient = useQueryClient();
 
-  // On utilise l'user passé en prop, sinon celui de la session
   const user = propUser || sessionUser;
 
   if (!user) return null;
+
+  // Constante pour vérifier si c'est toi l'admin
+  const isAdmin = user.id === "44ttt3ikxntqkxnh";
 
   return (
     <DropdownMenu>
@@ -70,6 +74,19 @@ export default function UserButton({ className, user: propUser }: UserButtonProp
         
         <DropdownMenuSeparator className="mx-2" />
         
+        {/* --- SECTION ADMIN (UNIQUEMENT POUR TOI) --- */}
+        {isAdmin && (
+          <>
+            <Link href="/admin/pioneers">
+              <DropdownMenuItem className="rounded-xl py-3 cursor-pointer bg-blue-600/5 text-blue-600 focus:bg-blue-600/10 focus:text-blue-700">
+                <ShieldCheck className="mr-3 size-5" />
+                <span className="font-black uppercase italic text-xs">Répertoire Pionniers</span>
+              </DropdownMenuItem>
+            </Link>
+            <DropdownMenuSeparator className="mx-2" />
+          </>
+        )}
+
         {/* SECTION VENDEUR */}
         {user.isSeller ? (
           <Link href="/seller/dashboard">
@@ -87,7 +104,6 @@ export default function UserButton({ className, user: propUser }: UserButtonProp
           </Link>
         )}
 
-        {/* SECTION PROFIL / SETTINGS */}
         <Link href={`/users/${user.username}`}>
           <DropdownMenuItem className="rounded-xl py-3 cursor-pointer">
             <UserIcon className="mr-3 size-5 text-muted-foreground" />

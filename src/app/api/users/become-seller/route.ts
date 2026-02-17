@@ -8,57 +8,76 @@ export async function POST(req: Request) {
     if (!user) return new NextResponse("Non autorisé", { status: 401 });
 
     const body = await req.json();
-    const { businessName, businessDomain, businessEmail, businessProducts } = body;
+    
+    // On extrait les nouveaux champs du body
+    const { 
+      businessName, 
+      businessDomain, 
+      businessEmail, 
+      businessProducts, 
+      whatsappUrl, 
+      facebookUrl, 
+      instagramUrl 
+    } = body;
 
     // 1. Génération d'un username propre (slugification)
     let newUsername = businessName
       .toLowerCase()
       .trim()
       .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "") // Supprime les accents
-      .replace(/\s+/g, "")             // Supprime les espaces
-      .replace(/[^\w]/gi, "");         // Supprime tout ce qui n'est pas alphanumérique
+      .replace(/[\u0300-\u036f]/g, "") 
+      .replace(/\s+/g, "")             
+      .replace(/[^\w]/gi, "");         
 
     // 2. Vérification de collision d'username
     const existingUser = await prisma.user.findUnique({
       where: { username: newUsername },
     });
 
-    // Si le nom est déjà pris par un autre compte, on ajoute un suffixe
     if (existingUser && existingUser.id !== user.id) {
       newUsername = `${newUsername}-${Math.floor(1000 + Math.random() * 9000)}`;
     }
 
-    // 3. Mise à jour de l'utilisateur
+    // 3. Logique de récompense Pionnier
+    // On devient Pionnier si au moins UN lien social est fourni
+    const hasSocialLink = 
+      (whatsappUrl && whatsappUrl.trim() !== "") || 
+      (facebookUrl && facebookUrl.trim() !== "") || 
+      (instagramUrl && instagramUrl.trim() !== "");
+
+    // 4. Mise à jour de l'utilisateur
     await prisma.user.update({
       where: { id: user.id },
       data: {
         isSeller: true,
         username: newUsername,
         displayName: businessName,
-        // Ces colonnes doivent exister dans schema.prisma
         businessName,
         businessDomain,
         businessEmail,
         businessProducts,
+        // Enregistrement des liens spécifiques
+        whatsappUrl: whatsappUrl || null,
+        facebookUrl: facebookUrl || null,
+        instagramUrl: instagramUrl || null,
+        // Status
+        isPioneer: !!hasSocialLink, 
+        isVerified: false, 
       },
     });
 
-    return NextResponse.json({ success: true, newUsername });
+    return NextResponse.json({ 
+      success: true, 
+      newUsername, 
+      isPioneer: !!hasSocialLink 
+    });
 
   } catch (error: unknown) {
     console.error("Erreur lors de la mise à jour du vendeur:", error);
 
-    // ✅ Gestion sécurisée du type 'unknown' pour TypeScript
     if (typeof error === "object" && error !== null) {
-      // Vérification spécifique pour les erreurs Prisma (code P2002 = Unique constraint failed)
       if ("code" in error && error.code === "P2002") {
-        return new NextResponse("Ce nom de boutique ou ce nom d'utilisateur est déjà utilisé", { status: 400 });
-      }
-      
-      // Si c'est une erreur standard, on peut extraire le message
-      if (error instanceof Error) {
-        return new NextResponse(error.message, { status: 500 });
+        return new NextResponse("Ce nom de boutique est déjà utilisé", { status: 400 });
       }
     }
 
