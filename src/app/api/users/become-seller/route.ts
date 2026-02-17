@@ -9,18 +9,18 @@ export async function POST(req: Request) {
 
     const body = await req.json();
     
-    // On extrait les nouveaux champs du body
     const { 
       businessName, 
       businessDomain, 
       businessEmail, 
       businessProducts, 
       whatsappUrl, 
+      tiktokUrl,    // ✅ Le plus important
       facebookUrl, 
       instagramUrl 
     } = body;
 
-    // 1. Génération d'un username propre (slugification)
+    // 1. Slugification de l'username
     let newUsername = businessName
       .toLowerCase()
       .trim()
@@ -29,7 +29,6 @@ export async function POST(req: Request) {
       .replace(/\s+/g, "")             
       .replace(/[^\w]/gi, "");         
 
-    // 2. Vérification de collision d'username
     const existingUser = await prisma.user.findUnique({
       where: { username: newUsername },
     });
@@ -38,14 +37,22 @@ export async function POST(req: Request) {
       newUsername = `${newUsername}-${Math.floor(1000 + Math.random() * 9000)}`;
     }
 
-    // 3. Logique de récompense Pionnier
-    // On devient Pionnier si au moins UN lien social est fourni
+    // 2. Formatage automatique du WhatsApp
+    let finalWhatsapp = whatsappUrl;
+    if (whatsappUrl && !whatsappUrl.startsWith('http') && whatsappUrl.length >= 8) {
+      // Nettoie les espaces et ajoute le préfixe wa.me
+      const cleanNum = whatsappUrl.replace(/\s+/g, '');
+      finalWhatsapp = `https://wa.me/${cleanNum}`;
+    }
+
+    // 3. Logique Pionnier (TikTok donne le badge direct !)
     const hasSocialLink = 
+      (tiktokUrl && tiktokUrl.trim() !== "") ||
       (whatsappUrl && whatsappUrl.trim() !== "") || 
       (facebookUrl && facebookUrl.trim() !== "") || 
       (instagramUrl && instagramUrl.trim() !== "");
 
-    // 4. Mise à jour de l'utilisateur
+    // 4. Mise à jour Database
     await prisma.user.update({
       where: { id: user.id },
       data: {
@@ -56,8 +63,9 @@ export async function POST(req: Request) {
         businessDomain,
         businessEmail,
         businessProducts,
-        // Enregistrement des liens spécifiques
-        whatsappUrl: whatsappUrl || null,
+        // Réseaux Sociaux
+        tiktokUrl: tiktokUrl || null,      // ✅ Ajouté
+        whatsappUrl: finalWhatsapp || null, // ✅ Formaté
         facebookUrl: facebookUrl || null,
         instagramUrl: instagramUrl || null,
         // Status
@@ -73,14 +81,7 @@ export async function POST(req: Request) {
     });
 
   } catch (error: unknown) {
-    console.error("Erreur lors de la mise à jour du vendeur:", error);
-
-    if (typeof error === "object" && error !== null) {
-      if ("code" in error && error.code === "P2002") {
-        return new NextResponse("Ce nom de boutique est déjà utilisé", { status: 400 });
-      }
-    }
-
-    return new NextResponse("Une erreur interne est survenue", { status: 500 });
+    console.error("Erreur API Become Seller:", error);
+    return new NextResponse("Une erreur est survenue", { status: 500 });
   }
 }

@@ -57,6 +57,7 @@ model User {
   whatsappUrl      String?
   facebookUrl      String?
   instagramUrl     String?
+  tiktokUrl String?
   phoneNumber      String?
   
   // RELATION AJOUTÉE POUR LES SIGNALEMENTS

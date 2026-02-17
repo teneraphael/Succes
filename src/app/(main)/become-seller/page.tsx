@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { 
   Briefcase, Mail, ShoppingBag, Tag, Loader2, ArrowLeft, 
-  Sparkles, MessageCircle, Facebook, Instagram 
+  Sparkles, MessageCircle, Facebook, Instagram, Music2 
 } from "lucide-react";
 import Link from "next/link";
 import { useSession } from "@/app/(main)/SessionProvider";
@@ -91,7 +91,7 @@ export default function BecomeSellerPage() {
           <div className="flex flex-col items-center text-center">
             <div className="mb-6 flex items-end gap-3 scale-110">
                <span className="text-4xl font-black tracking-tighter text-[#6ab344]">DealCity</span>
-               <span className="text-sm font-bold bg-zinc-900 text-white px-2 py-0.5 rounded-md">PRO</span>
+               <span className="text-sm font-bold bg-zinc-900 text-white px-2 py-0.5 rounded-md shadow-lg">PRO</span>
             </div>
             
             <div className="inline-flex items-center gap-2 px-4 py-1 mb-4 rounded-full bg-blue-50 dark:bg-blue-500/10 border border-blue-100 dark:border-blue-500/20">
@@ -99,7 +99,9 @@ export default function BecomeSellerPage() {
                <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#4a90e2]">Programme Partenaire</span>
             </div>
             
-            <h1 className="text-3xl font-black tracking-tight leading-tight">Créez votre vitrine pro</h1>
+            <h1 className="text-3xl font-black tracking-tight leading-tight text-zinc-900 dark:text-zinc-100">
+                Créez votre vitrine pro
+            </h1>
           </div>
 
           {/* FORMULAIRE */}
@@ -110,7 +112,9 @@ export default function BecomeSellerPage() {
               <form onSubmit={onSubmit} className="space-y-6">
                 
                 <div className="space-y-4">
-                  <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1">Informations Générales</p>
+                  <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1 italic">
+                      Identité de la boutique
+                  </p>
                   
                   <div className="relative">
                     <Briefcase className="absolute left-4 top-1/2 -translate-y-1/2 size-5 text-zinc-400" />
@@ -130,9 +134,24 @@ export default function BecomeSellerPage() {
 
                   <hr className="my-6 border-zinc-100 dark:border-zinc-800" />
                   
-                  <p className="text-[10px] font-black uppercase text-amber-600 tracking-widest ml-1">Réseaux de vente (Badge Pionnier)</p>
+                  <p className="text-[10px] font-black uppercase text-amber-600 tracking-widest ml-1 italic">
+                      Réseaux & Badge Pionnier
+                  </p>
 
-                  {/* WHATSAPP - PRIORITAIRE */}
+                  {/* TIKTOK - DESIGNÉ POUR ÊTRE LE PLUS IMPORTANT */}
+                  <div className="relative group/tiktok">
+                    <div className="absolute -inset-0.5 rounded-2xl bg-gradient-to-r from-[#ff0050] to-[#00f2ea] opacity-20 group-focus-within/tiktok:opacity-100 blur transition duration-500" />
+                    <div className="relative">
+                        <Music2 className="absolute left-4 top-1/2 -translate-y-1/2 size-5 text-zinc-900 dark:text-white" />
+                        <Input 
+                            name="tiktokUrl" 
+                            placeholder="Lien TikTok (Le plus important !)" 
+                            className="h-14 pl-12 rounded-2xl border-none bg-zinc-50 dark:bg-zinc-800 focus-visible:ring-2 focus-visible:ring-black dark:focus-visible:ring-white" 
+                        />
+                    </div>
+                  </div>
+
+                  {/* WHATSAPP */}
                   <div className="relative">
                     <MessageCircle className="absolute left-4 top-1/2 -translate-y-1/2 size-5 text-green-500" />
                     <Input name="whatsappUrl" placeholder="Lien WhatsApp (wa.me/...)" className="h-14 pl-12 rounded-2xl border-green-500/20 bg-green-500/5 focus-visible:ring-green-500" />
@@ -151,11 +170,11 @@ export default function BecomeSellerPage() {
 
                   <div className="relative pt-2">
                     <ShoppingBag className="absolute left-4 top-6 size-5 text-zinc-400" />
-                    <Textarea name="businessProducts" placeholder="Quels types d'articles allez-vous proposer ?" className="pl-12 rounded-2xl min-h-[100px] pt-4 resize-none bg-zinc-50/50 dark:bg-zinc-800/50" />
+                    <Textarea name="businessProducts" placeholder="Description courte de vos produits..." className="pl-12 rounded-2xl min-h-[100px] pt-4 resize-none bg-zinc-50/50 dark:bg-zinc-800/50" />
                   </div>
                 </div>
                 
-                <Button type="submit" disabled={loading} className="w-full h-16 bg-[#4a90e2] hover:bg-[#357abd] text-white font-black rounded-2xl text-lg shadow-xl shadow-blue-500/20 transition-all">
+                <Button type="submit" disabled={loading} className="w-full h-16 bg-[#4a90e2] hover:bg-[#357abd] text-white font-black rounded-2xl text-lg shadow-xl shadow-blue-500/20 transition-all active:scale-[0.98]">
                   {loading ? <Loader2 className="animate-spin" /> : "Lancer mon business 🚀"}
                 </Button>
               </form>
