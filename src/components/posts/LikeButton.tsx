@@ -12,6 +12,7 @@ import {
 import { Heart } from "lucide-react";
 import { useToast } from "../ui/use-toast";
 import { useSession } from "@/app/(main)/SessionProvider";
+import { HTTPError } from "ky"; // Pour gérer les erreurs API
 
 interface LikeButtonProps {
   postId: string;
@@ -34,14 +35,14 @@ export default function LikeButton({ postId, initialState }: LikeButtonProps) {
 
   const { mutate, isPending } = useMutation({
     mutationFn: async () => {
-      // 1. Action de Like/Unlike en DB
+      // Action de Like/Unlike en DB
       const request = data.isLikedByUser
         ? kyInstance.delete(`/api/posts/${postId}/likes`)
         : kyInstance.post(`/api/posts/${postId}/likes`);
       
       await request;
 
-      // 2. SIGNAL POUR L'ALGORITHME (Uniquement si on Like)
+      // SIGNAL POUR L'ALGORITHME (Uniquement si on Like)
       if (!data.isLikedByUser) {
         await fetch("/api/posts/track", {
           method: "POST",
@@ -56,7 +57,6 @@ export default function LikeButton({ postId, initialState }: LikeButtonProps) {
     },
     onMutate: async () => {
       await queryClient.cancelQueries({ queryKey });
-
       const previousState = queryClient.getQueryData<LikeInfo>(queryKey);
 
       queryClient.setQueryData<LikeInfo>(queryKey, () => ({
@@ -67,20 +67,29 @@ export default function LikeButton({ postId, initialState }: LikeButtonProps) {
 
       return { previousState };
     },
-    onError(error, variables, context) {
+    onError: async (error, variables, context) => {
       queryClient.setQueryData(queryKey, context?.previousState);
+      
+      // GESTION DU SOLDE INSUFFISANT
+      if (error instanceof HTTPError && error.response.status === 403) {
+        const errorData = await error.response.json();
+        toast({
+          variant: "destructive",
+          description: errorData.error || "Le vendeur n'a plus assez de crédit.",
+        });
+      } else {
+        toast({
+          variant: "destructive",
+          description: "Une erreur est survenue. Veuillez réessayer.",
+        });
+      }
       console.error(error);
-      toast({
-        variant: "destructive",
-        description: "Une erreur est survenue. Veuillez réessayer.",
-      });
     },
   });
 
   return (
     <button 
       onClick={() => {
-        // PROTECTION : Si l'utilisateur n'est pas connecté, on bloque
         if (!loggedInUser) {
           toast({
             variant: "destructive",

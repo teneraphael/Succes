@@ -13,6 +13,7 @@ export function getUserDataSelect(loggedInUserId?: string) {
     instagramUrl: true,
     whatsappUrl: true,
     isVerified: true,
+    balance: true, // ✅ AJOUT : Indispensable pour vérifier le forfait du vendeur
     allowNotifications: true,
     createdAt: true,
     followers: {
@@ -33,6 +34,9 @@ export function getUserDataSelect(loggedInUserId?: string) {
   } satisfies Prisma.UserSelect;
 }
 
+// ... Le reste du fichier reste identique, les types UserData et PostData 
+// se mettront à jour automatiquement grâce à la modification ci-dessus.
+
 export type UserData = Prisma.UserGetPayload<{
   select: ReturnType<typeof getUserDataSelect>;
 }>;
@@ -52,7 +56,6 @@ export function getPostDataInclude(loggedInUserId?: string) {
         postId: true,
       },
     },
-
     bookmarks: {
       where: {
         userId: loggedInUserId || "ANONYMOUS_USER",

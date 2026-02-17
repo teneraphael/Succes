@@ -4,7 +4,7 @@ import { useSession } from "@/app/(main)/SessionProvider";
 import { PostData } from "@/lib/types";
 import { cn, formatRelativeDate } from "@/lib/utils";
 import { Media } from "@prisma/client";
-import { MessageSquare, ChevronLeft, ChevronRight, Lock, Sparkles, ShieldCheck } from "lucide-react"; // Ajout de Sparkles et ShieldCheck
+import { MessageSquare, Lock, Sparkles, ShieldCheck, Loader2 } from "lucide-react";
 import Image from "next/image";
 import VideoPost from "../VideoPost";
 import Link from "next/link";
@@ -19,6 +19,7 @@ import LikeButton from "./LikeButton";
 import PostMoreButton from "./PostMoreButton";
 import { useSwipeable } from 'react-swipeable';
 import { useMediaQuery } from "@/hooks/use-media-query";
+import { useToast } from "@/components/ui/use-toast";
 
 // Imports UI Shadcn
 import {
@@ -44,20 +45,62 @@ interface PostProps {
 export default function Post({ post }: PostProps) {
   const { user } = useSession();
   const router = useRouter();
+  const { toast } = useToast();
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isChatLoading, setIsChatLoading] = useState(false);
   
   const isDesktop = useMediaQuery("(min-width: 768px)");
 
   const charLimit = 250;
   const isLongText = post.content.length > charLimit;
 
-  // Gestion du clic sur "Discuter"
-  const handleChatClick = () => {
+  // Gestion du clic sur "Discuter" avec monétisation
+  const handleChatClick = async () => {
     if (!user) {
       router.push(`/login?callbackUrl=/posts/${post.id}`);
       return;
     }
-    window.location.href = `/messages?userId=${post.user.id}&postId=${post.id}`;
+
+    // Si l'utilisateur est le propriétaire, on redirige sans débit
+    if (user.id === post.user.id) {
+      router.push(`/messages?userId=${post.user.id}`);
+      return;
+    }
+
+    try {
+      setIsChatLoading(true);
+      
+      // Appel à l'API d'initialisation du chat (Débit de 100 FCFA)
+      const response = await fetch("/api/chat/init", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          recipientId: post.user.id, 
+          postId: post.id 
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        // Cas : Forfait épuisé (403) ou autre erreur
+        toast({
+          variant: "destructive",
+          description: data.error || "Impossible de contacter ce vendeur pour le moment.",
+        });
+        return;
+      }
+
+      // Si succès (débité ou déjà payé précédemment), on redirige
+      router.push(`/messages?userId=${post.user.id}&postId=${post.id}`);
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        description: "Une erreur réseau est survenue.",
+      });
+    } finally {
+      setIsChatLoading(false);
+    }
   };
 
   const CommentTrigger = (
@@ -89,24 +132,21 @@ export default function Post({ post }: PostProps) {
                 </Link>
               </UserTooltip>
 
-              {/* SECTION BADGES : Vendeur + Pionnier */}
               <div className="flex items-center gap-1">
                 <SellerBadge 
                   isSeller={post.user.isSeller} 
                   followerCount={post.user._count.followers} 
                 />
                 
-                {/* NOUVEAU : Badge Pionnier dynamique */}
                 {post.user.isPioneer && (
-                  <div className="flex items-center gap-0.5 bg-amber-400/10 text-amber-600 dark:text-amber-400 px-1.5 py-0.5 rounded-full border border-amber-400/20 shadow-sm animate-in fade-in zoom-in duration-500">
+                  <div className="flex items-center gap-0.5 bg-amber-400/10 text-amber-600 dark:text-amber-400 px-1.5 py-0.5 rounded-full border border-amber-400/20 shadow-sm">
                     <Sparkles className="size-2.5 fill-current" />
                     <span className="text-[9px] font-black uppercase tracking-tighter">Pionnier</span>
                   </div>
                 )}
 
-                {/* NOUVEAU : Check de vérification (Vérifié) */}
                 {post.user.isVerified && (
-                  <ShieldCheck className="size-4 text-[#4a90e2] fill-current dark:text-[#4a90e2]" />
+                  <ShieldCheck className="size-4 text-[#4a90e2] fill-current" />
                 )}
               </div>
             </div>
@@ -144,24 +184,31 @@ export default function Post({ post }: PostProps) {
         )}
       </div>
 
-      {/* MODIFICATION : On passe le statut pionnier aux médias pour l'affichage du badge sur l'image */}
       {!!post.attachments.length && (
         <MediaPreviews attachments={post.attachments} isPioneer={post.user.isPioneer} />
       )}
 
-      {/* BOUTON DISCUTER SÉCURISÉ */}
+      {/* BOUTON DISCUTER DYNAMIQUE */}
       <div className="flex justify-center mt-2 px-1 md:px-0">
         <button 
           onClick={handleChatClick}
+          disabled={isChatLoading}
           className={cn(
             "w-full flex items-center justify-center gap-2 py-3 rounded-xl font-bold transition-all active:scale-[0.98] shadow-sm",
             user 
               ? "bg-[#6ab344] text-white hover:bg-[#5a9c39] shadow-[#6ab344]/20" 
-              : "bg-muted text-muted-foreground border border-border hover:bg-muted/80"
+              : "bg-muted text-muted-foreground border border-border hover:bg-muted/80",
+            isChatLoading && "opacity-70 cursor-not-allowed"
           )}
         >
-          {!user && <Lock className="size-4" />}
-          {user ? "Discuter" : "Connectez-vous pour discuter"}
+          {isChatLoading ? (
+            <Loader2 className="size-5 animate-spin" />
+          ) : (
+            <>
+              {!user && <Lock className="size-4" />}
+              {user ? "Discuter" : "Connectez-vous pour discuter"}
+            </>
+          )}
         </button>
       </div>
 
@@ -217,11 +264,11 @@ export default function Post({ post }: PostProps) {
   );
 }
 
-// --- MEDIA PREVIEWS (MIS À JOUR) ---
+// --- MEDIA PREVIEWS ---
 
 interface MediaPreviewsProps {
   attachments: Media[];
-  isPioneer?: boolean; // Ajout de la prop
+  isPioneer?: boolean;
 }
 
 function MediaPreviews({ attachments, isPioneer }: MediaPreviewsProps) {
@@ -235,13 +282,9 @@ function MediaPreviews({ attachments, isPioneer }: MediaPreviewsProps) {
     trackMouse: true,
   });
 
-  const nextMedia = () => setSelectedIndex((prev) => Math.min(prev + 1, totalMedia - 1));
-  const prevMedia = () => setSelectedIndex((prev) => Math.max(prev - 1, 0));
-
   return (
     <div className="relative -mx-4 md:mx-0 overflow-hidden bg-black group/media rounded-none md:rounded-xl shadow-inner" {...handlers}>
       
-      {/* NOUVEAU : Overlay Pionnier sur l'image pour plus de style */}
       {isPioneer && (
         <div className="absolute left-4 bottom-14 z-20 flex items-center gap-1 bg-amber-400/90 text-black px-2 py-1 rounded-lg text-[9px] font-black uppercase italic backdrop-blur-sm">
           <Sparkles className="size-3" />
@@ -255,8 +298,6 @@ function MediaPreviews({ attachments, isPioneer }: MediaPreviewsProps) {
         </div>
       )}
 
-      {/* ... reste du code MediaPreviews identique ... */}
-      {/* (Garde tes boutons ChevronLeft/Right et le mapping des images tel quel) */}
       <div 
         className="flex transition-transform duration-500 ease-[cubic-bezier(0.25,1,0.5,1)]" 
         style={{ transform: `translateX(-${selectedIndex * 100}%)` }}

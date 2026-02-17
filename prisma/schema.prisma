@@ -46,6 +46,8 @@ model User {
   sessions        Session[]
   posts           Post[]
   deals         Deal[]
+  balance        Int      @default(0)
+  transactions Transaction[]
   interactions  UserInteraction[]
   following       Follow[]       @relation("Following")
   followers       Follow[]       @relation("Followers")
@@ -78,6 +80,19 @@ model User {
 
   @@map("users")
 }
+
+model Transaction {
+  id        String   @id @default(cuid())
+  userId    String
+  amount    Int
+  reason    String
+  status    String   @default("SUCCESS") // Ajoute cette ligne avec une valeur par défaut
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
 model Deal {
   id          String   @id @default(cuid())
   title       String

@@ -6,22 +6,21 @@ import { NextRequest } from "next/server";
 export async function GET(req: NextRequest) {
   try {
     const cursor = req.nextUrl.searchParams.get("cursor") || undefined;
-
     const pageSize = 10;
 
-    const { user } = await validateRequest();
+    const { user: loggedInUser } = await validateRequest();
 
-    if (!user) {
+    if (!loggedInUser) {
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const bookmarks = await prisma.bookmark.findMany({
       where: {
-        userId: user.id,
+        userId: loggedInUser.id,
       },
       include: {
         post: {
-          include: getPostDataInclude(user.id),
+          include: getPostDataInclude(loggedInUser.id),
         },
       },
       orderBy: {
@@ -35,6 +34,7 @@ export async function GET(req: NextRequest) {
       bookmarks.length > pageSize ? bookmarks[pageSize].id : null;
 
     const data: PostsPage = {
+      // On s'assure que le post est bien mappé avec les types incluant le solde du vendeur
       posts: bookmarks.slice(0, pageSize).map((bookmark) => bookmark.post),
       nextCursor,
     };

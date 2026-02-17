@@ -12,6 +12,7 @@ import {
 import { Bookmark } from "lucide-react";
 import { useToast } from "../ui/use-toast";
 import { useSession } from "@/app/(main)/SessionProvider";
+import { HTTPError } from "ky";
 
 interface BookmarkButtonProps {
   postId: string;
@@ -56,14 +57,7 @@ export default function BookmarkButton({
       }
     },
     onMutate: async () => {
-      toast({
-        description: data.isBookmarkedByUser 
-          ? "Retiré des favoris" 
-          : "Enregistré dans vos favoris",
-      });
-
       await queryClient.cancelQueries({ queryKey });
-
       const previousState = queryClient.getQueryData<BookmarkInfo>(queryKey);
 
       queryClient.setQueryData<BookmarkInfo>(queryKey, () => ({
@@ -72,13 +66,28 @@ export default function BookmarkButton({
 
       return { previousState };
     },
-    onError(error, variables, context) {
+    onError: async (error, variables, context) => {
       queryClient.setQueryData(queryKey, context?.previousState);
-      console.error(error);
-      toast({
-        variant: "destructive",
-        description: "Une erreur est survenue. Veuillez réessayer.",
-      });
+      
+      if (error instanceof HTTPError && error.response.status === 403) {
+        const errorData = await error.response.json();
+        toast({
+          variant: "destructive",
+          description: errorData.error || "Le vendeur n'a plus de forfait.",
+        });
+      } else {
+        toast({
+          variant: "destructive",
+          description: "Une erreur est survenue. Veuillez réessayer.",
+        });
+      }
+    },
+    onSuccess: () => {
+        toast({
+            description: data.isBookmarkedByUser 
+              ? "Retiré des favoris" 
+              : "Enregistré dans vos favoris",
+        });
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["bookmarks-feed"] });
@@ -89,15 +98,10 @@ export default function BookmarkButton({
     <button 
       onClick={(e) => {
         e.preventDefault();
-        
         if (!loggedInUser) {
-          toast({
-            variant: "destructive",
-            description: "Veuillez vous connecter pour enregistrer ce post.",
-          });
+          toast({ variant: "destructive", description: "Veuillez vous connecter." });
           return;
         }
-
         mutate();
       }} 
       className="flex items-center gap-2 group"

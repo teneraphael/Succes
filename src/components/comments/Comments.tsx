@@ -3,7 +3,7 @@
 import kyInstance from "@/lib/ky";
 import { CommentsPage, PostData } from "@/lib/types";
 import { useInfiniteQuery } from "@tanstack/react-query";
-import { Loader2 } from "lucide-react";
+import { Loader2, AlertCircle } from "lucide-react";
 import { useState } from "react";
 import { Button } from "../ui/button";
 import Comment from "./Comment";
@@ -17,9 +17,14 @@ interface CommentsProps {
 }
 
 export default function Comments({ post }: CommentsProps) {
-  const { user } = useSession(); // ✅ On récupère la session
+  const { user } = useSession();
   const [replyTarget, setReplyTarget] = useState<string | null>(null);
   const isDesktop = useMediaQuery("(min-width: 768px)");
+
+  // LOGIQUE FORFAIT : On vérifie si le vendeur peut recevoir des commentaires
+  // Un vendeur est "bloqué" s'il est vendeur ET que son solde est < 25 FCFA
+  const isSellerBlocked = post.user.isSeller && (post.user.balance ?? 0) < 25;
+  const isOwner = user?.id === post.user.id;
 
   const { data, fetchNextPage, hasNextPage, isFetching, status } =
     useInfiniteQuery({
@@ -54,6 +59,27 @@ export default function Comments({ post }: CommentsProps) {
       )}
 
       <div className="flex-1 overflow-y-auto p-4 custom-scrollbar bg-background">
+        {/* Banner Alerte si forfait épuisé (visible par tous) */}
+        {isSellerBlocked && !isOwner && (
+          <div className="mb-4 flex items-center gap-2 rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-xs text-destructive">
+            <AlertCircle className="size-4" />
+            Le forfait de ce vendeur est épuisé. Les commentaires sont temporairement désactivés.
+          </div>
+        )}
+
+        {isSellerBlocked && isOwner && (
+          <div className="mb-4 flex flex-col gap-2 rounded-lg border border-orange-500 bg-orange-500/10 p-3 text-xs text-orange-600">
+            <div className="flex items-center gap-2 font-bold">
+              <AlertCircle className="size-4" />
+              Votre forfait DealCity est épuisé !
+            </div>
+            <p>Rechargez votre compte pour continuer à recevoir des commentaires et des messages clients.</p>
+            <Button size="sm" className="h-7 w-fit bg-orange-500 text-white text-[10px]">
+              Recharger maintenant
+            </Button>
+          </div>
+        )}
+
         {hasNextPage && (
           <Button
             variant="ghost"
@@ -92,13 +118,19 @@ export default function Comments({ post }: CommentsProps) {
       </div>
 
       <div className="shrink-0 sticky bottom-0 bg-background border-t z-20">
-        {/* ✅ CONDITION : Si l'utilisateur est connecté, on montre l'input, sinon un lien de login */}
         {user ? (
-          <CommentInput 
-            post={post} 
-            replyTarget={replyTarget} 
-            onClearReply={() => setReplyTarget(null)} 
-          />
+          // On désactive l'input si le vendeur est bloqué (sauf si c'est le vendeur lui-même qui veut répondre)
+          isSellerBlocked && !isOwner ? (
+            <div className="p-4 bg-muted/50 text-center text-xs text-muted-foreground italic">
+              Commentaires désactivés (forfait vendeur épuisé)
+            </div>
+          ) : (
+            <CommentInput 
+              post={post} 
+              replyTarget={replyTarget} 
+              onClearReply={() => setReplyTarget(null)} 
+            />
+          )
         ) : (
           <div className="p-4 text-center">
             <p className="text-sm text-muted-foreground">
