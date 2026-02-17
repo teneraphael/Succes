@@ -52,7 +52,7 @@ export default function UserButton({ className, user: propUser }: UserButtonProp
   if (!user) return null;
 
   // Constante pour vérifier si c'est toi l'admin
-  const isAdmin = user.id === "44ttt3ikxntqkxnh";
+  const isAdmin = user.id === "4yq76ntw6lpduptd";
 
   return (
     <DropdownMenu>

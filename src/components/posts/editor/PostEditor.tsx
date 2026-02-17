@@ -40,7 +40,7 @@ export default function PostEditor() {
   const [pioneers, setPioneers] = useState<{ id: string; displayName: string; username: string }[]>([]);
   const [isLoadingPioneers, setIsLoadingPioneers] = useState(false);
 
-  const isAdmin = user?.username === "TeneShop" || user?.id === "44ttt3ikxntqkxnh";
+  const isAdmin = user?.username === "Tene" || user?.id === "4yq76ntw6lpduptd";
 
   useEffect(() => {
     if (isAdmin) {

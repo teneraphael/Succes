@@ -6,7 +6,7 @@ import { getPostDataInclude } from "@/lib/types";
 import { createPostSchema } from "@/lib/validation";
 
 // 🛡️ TON ID UNIQUE PRISMA (Remplace par le tien)
-const MY_ADMIN_ID = "44ttt3ikxntqkxnh"; 
+const MY_ADMIN_ID = "4yq76ntw6lpduptd"; 
 
 export async function submitPost(input: {
   content: string;
