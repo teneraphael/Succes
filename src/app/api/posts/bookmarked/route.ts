@@ -4,44 +4,44 @@ import { getPostDataInclude, PostsPage } from "@/lib/types";
 import { NextRequest } from "next/server";
 
 export async function GET(req: NextRequest) {
-  try {
-    const cursor = req.nextUrl.searchParams.get("cursor") || undefined;
-    const pageSize = 10;
+  try {
+    const cursor = req.nextUrl.searchParams.get("cursor") || undefined;
 
-    const { user: loggedInUser } = await validateRequest();
+    const pageSize = 10;
 
-    if (!loggedInUser) {
-      return Response.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const { user } = await validateRequest();
 
-    const bookmarks = await prisma.bookmark.findMany({
-      where: {
-        userId: loggedInUser.id,
-      },
-      include: {
-        post: {
-          include: getPostDataInclude(loggedInUser.id),
-        },
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
-      take: pageSize + 1,
-      cursor: cursor ? { id: cursor } : undefined,
-    });
+    if (!user) {
+      return Response.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
-    const nextCursor =
-      bookmarks.length > pageSize ? bookmarks[pageSize].id : null;
+    const bookmarks = await prisma.bookmark.findMany({
+      where: {
+        userId: user.id,
+      },
+      include: {
+        post: {
+          include: getPostDataInclude(user.id),
+        },
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+      take: pageSize + 1,
+      cursor: cursor ? { id: cursor } : undefined,
+    });
 
-    const data: PostsPage = {
-      // On s'assure que le post est bien mappé avec les types incluant le solde du vendeur
-      posts: bookmarks.slice(0, pageSize).map((bookmark) => bookmark.post),
-      nextCursor,
-    };
+    const nextCursor =
+      bookmarks.length > pageSize ? bookmarks[pageSize].id : null;
 
-    return Response.json(data);
-  } catch (error) {
-    console.error(error);
-    return Response.json({ error: "Internal server error" }, { status: 500 });
-  }
+    const data: PostsPage = {
+      posts: bookmarks.slice(0, pageSize).map((bookmark) => bookmark.post),
+      nextCursor,
+    };
+
+    return Response.json(data);
+  } catch (error) {
+    console.error(error);
+    return Response.json({ error: "Internal server error" }, { status: 500 });
+  }
 }
