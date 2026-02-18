@@ -36,11 +36,11 @@ export default function PostEditor() {
   const [price, setPrice] = useState("");
   const [targetUserId, setTargetUserId] = useState("me");
   
-  // ✅ Sécurité 1 : Initialisation forcée en tableau vide
   const [pioneers, setPioneers] = useState<{ id: string; displayName: string; username: string }[]>([]);
   const [isLoadingPioneers, setIsLoadingPioneers] = useState(false);
 
-  const isAdmin = user?.username === "Tene" || user?.id === "4yq76ntw6lpduptd";
+  // Sécurité renforcée pour la détection Admin
+  const isAdmin = !!user && (user.username === "Tene" || user.id === "4yq76ntw6lpduptd");
 
   useEffect(() => {
     if (isAdmin) {
@@ -48,17 +48,15 @@ export default function PostEditor() {
         setIsLoadingPioneers(true);
         try {
           const response = await fetch("/api/admin/pioneers");
+          if (!response.ok) throw new Error("Erreur lors de la récupération");
+          
           const data = await response.json();
           
-          // ✅ Sécurité 2 : On ne met à jour que si c'est un tableau
-          if (Array.isArray(data)) {
-            setPioneers(data);
-          } else {
-            console.error("L'API n'a pas renvoyé un tableau :", data);
-            setPioneers([]);
-          }
+          // Gestion flexible du format de réponse (Tableau direct ou objet avec clé)
+          const pioneersList = Array.isArray(data) ? data : (data.pioneers || []);
+          setPioneers(pioneersList);
         } catch (error) {
-          console.error("Erreur réseau :", error);
+          console.error("Erreur Pioneers API:", error);
           setPioneers([]);
         } finally {
           setIsLoadingPioneers(false);
@@ -72,7 +70,6 @@ export default function PostEditor() {
     startUpload,
     attachments,
     isUploading,
-    uploadProgress,
     removeAttachment,
     reset: resetMediaUploads,
   } = useMediaUpload();
@@ -103,6 +100,9 @@ export default function PostEditor() {
 
   const description = editor?.getText({ blockSeparator: "\n" }) || "";
   const isFormValid = productName.trim() !== "" && price.trim() !== "" && description.trim() !== "";
+
+  // État de chargement initial si la session n'est pas encore là
+  if (user === undefined) return null; 
 
   if (!user?.isSeller && !isAdmin) {
     return (
@@ -142,8 +142,8 @@ export default function PostEditor() {
           resetMediaUploads();
           toast({ 
             description: isAdmin && targetUserId !== "me" 
-              ? "Annonce postée avec succès pour le vendeur !" 
-              : "Annonce propulsée avec succès !" 
+              ? "Annonce postée pour le vendeur !" 
+              : "Annonce propulsée !" 
           });
           router.refresh();
         },
@@ -152,41 +152,41 @@ export default function PostEditor() {
   }
 
   return (
-    <div className={cn("flex flex-col gap-6 p-1 transition-all", user?.isPioneer && "relative")}>
+    <div className="flex flex-col gap-6 p-1">
       
+      {/* SECTION ADMIN : SELECTEUR DE VENDEUR */}
       {isAdmin && (
-        <div className="bg-blue-600/5 border-2 border-blue-500/10 p-4 rounded-[1.5rem] animate-in fade-in slide-in-from-top-2 shadow-sm">
-          <div className="flex items-center justify-between mb-3">
+        <div className="bg-blue-600/5 border-2 border-blue-500/10 p-4 rounded-[1.5rem] shadow-sm space-y-3">
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-blue-600">
               <UserCog className="size-4" />
-              <span className="text-[10px] font-black uppercase tracking-widest italic">Gestion Curateur</span>
+              <span className="text-[10px] font-black uppercase italic">Substitution Admin</span>
             </div>
             {targetUserId !== "me" && (
-                <div className="flex items-center gap-1 bg-blue-600 text-white px-2 py-0.5 rounded-full text-[9px] font-bold animate-pulse">
-                    MODE SUBSTITUTION
-                </div>
+              <div className="bg-blue-600 text-white px-2 py-0.5 rounded-full text-[9px] font-bold animate-pulse">
+                MODE SUBSTITUTION ACTIF
+              </div>
             )}
           </div>
           
-          <Select value={targetUserId} onValueChange={setTargetUserId}>
+          <Select value={targetUserId} onValueChange={setTargetUserId} disabled={isLoadingPioneers}>
             <SelectTrigger className="h-11 rounded-xl bg-background border-blue-100 focus:ring-blue-500">
-              <SelectValue placeholder="Choisir un vendeur" />
+              <SelectValue placeholder={isLoadingPioneers ? "Chargement..." : "Choisir un vendeur"} />
             </SelectTrigger>
             <SelectContent className="rounded-xl">
-              <SelectItem value="me" className="font-bold">✨ Poster en mon nom (Admin)</SelectItem>
-              {/* ✅ Sécurité 3 : Vérification avant le map */}
-              {Array.isArray(pioneers) && pioneers.map((pioneer) => (
+              <SelectItem value="me" className="font-bold">✨ Poster en mon nom</SelectItem>
+              {pioneers.map((pioneer) => (
                 <SelectItem key={pioneer.id} value={pioneer.id}>
                   👤 {pioneer.displayName} (@{pioneer.username})
                 </SelectItem>
               ))}
-              {isLoadingPioneers && <div className="p-2 text-center text-xs text-muted-foreground italic">Chargement...</div>}
+              {isLoadingPioneers && <div className="p-2 text-center"><Loader2 className="size-4 animate-spin inline" /></div>}
             </SelectContent>
           </Select>
         </div>
       )}
 
-      {/* Reste du formulaire inchangé pour la brièveté... */}
+      {/* INPUTS PRODUIT & PRIX */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="group relative">
           <div className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors">
@@ -217,32 +217,28 @@ export default function PostEditor() {
         </div>
       </div>
 
+      {/* ZONE D'ÉDITION TEXTE */}
       <div 
         {...rootProps} 
         onPaste={handlePaste}
         className={cn(
           "relative rounded-[1.5rem] bg-muted/30 border border-transparent focus-within:border-primary/10 focus-within:bg-card transition-all",
-          user?.isPioneer && targetUserId === "me" && "border-amber-400/20"
+          isDragActive && "border-primary bg-primary/5"
         )}
       >
-        <div className="w-full">
-          <EditorContent
-            editor={editor}
-            className={cn(
-              "min-h-[160px] w-full px-6 py-4 prose prose-sm focus:outline-none",
-              isDragActive && "opacity-30"
-            )}
-          />
-          <input {...getInputProps()} />
-        </div>
+        <EditorContent
+          editor={editor}
+          className="min-h-[160px] w-full px-6 py-4 prose prose-sm focus:outline-none"
+        />
+        <input {...getInputProps()} />
       </div>
 
+      {/* PRÉVISUALISATION MÉDIAS */}
       {!!attachments.length && (
-        <div className="px-1">
-          <AttachmentPreviews attachments={attachments} removeAttachment={removeAttachment} />
-        </div>
+        <AttachmentPreviews attachments={attachments} removeAttachment={removeAttachment} />
       )}
 
+      {/* BARRE D'ACTIONS BASSE */}
       <div className="flex items-center justify-between p-2 rounded-[2rem] bg-muted/40 border border-border/40 backdrop-blur-sm">
         <AddAttachmentsButton onFilesSelected={startUpload} disabled={isUploading || attachments.length >= 10} />
         <LoadingButton
@@ -250,8 +246,8 @@ export default function PostEditor() {
           loading={mutation.isPending}
           disabled={!isFormValid || isUploading}
           className={cn(
-            "h-12 px-8 rounded-[1.2rem] font-black uppercase italic",
-            targetUserId !== "me" ? "bg-blue-600" : "bg-primary"
+            "h-12 px-8 rounded-[1.2rem] font-black uppercase italic transition-colors",
+            targetUserId !== "me" ? "bg-blue-600 hover:bg-blue-700 shadow-blue-500/20" : "bg-primary"
           )}
         >
           <Sparkles className="size-4 mr-2" />
@@ -262,7 +258,8 @@ export default function PostEditor() {
   );
 }
 
-// Sous-composants inchangés...
+// --- SOUS-COMPOSANTS ---
+
 function AddAttachmentsButton({ onFilesSelected, disabled }: any) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   return (
@@ -276,18 +273,25 @@ function AddAttachmentsButton({ onFilesSelected, disabled }: any) {
       >
         <Camera size={24} />
       </Button>
-      <input type="file" accept="image/*,video/*" multiple ref={fileInputRef} className="hidden" onChange={(e) => {
-        const files = Array.from(e.target.files || []);
-        if (files.length) onFilesSelected(files);
-        e.target.value = "";
-      }} />
+      <input 
+        type="file" 
+        accept="image/*,video/*" 
+        multiple 
+        ref={fileInputRef} 
+        className="hidden" 
+        onChange={(e) => {
+          const files = Array.from(e.target.files || []);
+          if (files.length) onFilesSelected(files);
+          e.target.value = "";
+        }} 
+      />
     </>
   );
 }
 
 function AttachmentPreviews({ attachments, removeAttachment }: any) {
   return (
-    <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4">
+    <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 px-1">
       {attachments.map((attachment: any) => (
         <AttachmentPreview
           key={attachment.file.name}
@@ -306,6 +310,7 @@ function AttachmentPreview({ attachment: { file, isUploading }, onRemoveClick }:
     setSrc(objectUrl);
     return () => URL.revokeObjectURL(objectUrl);
   }, [file]);
+
   return (
     <div className={cn("relative group overflow-hidden rounded-2xl border bg-muted/20", isUploading && "opacity-50")}>
       {file.type.startsWith("image") ? (
@@ -313,8 +318,18 @@ function AttachmentPreview({ attachment: { file, isUploading }, onRemoveClick }:
       ) : (
         <video className="aspect-square w-full object-cover bg-black"><source src={src} /></video>
       )}
+      {isUploading && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+          <Loader2 className="animate-spin text-white" />
+        </div>
+      )}
       {!isUploading && (
-        <button onClick={onRemoveClick} className="absolute top-2 right-2 p-1 bg-black/60 text-white rounded-full"><X size={14} /></button>
+        <button 
+          onClick={onRemoveClick} 
+          className="absolute top-2 right-2 p-1 bg-black/60 text-white rounded-full hover:bg-black transition-colors"
+        >
+          <X size={14} />
+        </button>
       )}
     </div>
   );
