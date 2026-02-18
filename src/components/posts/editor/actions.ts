@@ -5,35 +5,49 @@ import prisma from "@/lib/prisma";
 import { getPostDataInclude } from "@/lib/types";
 import { createPostSchema } from "@/lib/validation";
 
-// 🛡️ TON ID UNIQUE PRISMA (Remplace par le tien)
-const MY_ADMIN_ID = "4yq76ntw6lpduptd"; 
+/**
+ * 🛡️ CONFIGURATION ADMIN
+ * Remplace par tes identifiants réels pour une sécurité maximale.
+ * On vérifie l'ID Prisma pour éviter toute usurpation par changement de username.
+ */
+const ADMIN_IDS = ["4yq76ntw6lpduptd"]; 
+const ADMIN_USERNAMES = ["Tene"];
 
 export async function submitPost(input: {
   content: string;
   mediaIds: string[];
-  targetUserId?: string; // ✅ Ajouté pour accepter l'ID du vendeur
+  targetUserId?: string; 
 }) {
+  // 1. Vérification de l'authentification
   const { user: loggedInUser } = await validateRequest();
+  if (!loggedInUser) throw new Error("Non autorisé : Veuillez vous connecter.");
 
-  if (!loggedInUser) throw new Error("Unauthorized");
+  // 2. Validation du contenu via Zod
+  const { content, mediaIds } = createPostSchema.parse({
+    content: input.content,
+    mediaIds: input.mediaIds,
+  });
 
-  // Validation du contenu (le schéma ignore targetUserId, c'est normal)
-  const { content, mediaIds } = createPostSchema.parse(input);
-
-  // --- LOGIQUE DE DISCERNEMENT SÉCURISÉE ---
-  // On ne permet la substitution QUE si l'ID de la session est le TIEN
-  const finalAuthorId = (loggedInUser.id === MY_ADMIN_ID && input.targetUserId)
+  // 3. Logique de Substitution (Curateur/Admin)
+  // On vérifie si l'utilisateur actuel a le droit de poster pour quelqu'un d'autre
+  const isAdmin = ADMIN_IDS.includes(loggedInUser.id) || ADMIN_USERNAMES.includes(loggedInUser.username);
+  
+  // Si targetUserId est présent ET que l'utilisateur est admin, on utilise targetUserId.
+  // Sinon, on utilise l'ID de l'utilisateur connecté.
+  const finalAuthorId = (isAdmin && input.targetUserId && input.targetUserId !== "me")
     ? input.targetUserId
     : loggedInUser.id;
 
+  // 4. Création du post dans la base de données
   const newPost = await prisma.post.create({
     data: {
       content,
-      userId: finalAuthorId, // ✅ Le post appartient maintenant au vendeur choisi (si c'est toi qui postes)
+      userId: finalAuthorId,
       attachments: {
         connect: mediaIds.map((id) => ({ id })),
       },
     },
+    // On inclut les données nécessaires pour mettre à jour le cache React Query immédiatement
     include: getPostDataInclude(loggedInUser.id),
   });
 

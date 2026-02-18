@@ -1,3 +1,5 @@
+"use client";
+
 import { useSession } from "@/app/(main)/SessionProvider";
 import { useToast } from "@/components/ui/use-toast";
 import { PostsPage } from "@/lib/types";
@@ -11,9 +13,7 @@ import { submitPost } from "./actions";
 
 export function useSubmitPostMutation() {
   const { toast } = useToast();
-
   const queryClient = useQueryClient();
-
   const { user } = useSession();
 
   const mutation = useMutation({
@@ -24,8 +24,10 @@ export function useSubmitPostMutation() {
         predicate(query) {
           return (
             query.queryKey.includes("for-you") ||
+            // ✅ CORRECTION : On cible le profil du vrai auteur du post (le vendeur)
+            // et non l'ID de l'admin connecté.
             (query.queryKey.includes("user-posts") &&
-              query.queryKey.includes(user.id))
+              query.queryKey.includes(newPost.userId))
           );
         },
       } satisfies QueryFilters;
@@ -59,15 +61,14 @@ export function useSubmitPostMutation() {
         },
       });
 
-      toast({
-        description: "Post created",
-      });
+      // Le message de succès est maintenant géré dans le composant PostEditor
+      // pour différencier "Annonce propulsée" de "Substitution Admin".
     },
     onError(error) {
       console.error(error);
       toast({
         variant: "destructive",
-        description: "Failed to post. Please try again.",
+        description: "Échec de la publication. Veuillez réessayer.",
       });
     },
   });
