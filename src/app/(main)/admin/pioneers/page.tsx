@@ -1,12 +1,11 @@
 import { validateRequest } from "@/auth";
 import prisma from "@/lib/prisma";
-import { Prisma } from "@prisma/client"; // ✅ Import nécessaire pour le type
+import { Prisma } from "@prisma/client";
 import UserAvatar from "@/components/UserAvatar";
 import { Card, CardContent } from "@/components/ui/card";
 import { MessageCircle, Facebook, Instagram, ShoppingBag, CalendarDays, ExternalLink } from "lucide-react";
 import { redirect } from "next/navigation";
 
-// ✅ On définit le type exact attendu pour un "Pioneer"
 type PioneerWithStats = Prisma.UserGetPayload<{
   select: {
     id: true;
@@ -25,12 +24,10 @@ type PioneerWithStats = Prisma.UserGetPayload<{
 export default async function PioneersDirectoryPage() {
   const { user: admin } = await validateRequest();
 
-  // Sécurité admin (ID spécifique)
   if (!admin || admin.id !== "4yq76ntw6lpduptd") {
     redirect("/");
   }
 
-  // On récupère les données et on "cast" avec notre type personnalisé
   const pioneers = (await prisma.user.findMany({
     where: { isPioneer: true },
     select: {
@@ -69,7 +66,6 @@ export default async function PioneersDirectoryPage() {
               <div className="flex justify-around bg-muted/50 py-4 rounded-2xl">
                 <div className="text-center">
                    <ShoppingBag className="mx-auto size-4 text-muted-foreground mb-1" />
-                   {/* ✅ TypeScript reconnaît maintenant pioneer._count */}
                    <p className="text-sm font-black">{pioneer._count.posts}</p>
                    <p className="text-[10px] uppercase font-bold text-muted-foreground">Articles</p>
                 </div>
@@ -85,29 +81,21 @@ export default async function PioneersDirectoryPage() {
                 <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic px-1">Canaux prioritaires</p>
                 
                 <div className="flex flex-col gap-2">
-                  {/* TIKTOK */}
-                  {/* TIKTOK */}
-{pioneer.tiktokUrl ? (
-  <a 
-    href={
-      pioneer.tiktokUrl.startsWith("http") 
-        ? pioneer.tiktokUrl 
-        : `https://${pioneer.tiktokUrl.replace(/^@/, "www.tiktok.com/@")}`
-    } 
-    target="_blank" 
-    rel="noopener noreferrer"
-    className="flex items-center justify-between bg-zinc-900 dark:bg-white dark:text-black text-white p-3 rounded-xl hover:opacity-90 transition-all group"
-  >
-    <div className="flex items-center gap-3">
-      <span className="text-lg font-black italic ml-1">TikTok</span>
-    </div>
-    <ExternalLink size={14} className="opacity-50 group-hover:opacity-100" />
-  </a>
-) : (
-  <div className="p-3 border-2 border-dashed rounded-xl text-[10px] text-center italic text-muted-foreground">
-    TikTok non renseigné
-  </div>
-)}
+                  {/* TIKTOK - Corrigé pour éviter le 404 et l'erreur React */}
+                  {pioneer.tiktokUrl ? (
+                    <a 
+                      href={pioneer.tiktokUrl.startsWith("http") ? pioneer.tiktokUrl : `https://www.tiktok.com/@${pioneer.tiktokUrl.replace("@", "")}`} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-between bg-zinc-900 text-white p-3 rounded-xl hover:opacity-90 transition-all group"
+                    >
+                      <span className="text-lg font-black italic ml-1">TikTok</span>
+                      <ExternalLink size={14} className="opacity-50 group-hover:opacity-100" />
+                    </a>
+                  ) : (
+                    <div className="p-3 border-2 border-dashed rounded-xl text-[10px] text-center italic text-muted-foreground">TikTok non renseigné</div>
+                  )}
+
                   {/* WHATSAPP */}
                   {pioneer.whatsappUrl && (
                     <a href={pioneer.whatsappUrl} target="_blank" className="flex items-center gap-3 bg-green-500/10 text-green-600 p-3 rounded-xl hover:bg-green-500 hover:text-white transition-colors">
