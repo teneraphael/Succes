@@ -86,17 +86,28 @@ export default async function PioneersDirectoryPage() {
                 
                 <div className="flex flex-col gap-2">
                   {/* TIKTOK */}
-                  {pioneer.tiktokUrl ? (
-                    <a href={pioneer.tiktokUrl} target="_blank" className="flex items-center justify-between bg-zinc-900 dark:bg-white dark:text-black text-white p-3 rounded-xl hover:opacity-90 transition-all group">
-                      <div className="flex items-center gap-3">
-                        <span className="text-lg font-black italic ml-1">TikTok</span>
-                      </div>
-                      <ExternalLink size={14} className="opacity-50 group-hover:opacity-100" />
-                    </a>
-                  ) : (
-                    <div className="p-3 border-2 border-dashed rounded-xl text-[10px] text-center italic text-muted-foreground">TikTok non renseigné</div>
-                  )}
-
+                  {/* TIKTOK */}
+{pioneer.tiktokUrl ? (
+  <a 
+    href={
+      pioneer.tiktokUrl.startsWith("http") 
+        ? pioneer.tiktokUrl 
+        : `https://${pioneer.tiktokUrl.replace(/^@/, "www.tiktok.com/@")}`
+    } 
+    target="_blank" 
+    rel="noopener noreferrer"
+    className="flex items-center justify-between bg-zinc-900 dark:bg-white dark:text-black text-white p-3 rounded-xl hover:opacity-90 transition-all group"
+  >
+    <div className="flex items-center gap-3">
+      <span className="text-lg font-black italic ml-1">TikTok</span>
+    </div>
+    <ExternalLink size={14} className="opacity-50 group-hover:opacity-100" />
+  </a>
+) : (
+  <div className="p-3 border-2 border-dashed rounded-xl text-[10px] text-center italic text-muted-foreground">
+    TikTok non renseigné
+  </div>
+)}
                   {/* WHATSAPP */}
                   {pioneer.whatsappUrl && (
                     <a href={pioneer.whatsappUrl} target="_blank" className="flex items-center gap-3 bg-green-500/10 text-green-600 p-3 rounded-xl hover:bg-green-500 hover:text-white transition-colors">
