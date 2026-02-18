@@ -9,11 +9,11 @@ import {
 } from "@tanstack/react-query";
 import { submitPost } from "./actions";
 
-// ... (tes imports)
-
 export function useSubmitPostMutation() {
   const { toast } = useToast();
+
   const queryClient = useQueryClient();
+
   const { user } = useSession();
 
   const mutation = useMutation({
@@ -22,18 +22,11 @@ export function useSubmitPostMutation() {
       const queryFilter = {
         queryKey: ["post-feed"],
         predicate(query) {
-          // On vérifie si c'est le flux "Pour vous"
-          const isForYou = query.queryKey.includes("for-you");
-          
-          // On vérifie si c'est le flux d'un utilisateur
-          const isUserPosts = query.queryKey.includes("user-posts");
-          
-          // ✅ LOGIQUE DE SUBSTITUTION : 
-          // Si le post appartient à quelqu'un d'autre (admin a posté pour un vendeur),
-          // on doit mettre à jour le flux de CE vendeur (newPost.userId)
-          const isTargetUserFeed = query.queryKey.includes(newPost.userId);
-
-          return isForYou || (isUserPosts && isTargetUserFeed);
+          return (
+            query.queryKey.includes("for-you") ||
+            (query.queryKey.includes("user-posts") &&
+              query.queryKey.includes(user.id))
+          );
         },
       } satisfies QueryFilters;
 
@@ -59,19 +52,24 @@ export function useSubmitPostMutation() {
         },
       );
 
-      // Invalider pour être sûr que les compteurs (posts count) se mettent à jour
       queryClient.invalidateQueries({
-        queryKey: ["post-feed"],
+        queryKey: queryFilter.queryKey,
         predicate(query) {
-          return query.queryKey.includes(newPost.userId);
-        }
+          return queryFilter.predicate(query) && !query.state.data;
+        },
       });
 
       toast({
-        description: "Annonce publiée avec succès",
+        description: "Post created",
       });
     },
-    // ... onError
+    onError(error) {
+      console.error(error);
+      toast({
+        variant: "destructive",
+        description: "Failed to post. Please try again.",
+      });
+    },
   });
 
   return mutation;
