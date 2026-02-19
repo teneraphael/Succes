@@ -61,10 +61,10 @@ export default function Post({ post }: PostProps) {
   };
 
   return (
-    <article className="group/post w-full space-y-3 bg-card p-4 md:p-5 shadow-none md:shadow-sm rounded-none md:rounded-2xl border-x-0 md:border border-y md:border-y-0 border-border transition-colors">
+    <article className="group/post w-full space-y-3 bg-card py-4 md:p-5 shadow-none md:shadow-sm rounded-none md:rounded-2xl border-x-0 md:border border-y md:border-y-0 border-border transition-colors">
       
-      {/* HEADER */}
-      <div className="flex justify-between gap-3">
+      {/* HEADER - Padding horizontal mobile */}
+      <div className="flex justify-between gap-3 px-4 md:px-0">
         <div className="flex flex-wrap gap-3">
           <UserTooltip user={post.user}>
             <Link href={`/users/${post.user.username}`}><UserAvatar avatarUrl={post.user.avatarUrl} /></Link>
@@ -81,8 +81,8 @@ export default function Post({ post }: PostProps) {
         <PostMoreButton post={post} />
       </div>
 
-      {/* INFOS PRODUIT & DESCRIPTION */}
-      <div className="space-y-2 px-1">
+      {/* INFOS PRODUIT & DESCRIPTION - Padding horizontal mobile */}
+      <div className="space-y-2 px-4 md:px-1">
         {productName && (
           <h3 className="font-black text-xl uppercase tracking-tighter leading-none flex items-center gap-2">
             <ShoppingBag className="size-5 text-primary" /> {productName}
@@ -107,8 +107,8 @@ export default function Post({ post }: PostProps) {
         </div>
       </div>
 
-      {/* ZONE MÉDIA */}
-      <div className="relative overflow-hidden rounded-2xl bg-black">
+      {/* ZONE MÉDIA - PLEIN ÉCRAN MOBILE (rounded-none) */}
+      <div className="relative overflow-hidden rounded-none md:rounded-2xl bg-black w-full">
         <MediaPreviews 
           attachments={visualAttachments} 
           isGlobalPlaying={isGlobalPlaying}
@@ -119,32 +119,44 @@ export default function Post({ post }: PostProps) {
         />
       </div>
 
-      {/* BOUTON CONTACT */}
-      <button 
-        onClick={handleChatClick} 
-        className={cn(
-          "w-full py-3.5 rounded-2xl font-black uppercase text-xs shadow-md transition-all active:scale-[0.98]", 
-          user ? "bg-[#6ab344] text-white" : "bg-muted text-muted-foreground"
-        )}
-      >
-        {user ? "Contacter le vendeur" : "Connectez-vous pour acheter"}
-      </button>
+      {/* BOUTON CONTACT - Padding horizontal mobile */}
+      <div className="px-4 md:px-0">
+        <button 
+          onClick={handleChatClick} 
+          className={cn(
+            "w-full py-3.5 rounded-2xl font-black uppercase text-xs shadow-md transition-all active:scale-[0.98]", 
+            user ? "bg-[#6ab344] text-white" : "bg-muted text-muted-foreground"
+          )}
+        >
+          {user ? "Contacter le vendeur" : "Connectez-vous pour acheter"}
+        </button>
+      </div>
 
-      {/* ACTIONS */}
-      <div className="flex items-center justify-between px-1 pt-1">
+      {/* ACTIONS - Compteur de commentaires inclus */}
+      <div className="flex items-center justify-between px-4 md:px-1 pt-1">
         <div className="flex items-center gap-6">
           <LikeButton postId={post.id} initialState={{ likes: post._count.likes, isLikedByUser: post.likes.some(l => l.userId === user?.id) }} />
-          {isDesktop ? (
-            <Sheet>
-              <SheetTrigger><MessageSquare className="size-5 text-muted-foreground" /></SheetTrigger>
-              <SheetContent side="right" className="p-0 sm:max-w-[450px]"><Comments post={post} /></SheetContent>
-            </Sheet>
-          ) : (
-            <Drawer>
-              <DrawerTrigger><MessageSquare className="size-5 text-muted-foreground" /></DrawerTrigger>
-              <DrawerContent className="max-h-[85vh]"><Comments post={post} /></DrawerContent>
-            </Drawer>
-          )}
+          
+          {/* COMPTEUR COMMENTAIRES */}
+          <div className="flex items-center gap-1.5">
+            {isDesktop ? (
+              <Sheet>
+                <SheetTrigger className="flex items-center gap-1.5 hover:opacity-70 transition-opacity">
+                  <MessageSquare className="size-5 text-muted-foreground" />
+                  <span className="text-sm font-bold text-muted-foreground">{post._count.comments}</span>
+                </SheetTrigger>
+                <SheetContent side="right" className="p-0 sm:max-w-[450px]"><Comments post={post} /></SheetContent>
+              </Sheet>
+            ) : (
+              <Drawer>
+                <DrawerTrigger className="flex items-center gap-1.5 active:scale-95 transition-transform">
+                  <MessageSquare className="size-5 text-muted-foreground" />
+                  <span className="text-sm font-bold text-muted-foreground">{post._count.comments}</span>
+                </DrawerTrigger>
+                <DrawerContent className="max-h-[85vh]"><Comments post={post} /></DrawerContent>
+              </Drawer>
+            )}
+          </div>
         </div>
         <BookmarkButton postId={post.id} initialState={{ isBookmarkedByUser: post.bookmarks.some(b => b.userId === user?.id) }} />
       </div>
@@ -152,11 +164,10 @@ export default function Post({ post }: PostProps) {
   );
 }
 
+// La fonction MediaPreviews reste identique à la version précédente qui gérait bien le scroll et les refs.
 function MediaPreviews({ attachments, isGlobalPlaying, setIsGlobalPlaying, userAvatar, audioUrl, audioTitle }: any) {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const audioRef = useRef<HTMLAudioElement>(null);
-  
-  // Utiliser explicitement le type MutableRefObject pour éviter le "read-only"
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   const currentMedia = attachments[selectedIndex];
@@ -164,13 +175,10 @@ function MediaPreviews({ attachments, isGlobalPlaying, setIsGlobalPlaying, userA
 
   useEffect(() => {
     const audioElement = audioRef.current;
-    
     if (!isVideo && audioUrl && audioElement) {
       const playPromise = audioElement.play();
       if (playPromise !== undefined) {
-        playPromise
-          .then(() => setIsGlobalPlaying(true))
-          .catch(() => setIsGlobalPlaying(false));
+        playPromise.then(() => setIsGlobalPlaying(true)).catch(() => setIsGlobalPlaying(false));
       }
     } else if (audioElement) {
       audioElement.pause();
@@ -186,10 +194,7 @@ function MediaPreviews({ attachments, isGlobalPlaying, setIsGlobalPlaying, userA
       { threshold: 0.1 }
     );
 
-    if (containerRef.current) {
-      observer.observe(containerRef.current);
-    }
-
+    if (containerRef.current) observer.observe(containerRef.current);
     return () => {
       if (audioElement) audioElement.pause();
       observer.disconnect();
@@ -201,12 +206,8 @@ function MediaPreviews({ attachments, isGlobalPlaying, setIsGlobalPlaying, userA
     onSwipedRight: () => setSelectedIndex(p => Math.max(p - 1, 0)),
   });
 
-  // La solution "Callback Ref" propre pour TypeScript
   const setRefs = (el: HTMLDivElement | null) => {
-    // 1. Assigner à notre ref locale pour l'IntersectionObserver
     containerRef.current = el;
-
-    // 2. Passer l'élément à useSwipeable (on appelle handlers.ref comme une fonction)
     handlers.ref(el);
   };
 
@@ -214,7 +215,6 @@ function MediaPreviews({ attachments, isGlobalPlaying, setIsGlobalPlaying, userA
     if (isVideo) return;
     e.stopPropagation();
     if (!audioUrl || !audioRef.current) return;
-    
     if (isGlobalPlaying) {
       audioRef.current.pause();
       setIsGlobalPlaying(false);
@@ -225,13 +225,9 @@ function MediaPreviews({ attachments, isGlobalPlaying, setIsGlobalPlaying, userA
   };
 
   return (
-    <div 
-      ref={setRefs} 
-      className="relative group/media cursor-pointer" 
-      onClick={toggleAudio}
-    >
+    <div ref={setRefs} className="relative group/media cursor-pointer" onClick={toggleAudio}>
       {audioUrl && !isVideo && <audio ref={audioRef} src={audioUrl} loop />}
-
+      
       {/* DISQUE TIKTOK */}
       {((audioUrl && !isVideo) || isVideo) && (
         <div className="absolute bottom-6 right-4 z-40 flex items-center gap-2 pointer-events-none">
@@ -266,10 +262,7 @@ function MediaPreviews({ attachments, isGlobalPlaying, setIsGlobalPlaying, userA
                 className="w-full h-auto object-contain pointer-events-none" 
               />
             ) : (
-              <VideoPost 
-                src={media.url} 
-                setIsGlobalPlaying={setIsGlobalPlaying} 
-              />
+              <VideoPost src={media.url} setIsGlobalPlaying={setIsGlobalPlaying} />
             )}
           </div>
         ))}
