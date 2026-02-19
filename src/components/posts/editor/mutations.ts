@@ -14,26 +14,27 @@ import { submitPost } from "./actions";
 export function useSubmitPostMutation() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { user } = useSession();
 
   const mutation = useMutation({
     mutationFn: submitPost,
     onSuccess: async (newPost) => {
+      // 1. Définir les flux à mettre à jour
       const queryFilter = {
         queryKey: ["post-feed"],
         predicate(query) {
           return (
             query.queryKey.includes("for-you") ||
-            // ✅ CORRECTION : On cible le profil du vrai auteur du post (le vendeur)
-            // et non l'ID de l'admin connecté.
+            // ✅ On cible dynamiquement le flux du vendeur (userId du post créé)
             (query.queryKey.includes("user-posts") &&
               query.queryKey.includes(newPost.userId))
           );
         },
       } satisfies QueryFilters;
 
+      // 2. Annuler les requêtes en cours pour éviter les écrasements
       await queryClient.cancelQueries(queryFilter);
 
+      // 3. Mise à jour optimiste du cache
       queryClient.setQueriesData<InfiniteData<PostsPage, string | null>>(
         queryFilter,
         (oldData) => {
@@ -54,18 +55,16 @@ export function useSubmitPostMutation() {
         },
       );
 
+      // 4. Invalidation pour garantir la synchronisation avec le serveur
       queryClient.invalidateQueries({
         queryKey: queryFilter.queryKey,
         predicate(query) {
           return queryFilter.predicate(query) && !query.state.data;
         },
       });
-
-      // Le message de succès est maintenant géré dans le composant PostEditor
-      // pour différencier "Annonce propulsée" de "Substitution Admin".
     },
     onError(error) {
-      console.error(error);
+      console.error("Mutation Error:", error);
       toast({
         variant: "destructive",
         description: "Échec de la publication. Veuillez réessayer.",

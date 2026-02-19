@@ -180,6 +180,11 @@ model Post {
   interactions UserInteraction[]
   comments            Comment[]
   linkedNotifications Notification[]
+  audioUrl     String?   
+  audioTitle   String?     @default("Son original")
+  audioArtist  String?
+  videoFilter   String?   // Pour stocker le nom du filtre appliqué
+  thumbnailUrl  String?
   
   // RELATION AJOUTÉE POUR LES SIGNALEMENTS
   reports             Report[]       
@@ -195,6 +200,7 @@ model Media {
   post      Post?     @relation(fields: [postId], references: [id], onDelete: SetNull)
   type      MediaType
   url       String
+  settings Json?
   createdAt DateTime  @default(now())
 
   @@map("post_media")
@@ -202,6 +208,7 @@ model Media {
 
 enum MediaType {
   IMAGE
+  AUDIO
   VIDEO
 }
 

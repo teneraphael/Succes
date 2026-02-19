@@ -58,6 +58,26 @@
   }
 }
 
+/* --- ANIMATIONS TIKTOK (AJOUTÉ) --- */
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes float-music {
+  0% { transform: translateY(0) rotate(0deg); opacity: 0; }
+  50% { opacity: 1; }
+  100% { transform: translateY(-20px) rotate(20deg); opacity: 0; }
+}
+
+.animate-spin-slow {
+  animation: spin-slow 3s linear infinite;
+}
+
+.animate-float-music {
+  animation: float-music 2s ease-in-out infinite;
+}
+
 /* --- CONFIGURATION STREAM CHAT --- */
 .str-chat {
   --str-chat__primary-color: hsl(var(--primary));
@@ -65,14 +85,12 @@
   --str-chat__cta-button-border-radius: var(--radius);
 }
 
-/* Cache les éléments inutiles */
 .str-chat__header-back-button,
 .str-chat__back-button,
 .str-chat__channel-header__back-button {
   display: none !important;
 }
 
-/* --- FORCE LA STRUCTURE PLEIN ÉCRAN --- */
 .str-chat,
 .str-chat-container,
 .str-chat__main-panel,
@@ -88,14 +106,12 @@
   padding: 0 !important;
 }
 
-/* --- LISTE DES MESSAGES --- */
 .str-chat__list {
   flex: 1 1 auto !important;
   width: 100% !important;
   padding: 0 !important;
 }
 
-/* --- CORRECTIF BARRE DE MESSAGE (INPUT) --- */
 .str-chat__input-flat {
   width: 100% !important;
   max-width: 100% !important;
@@ -117,7 +133,6 @@
   width: 100% !important;
 }
 
-/* --- APERÇU DU POST (AVANT ENVOI - AU DESSUS DE L'INPUT) --- */
 .reply-preview-container {
   @apply mx-4 mb-2 flex items-center justify-between border-l-4 border-primary bg-muted p-2 rounded-r-lg shadow-md;
   animation: slideUp 0.3s ease-out;
@@ -127,7 +142,6 @@
   @apply h-12 w-12 shrink-0 overflow-hidden rounded-md border bg-black/5 object-cover;
 }
 
-/* --- STYLE DU MESSAGE ENVOYÉ (BULLE DE CHAT) --- */
 .str-chat__message-attachment--post-reply {
   border-left: 4px solid hsl(var(--primary)) !important;
   background: hsl(var(--muted)) !important;
@@ -153,7 +167,6 @@
   overflow: hidden;
 }
 
-/* --- MOBILE SPECIFIQUE --- */
 @media (max-width: 768px) {
   body:has(.str-chat) {
     position: fixed;
@@ -177,14 +190,12 @@
   }
 }
 
-/* --- DESKTOP SPECIFIQUE --- */
 @media (min-width: 1024px) {
   main:has(.str-chat) {
     padding-left: 1.5rem !important;
   }
 }
 
-/* Animations */
 @keyframes slideUp {
   from { transform: translateY(10px); opacity: 0; }
   to { transform: translateY(0); opacity: 1; }

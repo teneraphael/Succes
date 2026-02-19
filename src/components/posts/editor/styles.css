@@ -1,11 +1,133 @@
+/* Placeholder de l'éditeur Tiptap */
 .tiptap p.is-editor-empty:first-child::before {
-  color: theme("colors.muted.foreground");
+  color: #52525b; /* zinc-500 */
   content: attr(data-placeholder);
   float: left;
   height: 0;
   pointer-events: none;
+  font-style: italic;
 }
 
+/* Suppression de l'outline par défaut de Tiptap */
 .tiptap.ProseMirror {
   outline: none;
+}
+
+/* --- OPTIMISATIONS STUDIO DAW --- */
+
+/* Animation de rotation pour l'icône Disque (Audio) */
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.animate-spin-slow {
+  animation: spin-slow 3s linear infinite;
+}
+
+/* Masquer la scrollbar pour les filtres tout en permettant le défilement */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Animation de lueur pulsée pour le bouton Render */
+@keyframes glow-pulse {
+  0% { box-shadow: 0 0 5px rgba(var(--primary), 0.2); }
+  50% { box-shadow: 0 0 20px rgba(var(--primary), 0.5); }
+  100% { box-shadow: 0 0 5px rgba(var(--primary), 0.2); }
+}
+
+.render-glow {
+  animation: glow-pulse 2s infinite;
+}
+
+/* Animation douce pour l'apparition des outils (Filtres, Scissors) */
+@keyframes slide-in-bottom {
+  from {
+    transform: translateY(12px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-studio-in {
+  animation: slide-in-bottom 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Effet de glassmorphism pro sur les contrôles des médias */
+.studio-glass {
+  background: rgba(12, 12, 14, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Grille de médias responsive */
+.attachment-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (min-width: 640px) {
+  .attachment-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+/* --- CONTRÔLES TECHNIQUES (SLIDERS) --- */
+
+.trim-slider-root {
+  position: relative;
+  display: flex;
+  align-items: center;
+  user-select: none;
+  touch-action: none;
+  width: 100%;
+  height: 20px;
+}
+
+.trim-slider-track {
+  background-color: rgba(255, 255, 255, 0.05);
+  position: relative;
+  flex-grow: 1;
+  border-radius: 9999px;
+  height: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.02);
+}
+
+.trim-slider-range {
+  position: absolute;
+  background-color: theme("colors.primary.DEFAULT");
+  border-radius: 9999px;
+  height: 100%;
+}
+
+.trim-slider-thumb {
+  display: block;
+  width: 14px;
+  height: 14px;
+  background-color: white;
+  border: 3px solid theme("colors.primary.DEFAULT");
+  border-radius: 50%;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.trim-slider-thumb:hover {
+  transform: scale(1.2);
+}
+
+/* Style spécifique pour les inputs DAW */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }
