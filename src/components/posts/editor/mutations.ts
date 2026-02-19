@@ -19,26 +19,28 @@ export function useSubmitPostMutation() {
     mutationFn: submitPost,
     onSuccess: async (newPost) => {
       // 1. Définir les flux à mettre à jour
-      const queryFilter = {
+      // On cible "for-you" ET le flux spécifique de l'auteur du post (soit toi, soit le pionnier substitué)
+      const queryFilter: QueryFilters = {
         queryKey: ["post-feed"],
         predicate(query) {
           return (
             query.queryKey.includes("for-you") ||
-            // ✅ On cible dynamiquement le flux du vendeur (userId du post créé)
             (query.queryKey.includes("user-posts") &&
-              query.queryKey.includes(newPost.userId))
+              query.queryKey.includes(newPost.user.id)) // Utilise newPost.user.id pour être sûr de viser le bon profil
           );
         },
-      } satisfies QueryFilters;
+      };
 
-      // 2. Annuler les requêtes en cours pour éviter les écrasements
+      // 2. Annuler les requêtes en cours pour éviter que le serveur n'écrase notre mise à jour optimiste
       await queryClient.cancelQueries(queryFilter);
 
       // 3. Mise à jour optimiste du cache
       queryClient.setQueriesData<InfiniteData<PostsPage, string | null>>(
         queryFilter,
         (oldData) => {
-          const firstPage = oldData?.pages[0];
+          if (!oldData) return;
+
+          const firstPage = oldData.pages[0];
 
           if (firstPage) {
             return {
@@ -55,12 +57,17 @@ export function useSubmitPostMutation() {
         },
       );
 
-      // 4. Invalidation pour garantir la synchronisation avec le serveur
+      // 4. Invalidation ciblée
+      // On force le rafraîchissement uniquement si le cache était vide ou pour confirmer la donnée
       queryClient.invalidateQueries({
-        queryKey: queryFilter.queryKey,
+        queryKey: ["post-feed"],
         predicate(query) {
-          return queryFilter.predicate(query) && !query.state.data;
+          return queryFilter.predicate!(query);
         },
+      });
+
+      toast({
+        description: "Publication réussie !",
       });
     },
     onError(error) {

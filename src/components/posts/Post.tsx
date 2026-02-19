@@ -4,12 +4,13 @@ import { useSession } from "@/app/(main)/SessionProvider";
 import { PostData } from "@/lib/types";
 import { cn, formatRelativeDate } from "@/lib/utils";
 import { 
-  MessageSquare, ShieldCheck, Music, ShoppingBag
+  MessageSquare, ShieldCheck, Music, ShoppingBag,
+  ChevronRight, ChevronLeft
 } from "lucide-react";
 import Image from "next/image";
 import VideoPost from "../VideoPost";
 import Link from "next/link";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Comments from "../comments/Comments";
 import Linkify from "../Linkify";
@@ -41,7 +42,6 @@ export default function Post({ post }: PostProps) {
   const { user } = useSession();
   const router = useRouter();
   const [isExpanded, setIsExpanded] = useState(false);
-  const [isGlobalPlaying, setIsGlobalPlaying] = useState(false);
   const isDesktop = useMediaQuery("(min-width: 768px)");
 
   const { productName, price, cleanDescription } = extractInfo(post.content);
@@ -61,9 +61,9 @@ export default function Post({ post }: PostProps) {
   };
 
   return (
-    <article className="group/post w-full space-y-3 bg-card py-4 md:p-5 shadow-none md:shadow-sm rounded-none md:rounded-2xl border-x-0 md:border border-y md:border-y-0 border-border transition-colors">
+    <article className="group/post w-full space-y-3 bg-card py-4 md:p-5 rounded-none md:rounded-2xl border-y md:border border-border shadow-none md:shadow-sm">
       
-      {/* HEADER - Padding horizontal mobile */}
+      {/* HEADER */}
       <div className="flex justify-between gap-3 px-4 md:px-0">
         <div className="flex flex-wrap gap-3">
           <UserTooltip user={post.user}>
@@ -81,18 +81,14 @@ export default function Post({ post }: PostProps) {
         <PostMoreButton post={post} />
       </div>
 
-      {/* INFOS PRODUIT & DESCRIPTION - Padding horizontal mobile */}
+      {/* PRODUIT INFOS (RESTAURÉ) */}
       <div className="space-y-2 px-4 md:px-1">
         {productName && (
           <h3 className="font-black text-xl uppercase tracking-tighter leading-none flex items-center gap-2">
             <ShoppingBag className="size-5 text-primary" /> {productName}
           </h3>
         )}
-        {price && (
-          <div className="text-[#6ab344] font-mono font-black text-2xl">
-            {price} FCFA
-          </div>
-        )}
+        {price && <div className="text-[#6ab344] font-mono font-black text-2xl">{price} FCFA</div>}
         <div className="relative">
           <Linkify>
             <div className={cn("text-[14px] leading-relaxed text-foreground/90", !isExpanded && "line-clamp-3")}>
@@ -107,52 +103,36 @@ export default function Post({ post }: PostProps) {
         </div>
       </div>
 
-      {/* ZONE MÉDIA - PLEIN ÉCRAN MOBILE (rounded-none) */}
-      <div className="relative overflow-hidden rounded-none md:rounded-2xl bg-black w-full">
+      {/* MEDIA PREVIEW */}
+      <div className="relative overflow-hidden bg-black w-full md:rounded-2xl">
         <MediaPreviews 
           attachments={visualAttachments} 
-          isGlobalPlaying={isGlobalPlaying}
-          setIsGlobalPlaying={setIsGlobalPlaying}
           userAvatar={post.user.avatarUrl}
           audioUrl={finalAudioUrl}
           audioTitle={post.audioTitle || "Son original"}
         />
       </div>
 
-      {/* BOUTON CONTACT - Padding horizontal mobile */}
+      {/* CONTACT */}
       <div className="px-4 md:px-0">
-        <button 
-          onClick={handleChatClick} 
-          className={cn(
-            "w-full py-3.5 rounded-2xl font-black uppercase text-xs shadow-md transition-all active:scale-[0.98]", 
-            user ? "bg-[#6ab344] text-white" : "bg-muted text-muted-foreground"
-          )}
-        >
+        <button onClick={handleChatClick} className={cn("w-full py-3.5 rounded-2xl font-black uppercase text-xs shadow-md transition-all active:scale-[0.98]", user ? "bg-[#6ab344] text-white" : "bg-muted text-muted-foreground")}>
           {user ? "Contacter le vendeur" : "Connectez-vous pour acheter"}
         </button>
       </div>
 
-      {/* ACTIONS - Compteur de commentaires inclus */}
+      {/* ACTIONS */}
       <div className="flex items-center justify-between px-4 md:px-1 pt-1">
         <div className="flex items-center gap-6">
           <LikeButton postId={post.id} initialState={{ likes: post._count.likes, isLikedByUser: post.likes.some(l => l.userId === user?.id) }} />
-          
-          {/* COMPTEUR COMMENTAIRES */}
           <div className="flex items-center gap-1.5">
             {isDesktop ? (
               <Sheet>
-                <SheetTrigger className="flex items-center gap-1.5 hover:opacity-70 transition-opacity">
-                  <MessageSquare className="size-5 text-muted-foreground" />
-                  <span className="text-sm font-bold text-muted-foreground">{post._count.comments}</span>
-                </SheetTrigger>
+                <SheetTrigger className="flex items-center gap-1.5 hover:opacity-70"><MessageSquare className="size-5 text-muted-foreground" /><span className="text-sm font-bold text-muted-foreground">{post._count.comments}</span></SheetTrigger>
                 <SheetContent side="right" className="p-0 sm:max-w-[450px]"><Comments post={post} /></SheetContent>
               </Sheet>
             ) : (
               <Drawer>
-                <DrawerTrigger className="flex items-center gap-1.5 active:scale-95 transition-transform">
-                  <MessageSquare className="size-5 text-muted-foreground" />
-                  <span className="text-sm font-bold text-muted-foreground">{post._count.comments}</span>
-                </DrawerTrigger>
+                <DrawerTrigger className="flex items-center gap-1.5"><MessageSquare className="size-5 text-muted-foreground" /><span className="text-sm font-bold text-muted-foreground">{post._count.comments}</span></DrawerTrigger>
                 <DrawerContent className="max-h-[85vh]"><Comments post={post} /></DrawerContent>
               </Drawer>
             )}
@@ -164,114 +144,146 @@ export default function Post({ post }: PostProps) {
   );
 }
 
-// La fonction MediaPreviews reste identique à la version précédente qui gérait bien le scroll et les refs.
-function MediaPreviews({ attachments, isGlobalPlaying, setIsGlobalPlaying, userAvatar, audioUrl, audioTitle }: any) {
+function MediaPreviews({ attachments, userAvatar, audioUrl, audioTitle }: any) {
   const [selectedIndex, setSelectedIndex] = useState(0);
-  const audioRef = useRef<HTMLAudioElement>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   const currentMedia = attachments[selectedIndex];
   const isVideo = currentMedia?.type === "VIDEO";
 
-  useEffect(() => {
-    const audioElement = audioRef.current;
-    if (!isVideo && audioUrl && audioElement) {
-      const playPromise = audioElement.play();
-      if (playPromise !== undefined) {
-        playPromise.then(() => setIsGlobalPlaying(true)).catch(() => setIsGlobalPlaying(false));
-      }
-    } else if (audioElement) {
-      audioElement.pause();
+  const playAudio = useCallback(async () => {
+    if (!audioRef.current || isVideo || !audioUrl) return;
+    try {
+      await audioRef.current.play();
+      setIsPlaying(true);
+    } catch (err) {
+      setIsPlaying(false);
     }
+  }, [isVideo, audioUrl]);
 
+  useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (!entry.isIntersecting && audioElement) {
-          audioElement.pause();
-          setIsGlobalPlaying(false);
+        if (entry.isIntersecting) {
+          playAudio();
+        } else if (audioRef.current) {
+          audioRef.current.pause();
+          setIsPlaying(false);
         }
       },
-      { threshold: 0.1 }
+      { threshold: 0.4 }
     );
-
     if (containerRef.current) observer.observe(containerRef.current);
-    return () => {
-      if (audioElement) audioElement.pause();
-      observer.disconnect();
-    };
-  }, [audioUrl, isVideo, selectedIndex, setIsGlobalPlaying]);
+    return () => observer.disconnect();
+  }, [playAudio]);
+
+  useEffect(() => {
+    if (isVideo && audioRef.current) {
+      audioRef.current.pause();
+      setIsPlaying(false);
+    } else if (!isVideo) {
+      playAudio();
+    }
+  }, [selectedIndex, isVideo, playAudio]);
+
+  const goNext = () => setSelectedIndex((p) => Math.min(p + 1, attachments.length - 1));
+  const goPrev = () => setSelectedIndex((p) => Math.max(p - 1, 0));
 
   const handlers = useSwipeable({
-    onSwipedLeft: () => setSelectedIndex(p => Math.min(p + 1, attachments.length - 1)),
-    onSwipedRight: () => setSelectedIndex(p => Math.max(p - 1, 0)),
+    onSwipedLeft: goNext,
+    onSwipedRight: goPrev,
+    preventScrollOnSwipe: true,
+    trackMouse: true,
   });
 
-  const setRefs = (el: HTMLDivElement | null) => {
-    containerRef.current = el;
-    handlers.ref(el);
-  };
-
-  const toggleAudio = (e: React.MouseEvent) => {
-    if (isVideo) return;
-    e.stopPropagation();
-    if (!audioUrl || !audioRef.current) return;
-    if (isGlobalPlaying) {
-      audioRef.current.pause();
-      setIsGlobalPlaying(false);
-    } else {
-      audioRef.current.play();
-      setIsGlobalPlaying(true);
-    }
-  };
-
   return (
-    <div ref={setRefs} className="relative group/media cursor-pointer" onClick={toggleAudio}>
-      {audioUrl && !isVideo && <audio ref={audioRef} src={audioUrl} loop />}
-      
+    <div 
+      ref={(el) => { containerRef.current = el; handlers.ref(el); }}
+      className="relative group/media cursor-pointer select-none overflow-hidden"
+      onClick={() => {
+        if (isVideo) return;
+        isPlaying ? audioRef.current?.pause() : playAudio();
+        if (isPlaying) setIsPlaying(false);
+      }}
+    >
+      {audioUrl && <audio ref={audioRef} src={audioUrl} loop className="hidden" preload="auto" />}
+
       {/* DISQUE TIKTOK */}
-      {((audioUrl && !isVideo) || isVideo) && (
-        <div className="absolute bottom-6 right-4 z-40 flex items-center gap-2 pointer-events-none">
-          {isGlobalPlaying && (
-            <div className="bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/20 shadow-lg max-w-[150px]">
+      {audioUrl && (
+        <div className="absolute bottom-10 right-4 z-40 flex items-center gap-2 pointer-events-none">
+          {isPlaying && (
+            <div className="bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/20 animate-in fade-in slide-in-from-right-2">
               <div className="flex items-center gap-2">
-                <Music className="size-3 text-primary animate-pulse flex-shrink-0" />
-                <p className="text-[10px] text-white font-bold truncate tracking-tight">
-                  {isVideo ? "Son de la vidéo" : audioTitle}
-                </p>
+                <Music className="size-3 text-primary animate-pulse" />
+                <p className="text-[10px] text-white font-bold truncate max-w-[120px]">{audioTitle}</p>
               </div>
             </div>
           )}
-          <div className="relative">
-            <div className={cn(
-              "size-14 rounded-full bg-black border-[3px] border-zinc-700 shadow-2xl flex items-center justify-center overflow-hidden transition-all duration-700",
-              isGlobalPlaying ? "animate-spin-slow scale-110 border-primary" : "scale-100 opacity-70"
-            )}>
-              <UserAvatar avatarUrl={userAvatar} size={48} className="w-full h-full object-cover" />
-            </div>
+          <div className={cn(
+            "size-12 rounded-full border-[3px] border-zinc-800 overflow-hidden transition-all duration-500 shadow-2xl",
+            isPlaying ? "animate-spin-slow scale-110 border-primary" : "opacity-50 scale-90"
+          )}>
+            <UserAvatar avatarUrl={userAvatar} size={48} />
           </div>
         </div>
       )}
 
-      {/* CAROUSEL MÉDIAS */}
-      <div className="flex transition-transform duration-500 ease-out" style={{ transform: `translateX(-${selectedIndex * 100}%)` }}>
-        {attachments.map((media: any) => (
-          <div key={media.id} className="w-full flex-shrink-0 flex items-center justify-center min-h-[450px] max-h-[600px] bg-zinc-900">
-            {media.type === "IMAGE" ? (
+      {/* FLÈCHES PC (RESTAURÉES) */}
+      {attachments.length > 1 && (
+        <>
+          {selectedIndex > 0 && (
+            <button 
+              onClick={(e) => { e.stopPropagation(); goPrev(); }} 
+              className="absolute left-3 top-1/2 -translate-y-1/2 z-50 p-2 rounded-full bg-black/50 text-white opacity-0 group-hover/media:opacity-100 transition-opacity hidden md:block hover:bg-black/70"
+            >
+              <ChevronLeft size={24} />
+            </button>
+          )}
+          {selectedIndex < attachments.length - 1 && (
+            <button 
+              onClick={(e) => { e.stopPropagation(); goNext(); }} 
+              className="absolute right-3 top-1/2 -translate-y-1/2 z-50 p-2 rounded-full bg-black/50 text-white opacity-0 group-hover/media:opacity-100 transition-opacity hidden md:block hover:bg-black/70"
+            >
+              <ChevronRight size={24} />
+            </button>
+          )}
+        </>
+      )}
+
+      {/* CAROUSEL */}
+      <div 
+        className="flex transition-transform duration-500 ease-out" 
+        style={{ transform: `translateX(-${selectedIndex * 100}%)` }}
+      >
+        {attachments.map((m: any, i: number) => (
+          <div key={m.id || i} className="w-full flex-shrink-0 flex items-center justify-center min-h-[450px] max-h-[600px] bg-zinc-900">
+            {m.type === "IMAGE" ? (
               <Image 
-                src={media.url} alt="Product" width={1000} height={1000} unoptimized
-                className="w-full h-auto object-contain pointer-events-none" 
+                src={m.url} alt="Product" width={1000} height={1000} unoptimized
+                className="w-full h-full object-contain pointer-events-none"
               />
             ) : (
-              <VideoPost src={media.url} setIsGlobalPlaying={setIsGlobalPlaying} />
+              <VideoPost src={m.url} setIsGlobalPlaying={setIsPlaying} />
             )}
           </div>
         ))}
       </div>
 
-      {/* INDICATEUR DE POSITION */}
+      {/* POINTS DE PROGRESSION (RESTAURÉS) */}
       {attachments.length > 1 && (
-        <div className="absolute top-4 right-4 z-30 bg-black/50 backdrop-blur-sm px-2.5 py-1 rounded-full text-[10px] font-bold text-white border border-white/10">
-          {selectedIndex + 1} / {attachments.length}
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5 z-30 px-2 py-1.5 rounded-full bg-black/20 backdrop-blur-[2px]">
+          {attachments.map((_: any, i: number) => (
+            <div 
+              key={i} 
+              className={cn(
+                "h-1.5 rounded-full transition-all duration-300", 
+                i === selectedIndex ? "w-4 bg-primary" : "w-1.5 bg-white/50"
+              )} 
+            />
+          ))}
         </div>
       )}
     </div>

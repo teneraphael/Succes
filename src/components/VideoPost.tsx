@@ -18,6 +18,7 @@ const VideoPost = ({ src, className, style, setIsGlobalPlaying }: VideoPostProps
   const [isLoading, setIsLoading] = useState(true);
   const [isPaused, setIsPaused] = useState(false);
 
+  // Hook qui gère la lecture automatique quand le composant est visible
   useAutoplayOnVisible(videoRef, 0.5); 
 
   useEffect(() => {
@@ -29,7 +30,13 @@ const VideoPost = ({ src, className, style, setIsGlobalPlaying }: VideoPostProps
   const toggleMute = (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
-    setIsMuted((prev) => !prev);
+    const newMutedState = !isMuted;
+    setIsMuted(newMutedState);
+
+    // Si l'utilisateur active le son de la vidéo, on coupe le MP3 global (disque TikTok)
+    if (!newMutedState && setIsGlobalPlaying) {
+      setIsGlobalPlaying(false);
+    }
   };
 
   const handleVideoClick = (e: React.MouseEvent) => {
@@ -61,11 +68,14 @@ const VideoPost = ({ src, className, style, setIsGlobalPlaying }: VideoPostProps
         onPlaying={() => {
           setIsLoading(false);
           setIsPaused(false);
-          if (setIsGlobalPlaying) setIsGlobalPlaying(true);
+          // ⚠️ ON NE DÉCLENCHE setIsGlobalPlaying ICI QUE SI LE SON N'EST PAS MUET
+          // Sinon, cela coupe le MP3 du post pendant qu'on swipe
+          if (!isMuted && setIsGlobalPlaying) setIsGlobalPlaying(true);
         }}
         onPause={() => {
           setIsPaused(true);
-          if (setIsGlobalPlaying) setIsGlobalPlaying(false);
+          // On ne coupe l'audio global que si c'était cette vidéo qui le gérait
+          if (!isMuted && setIsGlobalPlaying) setIsGlobalPlaying(false);
         }}
       >
         <source src={src} type="video/mp4" />
@@ -87,18 +97,16 @@ const VideoPost = ({ src, className, style, setIsGlobalPlaying }: VideoPostProps
         </div>
       )}
 
-      {/* 3. BOUTON MUTE EN HAUT À DROITE */}
+      {/* 3. BOUTON MUTE */}
       <button
         onClick={toggleMute}
         type="button"
-        // On le place à top-4 pour l'aligner avec le badge VIDEO de gauche
-        // Si tu as l'indicateur "1/2", on peut mettre right-14 pour les décaler
         className="absolute top-4 right-4 z-50 rounded-full bg-black/60 p-2 text-white backdrop-blur-md transition-all hover:bg-black/80 active:scale-90 border border-white/10 shadow-xl"
       >
         {isMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
       </button>
 
-      {/* 4. Badge VIDEO (En haut à gauche) */}
+      {/* 4. Badge VIDEO */}
       <div className="absolute top-4 left-4 z-20 rounded-md bg-black/40 px-2 py-1 text-[10px] font-bold text-white/80 backdrop-blur-sm pointer-events-none border border-white/5">
         VIDEO
       </div>

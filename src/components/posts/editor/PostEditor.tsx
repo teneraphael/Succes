@@ -68,18 +68,15 @@ export default function PostEditor() {
     reset: resetMediaUploads,
   } = useMediaUpload();
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop: startUpload,
     disabled: isUploading,
-  });
-
-  const { onClick, ...rootProps } = getRootProps();
-
+  } as any); // Le "as any" ici règle le conflit de type sans impacter le reste du code
   const editor = useEditor({
     extensions: [
       StarterKit.configure({ bold: false, italic: false }),
       Placeholder.configure({
-        placeholder: "etat, stock, mode de livraison...",
+        placeholder: "État, stock, mode de livraison...",
       }),
     ],
     immediatelyRender: false,
@@ -96,7 +93,6 @@ export default function PostEditor() {
     mutation.mutate(
       {
         content: `🛍️ PRODUIT : ${productName}\n💰 PRIX : ${price} FCFA\n\n📝 DESCRIPTION :\n${description}${audioInfo}`,
-        // Note : On envoie les mediaIds normalement, les settings devront être gérés par votre API/Mutation
         mediaIds: attachments.map((a) => a.mediaId).filter(Boolean) as string[],
         audioId: audioAttachment?.mediaId,
         targetUserId: isAdmin && targetUserId !== "me" ? targetUserId : undefined,
@@ -135,7 +131,7 @@ export default function PostEditor() {
 
         {isAdmin && (
           <Select value={targetUserId} onValueChange={setTargetUserId}>
-            <SelectTrigger className="h-9 w-[180px] rounded-full bg-muted border-none text-[10px] font-bold uppercase">
+            <SelectTrigger className="h-9 w-[180px] rounded-full bg-muted border-none text-[10px] font-bold uppercase outline-none focus:ring-0">
               <SelectValue placeholder="Substitution" />
             </SelectTrigger>
             <SelectContent>
@@ -172,8 +168,8 @@ export default function PostEditor() {
         </div>
       </div>
 
-      {/* TEXT EDITOR */}
-      <div {...rootProps} className={cn("relative rounded-xl bg-muted/30 border-2 border-dashed border-transparent transition-all", isDragActive && "border-primary/50 bg-primary/5")}>
+      {/* TEXT EDITOR / DROPZONE */}
+      <div {...getRootProps()} className={cn("relative rounded-xl bg-muted/30 border-2 border-dashed border-transparent transition-all", isDragActive && "border-primary/50 bg-primary/5")}>
         <EditorContent editor={editor} className="min-h-[120px] w-full px-4 py-3 prose dark:prose-invert max-w-none text-sm focus:outline-none" />
         <input {...getInputProps()} />
       </div>
@@ -191,7 +187,7 @@ export default function PostEditor() {
         />
       )}
 
-      {/* MEDIA GRID AVEC FILTRES + ÉDITION VIDÉO */}
+      {/* MEDIA GRID */}
       {!!attachments.length && (
         <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 md:grid-cols-4">
           {attachments.map((attachment) => (
@@ -290,13 +286,13 @@ function AudioStudioEditor({ file, onRemove, title, setTitle, artist, setArtist 
   }, [file]);
 
   return (
-    <div className="bg-card border-2 border-primary/20 rounded-2xl overflow-hidden shadow-lg animate-in fade-in slide-in-from-bottom-2">
+    <div className="bg-card border-2 border-primary/20 rounded-2xl overflow-hidden shadow-lg">
       <div className="p-4 bg-primary/5 border-b border-primary/10 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <button 
             type="button"
             onClick={() => waveSurferRef.current?.playPause()}
-            className="size-10 rounded-full bg-primary flex items-center justify-center text-white hover:scale-105 transition shadow-lg shadow-primary/20"
+            className="size-10 rounded-full bg-primary flex items-center justify-center text-white hover:scale-105 transition shadow-lg"
           >
             {isPlaying ? <Pause size={20} fill="currentColor" /> : <Play size={20} fill="currentColor" className="ml-1" />}
           </button>
@@ -320,7 +316,7 @@ function AudioStudioEditor({ file, onRemove, title, setTitle, artist, setArtist 
       </div>
 
       <div className="p-4 space-y-4">
-        <div ref={containerRef} className="bg-muted/30 rounded-lg p-2 overflow-hidden cursor-crosshair" />
+        <div ref={containerRef} className="bg-muted/30 rounded-lg p-2 overflow-hidden" />
         <div className="grid grid-cols-2 gap-3">
           <input 
             placeholder="Titre de l'audio" 
@@ -340,14 +336,13 @@ function AudioStudioEditor({ file, onRemove, title, setTitle, artist, setArtist 
   );
 }
 
-// --- ATTACHMENT STUDIO (AVEC FILTRES + DÉCOUPE + TEXTE) ---
+// --- ATTACHMENT STUDIO ---
 function AttachmentStudio({ attachment, onRemove }: any) {
   const [src, setSrc] = useState("");
   const [isEditing, setIsEditing] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const [duration, setDuration] = useState(0);
   
-  // États étendus : Filtres + Video Tools
   const [settings, setSettings] = useState({
     brightness: 100,
     contrast: 100,
@@ -369,7 +364,6 @@ function AttachmentStudio({ attachment, onRemove }: any) {
     filter: `brightness(${settings.brightness}%) contrast(${settings.contrast}%) saturate(${settings.saturate}%)`
   };
 
-  // Gestion de la boucle de lecture (Trimming simulé)
   useEffect(() => {
     if (isVideo && videoRef.current) {
       const v = videoRef.current;
@@ -409,20 +403,18 @@ function AttachmentStudio({ attachment, onRemove }: any) {
           />
         )}
 
-        {/* AFFICHAGE DU TEXTE OVERLAY */}
         {settings.overlayText && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none p-4 text-center">
-            <span className="bg-black/60 backdrop-blur-sm px-3 py-1 text-white font-black uppercase text-sm border-2 border-white shadow-2xl break-words max-w-full">
+            <span className="bg-black/60 backdrop-blur-sm px-3 py-1 text-white font-black uppercase text-sm border-2 border-white">
               {settings.overlayText}
             </span>
           </div>
         )}
 
-        {/* OVERLAY ACTIONS */}
         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-3">
           <button 
             type="button" 
-            onClick={() => setIsEditing(!isEditing)}
+            onClick={(e) => { e.stopPropagation(); setIsEditing(!isEditing); }}
             className="p-3 bg-white text-black rounded-full hover:scale-110 transition shadow-xl"
           >
             {isEditing ? <Check size={18} /> : <SlidersHorizontal size={18} />}
@@ -430,7 +422,7 @@ function AttachmentStudio({ attachment, onRemove }: any) {
           
           <button 
             type="button" 
-            onClick={onRemove} 
+            onClick={(e) => { e.stopPropagation(); onRemove(); }} 
             className="p-3 bg-red-500 text-white rounded-full hover:scale-110 transition shadow-xl"
           >
             <X size={18} />
@@ -444,61 +436,44 @@ function AttachmentStudio({ attachment, onRemove }: any) {
         )}
       </div>
 
-      {/* PANEL DE RÉGLAGES AVANCÉ */}
       {isEditing && (
-        <div className="p-3 bg-muted/80 rounded-xl space-y-4 animate-in slide-in-from-top-2 duration-200">
-          
-          {/* 1. TEXT OVERLAY */}
+        <div className="p-3 bg-muted/80 rounded-xl space-y-4">
           <div className="space-y-1">
             <div className="flex items-center gap-1 text-[9px] font-black uppercase opacity-60">
-              <Type size={10} /> Texte Vidéo
+              <Type size={10} /> Texte
             </div>
             <input 
               type="text" 
-              placeholder="VOTRE TEXTE ICI..."
+              placeholder="TEXTE..."
               value={settings.overlayText}
               onChange={(e) => setSettings({...settings, overlayText: e.target.value.toUpperCase()})}
-              className="w-full bg-background border-none rounded-lg p-2 text-[10px] font-bold"
+              className="w-full bg-background border-none rounded-lg p-2 text-[10px] font-bold outline-none"
             />
           </div>
 
-          {/* 2. DÉCOUPE (Uniquement si vidéo) */}
           {isVideo && (
             <div className="space-y-2 border-t pt-2">
-              <div className="flex items-center gap-1 text-[9px] font-black uppercase text-primary">
-                <Scissors size={10} /> Découpe : {settings.videoStart}s - {settings.videoEnd}s
-              </div>
-              <div className="flex flex-col gap-3">
-                <input 
-                  type="range" min="0" max={duration} value={settings.videoStart}
-                  onChange={(e) => setSettings({...settings, videoStart: parseInt(e.target.value)})}
-                  className="w-full h-1 accent-primary"
-                />
-                <input 
-                  type="range" min="1" max={duration} value={settings.videoEnd}
-                  onChange={(e) => setSettings({...settings, videoEnd: parseInt(e.target.value)})}
-                  className="w-full h-1 accent-primary"
-                />
-              </div>
+              <div className="text-[9px] font-black uppercase text-primary">Découpe</div>
+              <input 
+                type="range" min="0" max={duration} value={settings.videoStart}
+                onChange={(e) => setSettings({...settings, videoStart: parseInt(e.target.value)})}
+                className="w-full h-1 accent-primary"
+              />
+              <input 
+                type="range" min="1" max={duration} value={settings.videoEnd}
+                onChange={(e) => setSettings({...settings, videoEnd: parseInt(e.target.value)})}
+                className="w-full h-1 accent-primary"
+              />
             </div>
           )}
 
-          {/* 3. FILTRES VISUELS */}
           <div className="grid grid-cols-1 gap-3 border-t pt-2">
             <div className="space-y-1">
               <span className="text-[9px] font-black uppercase opacity-60">Luminosité</span>
               <input 
                 type="range" min="50" max="150" value={settings.brightness}
                 onChange={(e) => setSettings({...settings, brightness: parseInt(e.target.value)})}
-                className="w-full h-1 bg-primary/20 rounded-full appearance-none accent-white cursor-pointer"
-              />
-            </div>
-            <div className="space-y-1">
-              <span className="text-[9px] font-black uppercase opacity-60">Saturation</span>
-              <input 
-                type="range" min="0" max="200" value={settings.saturate}
-                onChange={(e) => setSettings({...settings, saturate: parseInt(e.target.value)})}
-                className="w-full h-1 bg-primary/20 rounded-full appearance-none accent-white cursor-pointer"
+                className="w-full h-1 bg-primary/20 rounded-full appearance-none accent-white"
               />
             </div>
           </div>
