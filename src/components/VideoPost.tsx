@@ -56,7 +56,8 @@ const VideoPost = ({ src, className, style, setIsGlobalPlaying }: VideoPostProps
       
       <video
         ref={videoRef}
-        className="w-full h-full object-contain block cursor-pointer"
+        // CHANGEMENT ICI : object-cover au lieu de object-contain
+        className="w-full h-full object-cover block cursor-pointer transition-transform duration-300"
         style={style}
         loop 
         muted={isMuted} 
@@ -68,13 +69,10 @@ const VideoPost = ({ src, className, style, setIsGlobalPlaying }: VideoPostProps
         onPlaying={() => {
           setIsLoading(false);
           setIsPaused(false);
-          // ⚠️ ON NE DÉCLENCHE setIsGlobalPlaying ICI QUE SI LE SON N'EST PAS MUET
-          // Sinon, cela coupe le MP3 du post pendant qu'on swipe
           if (!isMuted && setIsGlobalPlaying) setIsGlobalPlaying(true);
         }}
         onPause={() => {
           setIsPaused(true);
-          // On ne coupe l'audio global que si c'était cette vidéo qui le gérait
           if (!isMuted && setIsGlobalPlaying) setIsGlobalPlaying(false);
         }}
       >
@@ -106,9 +104,9 @@ const VideoPost = ({ src, className, style, setIsGlobalPlaying }: VideoPostProps
         {isMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
       </button>
 
-      {/* 4. Badge VIDEO */}
-      <div className="absolute top-4 left-4 z-20 rounded-md bg-black/40 px-2 py-1 text-[10px] font-bold text-white/80 backdrop-blur-sm pointer-events-none border border-white/5">
-        VIDEO
+      {/* 4. Badge VIDEO (Déplacé légèrement pour ne pas gêner la numérotation) */}
+      <div className="absolute bottom-4 left-4 z-20 rounded-md bg-black/40 px-2 py-1 text-[10px] font-bold text-white/80 backdrop-blur-sm pointer-events-none border border-white/5 uppercase">
+        Video
       </div>
     </div>
   );

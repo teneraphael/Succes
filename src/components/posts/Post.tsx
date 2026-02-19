@@ -81,7 +81,7 @@ export default function Post({ post }: PostProps) {
         <PostMoreButton post={post} />
       </div>
 
-      {/* PRODUIT INFOS (RESTAURÉ) */}
+      {/* PRODUIT INFOS */}
       <div className="space-y-2 px-4 md:px-1">
         {productName && (
           <h3 className="font-black text-xl uppercase tracking-tighter leading-none flex items-center gap-2">
@@ -211,9 +211,16 @@ function MediaPreviews({ attachments, userAvatar, audioUrl, audioTitle }: any) {
     >
       {audioUrl && <audio ref={audioRef} src={audioUrl} loop className="hidden" preload="auto" />}
 
+      {/* NUMÉROTATION EN HAUT À DROITE */}
+      {attachments.length > 1 && (
+        <div className="absolute top-4 right-4 z-50 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-full text-white text-[11px] font-bold tracking-widest border border-white/10">
+          {selectedIndex + 1}/{attachments.length}
+        </div>
+      )}
+
       {/* DISQUE TIKTOK */}
       {audioUrl && (
-        <div className="absolute bottom-10 right-4 z-40 flex items-center gap-2 pointer-events-none">
+        <div className="absolute bottom-12 right-4 z-40 flex items-center gap-2 pointer-events-none">
           {isPlaying && (
             <div className="bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/20 animate-in fade-in slide-in-from-right-2">
               <div className="flex items-center gap-2">
@@ -231,58 +238,50 @@ function MediaPreviews({ attachments, userAvatar, audioUrl, audioTitle }: any) {
         </div>
       )}
 
-      {/* FLÈCHES PC (RESTAURÉES) */}
+      {/* NAVIGATION PC */}
       {attachments.length > 1 && (
         <>
           {selectedIndex > 0 && (
-            <button 
-              onClick={(e) => { e.stopPropagation(); goPrev(); }} 
-              className="absolute left-3 top-1/2 -translate-y-1/2 z-50 p-2 rounded-full bg-black/50 text-white opacity-0 group-hover/media:opacity-100 transition-opacity hidden md:block hover:bg-black/70"
-            >
+            <button onClick={(e) => { e.stopPropagation(); goPrev(); }} className="absolute left-3 top-1/2 -translate-y-1/2 z-50 p-2 rounded-full bg-black/50 text-white opacity-0 group-hover/media:opacity-100 transition-opacity hidden md:block">
               <ChevronLeft size={24} />
             </button>
           )}
           {selectedIndex < attachments.length - 1 && (
-            <button 
-              onClick={(e) => { e.stopPropagation(); goNext(); }} 
-              className="absolute right-3 top-1/2 -translate-y-1/2 z-50 p-2 rounded-full bg-black/50 text-white opacity-0 group-hover/media:opacity-100 transition-opacity hidden md:block hover:bg-black/70"
-            >
+            <button onClick={(e) => { e.stopPropagation(); goNext(); }} className="absolute right-3 top-1/2 -translate-y-1/2 z-50 p-2 rounded-full bg-black/50 text-white opacity-0 group-hover/media:opacity-100 transition-opacity hidden md:block">
               <ChevronRight size={24} />
             </button>
           )}
         </>
       )}
 
-      {/* CAROUSEL */}
+      {/* CAROUSEL - AJUSTEMENT POUR ÉLIMINER LES ESPACES NOIRS */}
       <div 
         className="flex transition-transform duration-500 ease-out" 
         style={{ transform: `translateX(-${selectedIndex * 100}%)` }}
       >
         {attachments.map((m: any, i: number) => (
-          <div key={m.id || i} className="w-full flex-shrink-0 flex items-center justify-center min-h-[450px] max-h-[600px] bg-zinc-900">
-            {m.type === "IMAGE" ? (
-              <Image 
-                src={m.url} alt="Product" width={1000} height={1000} unoptimized
-                className="w-full h-full object-contain pointer-events-none"
-              />
-            ) : (
-              <VideoPost src={m.url} setIsGlobalPlaying={setIsPlaying} />
-            )}
+          <div key={m.id || i} className="w-full flex-shrink-0 bg-zinc-900 overflow-hidden">
+            <div className="relative w-full aspect-[4/5] flex items-center justify-center">
+              {m.type === "IMAGE" ? (
+                <Image 
+                  src={m.url} alt="Product" width={1000} height={1000} unoptimized
+                  className="w-full h-full object-cover" // object-cover remplit tout l'espace
+                />
+              ) : (
+                <div className="w-full h-full [&>video]:object-cover"> 
+                  <VideoPost src={m.url} setIsGlobalPlaying={setIsPlaying} />
+                </div>
+              )}
+            </div>
           </div>
         ))}
       </div>
 
-      {/* POINTS DE PROGRESSION (RESTAURÉS) */}
+      {/* POINTS DE PROGRESSION EN BAS */}
       {attachments.length > 1 && (
         <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5 z-30 px-2 py-1.5 rounded-full bg-black/20 backdrop-blur-[2px]">
           {attachments.map((_: any, i: number) => (
-            <div 
-              key={i} 
-              className={cn(
-                "h-1.5 rounded-full transition-all duration-300", 
-                i === selectedIndex ? "w-4 bg-primary" : "w-1.5 bg-white/50"
-              )} 
-            />
+            <div key={i} className={cn("h-1.5 rounded-full transition-all duration-300", i === selectedIndex ? "w-4 bg-primary" : "w-1.5 bg-white/50")} />
           ))}
         </div>
       )}
