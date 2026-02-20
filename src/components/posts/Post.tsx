@@ -104,7 +104,7 @@ export default function Post({ post }: PostProps) {
       </div>
 
       {/* MEDIA PREVIEW */}
-      <div className="relative overflow-hidden bg-black w-full md:rounded-2xl">
+      <div className="relative overflow-hidden bg-zinc-900 w-full md:rounded-2xl min-h-[400px]">
         <MediaPreviews 
           attachments={visualAttachments} 
           userAvatar={post.user.avatarUrl}
@@ -174,7 +174,7 @@ function MediaPreviews({ attachments, userAvatar, audioUrl, audioTitle }: any) {
           setIsPlaying(false);
         }
       },
-      { threshold: 0.4 }
+      { threshold: 0.2 } // Déclenchement plus souple
     );
     if (containerRef.current) observer.observe(containerRef.current);
     return () => observer.disconnect();
@@ -184,10 +184,10 @@ function MediaPreviews({ attachments, userAvatar, audioUrl, audioTitle }: any) {
     if (isVideo && audioRef.current) {
       audioRef.current.pause();
       setIsPlaying(false);
-    } else if (!isVideo) {
+    } else if (!isVideo && audioUrl) {
       playAudio();
     }
-  }, [selectedIndex, isVideo, playAudio]);
+  }, [selectedIndex, isVideo, audioUrl, playAudio]);
 
   const goNext = () => setSelectedIndex((p) => Math.min(p + 1, attachments.length - 1));
   const goPrev = () => setSelectedIndex((p) => Math.max(p - 1, 0));
@@ -209,12 +209,28 @@ function MediaPreviews({ attachments, userAvatar, audioUrl, audioTitle }: any) {
         if (isPlaying) setIsPlaying(false);
       }}
     >
-      {audioUrl && <audio ref={audioRef} src={audioUrl} loop className="hidden" preload="auto" />}
+      {audioUrl && <audio ref={audioRef} src={audioUrl} loop className="hidden" preload="metadata" />}
 
-      {/* NUMÉROTATION EN HAUT À DROITE */}
+      {/* NUMÉROTATION */}
       {attachments.length > 1 && (
-        <div className="absolute top-4 right-4 z-50 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-full text-white text-[11px] font-bold tracking-widest border border-white/10">
+        <div className="absolute top-4 right-4 z-50 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-full text-white text-[11px] font-bold border border-white/10">
           {selectedIndex + 1}/{attachments.length}
+        </div>
+      )}
+
+      {/* NAVIGATION PC (Avant le carousel pour être au-dessus) */}
+      {attachments.length > 1 && (
+        <div className="absolute inset-y-0 inset-x-0 pointer-events-none z-40 hidden md:block">
+           {selectedIndex > 0 && (
+            <button onClick={(e) => { e.stopPropagation(); goPrev(); }} className="absolute left-3 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/50 text-white opacity-0 group-hover/media:opacity-100 transition-opacity pointer-events-auto">
+              <ChevronLeft size={24} />
+            </button>
+          )}
+          {selectedIndex < attachments.length - 1 && (
+            <button onClick={(e) => { e.stopPropagation(); goNext(); }} className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/50 text-white opacity-0 group-hover/media:opacity-100 transition-opacity pointer-events-auto">
+              <ChevronRight size={24} />
+            </button>
+          )}
         </div>
       )}
 
@@ -222,7 +238,7 @@ function MediaPreviews({ attachments, userAvatar, audioUrl, audioTitle }: any) {
       {audioUrl && (
         <div className="absolute bottom-12 right-4 z-40 flex items-center gap-2 pointer-events-none">
           {isPlaying && (
-            <div className="bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/20 animate-in fade-in slide-in-from-right-2">
+            <div className="bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/20">
               <div className="flex items-center gap-2">
                 <Music className="size-3 text-primary animate-pulse" />
                 <p className="text-[10px] text-white font-bold truncate max-w-[120px]">{audioTitle}</p>
@@ -230,7 +246,7 @@ function MediaPreviews({ attachments, userAvatar, audioUrl, audioTitle }: any) {
             </div>
           )}
           <div className={cn(
-            "size-12 rounded-full border-[3px] border-zinc-800 overflow-hidden transition-all duration-500 shadow-2xl",
+            "size-12 rounded-full border-[3px] border-zinc-800 overflow-hidden transition-all duration-500",
             isPlaying ? "animate-spin-slow scale-110 border-primary" : "opacity-50 scale-90"
           )}>
             <UserAvatar avatarUrl={userAvatar} size={48} />
@@ -238,23 +254,7 @@ function MediaPreviews({ attachments, userAvatar, audioUrl, audioTitle }: any) {
         </div>
       )}
 
-      {/* NAVIGATION PC */}
-      {attachments.length > 1 && (
-        <>
-          {selectedIndex > 0 && (
-            <button onClick={(e) => { e.stopPropagation(); goPrev(); }} className="absolute left-3 top-1/2 -translate-y-1/2 z-50 p-2 rounded-full bg-black/50 text-white opacity-0 group-hover/media:opacity-100 transition-opacity hidden md:block">
-              <ChevronLeft size={24} />
-            </button>
-          )}
-          {selectedIndex < attachments.length - 1 && (
-            <button onClick={(e) => { e.stopPropagation(); goNext(); }} className="absolute right-3 top-1/2 -translate-y-1/2 z-50 p-2 rounded-full bg-black/50 text-white opacity-0 group-hover/media:opacity-100 transition-opacity hidden md:block">
-              <ChevronRight size={24} />
-            </button>
-          )}
-        </>
-      )}
-
-      {/* CAROUSEL - AJUSTEMENT POUR ÉLIMINER LES ESPACES NOIRS */}
+      {/* CAROUSEL */}
       <div 
         className="flex transition-transform duration-500 ease-out" 
         style={{ transform: `translateX(-${selectedIndex * 100}%)` }}
@@ -264,11 +264,15 @@ function MediaPreviews({ attachments, userAvatar, audioUrl, audioTitle }: any) {
             <div className="relative w-full aspect-[4/5] flex items-center justify-center">
               {m.type === "IMAGE" ? (
                 <Image 
-                  src={m.url} alt="Product" width={1000} height={1000} unoptimized
-                  className="w-full h-full object-cover" // object-cover remplit tout l'espace
+                  src={m.url} 
+                  alt="Product" 
+                  width={800} 
+                  height={1000} 
+                  unoptimized
+                  className="w-full h-full object-cover" 
                 />
               ) : (
-                <div className="w-full h-full [&>video]:object-cover"> 
+                <div className="w-full h-full"> 
                   <VideoPost src={m.url} setIsGlobalPlaying={setIsPlaying} />
                 </div>
               )}
@@ -277,7 +281,7 @@ function MediaPreviews({ attachments, userAvatar, audioUrl, audioTitle }: any) {
         ))}
       </div>
 
-      {/* POINTS DE PROGRESSION EN BAS */}
+      {/* POINTS DE PROGRESSION */}
       {attachments.length > 1 && (
         <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5 z-30 px-2 py-1.5 rounded-full bg-black/20 backdrop-blur-[2px]">
           {attachments.map((_: any, i: number) => (

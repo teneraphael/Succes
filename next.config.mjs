@@ -7,22 +7,24 @@ const nextConfig = {
   },
   serverExternalPackages: ["@node-rs/argon2"],
   images: {
-    domains:["un9zgttebh.ufs.sh"],
+    // Suppression de 'domains' car il entre en conflit avec remotePatterns
     remotePatterns: [
       {
         protocol: "https",
         hostname: "utfs.io",
-        pathname: `/a/${process.env.NEXT_PUBLIC_UPLOADTHING_APP_ID}/*`,
+      },
+      {
+        protocol: "https",
+        hostname: "un9zgttebh.ufs.sh",
       },
     ],
   },
 
-  typescript:{
-   ignoreBuildErrors: true,    
+  typescript: {
+    ignoreBuildErrors: true,
   },
 
-
-  rewrites: () => {
+  rewrites: async () => {
     return [
       {
         source: "/hashtag/:tag",
