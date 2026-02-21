@@ -48,9 +48,11 @@ export default function Post({ post }: PostProps) {
   const charLimit = 150; 
   const isLongText = cleanDescription.length > charLimit;
 
+  // LOGIQUE AUDIO MISE À JOUR : On cherche d'abord le champ direct, puis l'attachment
   const audioMedia = post.attachments.find(m => m.type === "AUDIO");
   const visualAttachments = post.attachments.filter(m => m.type !== "AUDIO");
   const finalAudioUrl = post.audioUrl || audioMedia?.url;
+  const finalAudioTitle = post.audioTitle || "Son original";
 
   const handleChatClick = () => {
     if (!user) {
@@ -103,13 +105,13 @@ export default function Post({ post }: PostProps) {
         </div>
       </div>
 
-      {/* MEDIA PREVIEW */}
+      {/* MEDIA PREVIEW - LE DISQUE TIKTOK S'AFFICHE ICI SI finalAudioUrl EXISTE */}
       <div className="relative overflow-hidden bg-zinc-900 w-full md:rounded-2xl min-h-[400px]">
         <MediaPreviews 
           attachments={visualAttachments} 
           userAvatar={post.user.avatarUrl}
           audioUrl={finalAudioUrl}
-          audioTitle={post.audioTitle || "Son original"}
+          audioTitle={finalAudioTitle}
         />
       </div>
 
@@ -174,7 +176,7 @@ function MediaPreviews({ attachments, userAvatar, audioUrl, audioTitle }: any) {
           setIsPlaying(false);
         }
       },
-      { threshold: 0.2 } // Déclenchement plus souple
+      { threshold: 0.2 } 
     );
     if (containerRef.current) observer.observe(containerRef.current);
     return () => observer.disconnect();
@@ -205,8 +207,12 @@ function MediaPreviews({ attachments, userAvatar, audioUrl, audioTitle }: any) {
       className="relative group/media cursor-pointer select-none overflow-hidden"
       onClick={() => {
         if (isVideo) return;
-        isPlaying ? audioRef.current?.pause() : playAudio();
-        if (isPlaying) setIsPlaying(false);
+        if (isPlaying) {
+            audioRef.current?.pause();
+            setIsPlaying(false);
+        } else {
+            playAudio();
+        }
       }}
     >
       {audioUrl && <audio ref={audioRef} src={audioUrl} loop className="hidden" preload="metadata" />}
@@ -218,7 +224,7 @@ function MediaPreviews({ attachments, userAvatar, audioUrl, audioTitle }: any) {
         </div>
       )}
 
-      {/* NAVIGATION PC (Avant le carousel pour être au-dessus) */}
+      {/* NAVIGATION PC */}
       {attachments.length > 1 && (
         <div className="absolute inset-y-0 inset-x-0 pointer-events-none z-40 hidden md:block">
            {selectedIndex > 0 && (
@@ -234,19 +240,19 @@ function MediaPreviews({ attachments, userAvatar, audioUrl, audioTitle }: any) {
         </div>
       )}
 
-      {/* DISQUE TIKTOK */}
+      {/* DISQUE TIKTOK STYLE */}
       {audioUrl && (
-        <div className="absolute bottom-12 right-4 z-40 flex items-center gap-2 pointer-events-none">
+        <div className="absolute bottom-12 right-4 z-40 flex flex-col items-end gap-3 pointer-events-none">
           {isPlaying && (
-            <div className="bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/20">
+            <div className="bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/20 animate-in slide-in-from-right-full">
               <div className="flex items-center gap-2">
                 <Music className="size-3 text-primary animate-pulse" />
-                <p className="text-[10px] text-white font-bold truncate max-w-[120px]">{audioTitle}</p>
+                <p className="text-[10px] text-white font-bold truncate max-w-[120px] uppercase tracking-tighter">{audioTitle}</p>
               </div>
             </div>
           )}
           <div className={cn(
-            "size-12 rounded-full border-[3px] border-zinc-800 overflow-hidden transition-all duration-500",
+            "size-12 rounded-full border-[3px] border-zinc-800 overflow-hidden shadow-2xl transition-all duration-700",
             isPlaying ? "animate-spin-slow scale-110 border-primary" : "opacity-50 scale-90"
           )}>
             <UserAvatar avatarUrl={userAvatar} size={48} />

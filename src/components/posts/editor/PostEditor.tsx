@@ -28,6 +28,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+// IMPORT DU NOUVEAU COMPOSANT
+import MusicSelector from "./MusicSelector";
+
 export default function PostEditor() {
   const { user } = useSession();
   const mutation = useSubmitPostMutation();
@@ -37,6 +40,10 @@ export default function PostEditor() {
   const [productName, setProductName] = useState("");
   const [price, setPrice] = useState("");
   const [targetUserId, setTargetUserId] = useState("me");
+  
+  // ÉTAT POUR LA MUSIQUE TENDANCE
+  const [selectedMusic, setSelectedMusic] = useState<{url: string, title: string} | null>(null);
+  
   const [audioTitle, setAudioTitle] = useState("");
   const [audioArtist, setAudioArtist] = useState("");
   const [pioneers, setPioneers] = useState<{ id: string; displayName: string; username: string }[]>([]);
@@ -68,10 +75,11 @@ export default function PostEditor() {
     reset: resetMediaUploads,
   } = useMediaUpload();
 
-const { getRootProps, getInputProps, isDragActive } = useDropzone({
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop: startUpload,
     disabled: isUploading,
-  } as any); // Le "as any" ici règle le conflit de type sans impacter le reste du code
+  } as any);
+
   const editor = useEditor({
     extensions: [
       StarterKit.configure({ bold: false, italic: false }),
@@ -88,13 +96,18 @@ const { getRootProps, getInputProps, isDragActive } = useDropzone({
   function onSubmit() {
     if (!isFormValid) return;
 
-    const audioInfo = audioTitle ? `\n\n🎵 TRACK : ${audioTitle}${audioArtist ? ` - ${audioArtist}` : ""}` : "";
+    // Priorité à la musique tendance si sélectionnée, sinon au titre manuel
+    const finalAudioTitle = selectedMusic ? selectedMusic.title : audioTitle;
+    const audioInfo = finalAudioTitle ? `\n\n🎵 TRACK : ${finalAudioTitle}${audioArtist ? ` - ${audioArtist}` : ""}` : "";
 
     mutation.mutate(
       {
         content: `🛍️ PRODUIT : ${productName}\n💰 PRIX : ${price} FCFA\n\n📝 DESCRIPTION :\n${description}${audioInfo}`,
         mediaIds: attachments.map((a) => a.mediaId).filter(Boolean) as string[],
         audioId: audioAttachment?.mediaId,
+        // PASSAGE DES NOUVELLES DONNÉES AUDIO
+        audioUrl: selectedMusic?.url, 
+        audioTitle: finalAudioTitle,
         targetUserId: isAdmin && targetUserId !== "me" ? targetUserId : undefined,
       },
       {
@@ -104,6 +117,7 @@ const { getRootProps, getInputProps, isDragActive } = useDropzone({
           setPrice("");
           setAudioTitle("");
           setAudioArtist("");
+          setSelectedMusic(null); // Reset musique
           setTargetUserId("me");
           resetMediaUploads();
           toast({ description: "Publication réussie !" });
@@ -174,7 +188,15 @@ const { getRootProps, getInputProps, isDragActive } = useDropzone({
         <input {...getInputProps()} />
       </div>
 
-      {/* AUDIO EDITOR */}
+      {/* --- SÉLECTEUR DE MUSIQUE TENDANCE --- */}
+      {!audioAttachment && (
+        <MusicSelector 
+          selectedUrl={selectedMusic?.url} 
+          onSelect={setSelectedMusic} 
+        />
+      )}
+
+      {/* AUDIO EDITOR (SI UPLOAD MANUEL) */}
       {audioAttachment && (
         <AudioStudioEditor 
           file={audioAttachment.file} 
@@ -207,13 +229,14 @@ const { getRootProps, getInputProps, isDragActive } = useDropzone({
           
           <label className={cn(
             "cursor-pointer p-2.5 rounded-full transition-all", 
-            audioAttachment ? "bg-primary text-white shadow-md shadow-primary/20" : "text-muted-foreground hover:bg-muted"
+            (audioAttachment || selectedMusic) ? "bg-primary text-white shadow-md shadow-primary/20" : "text-muted-foreground hover:bg-muted"
           )}>
             <Music size={20} />
             <input 
               type="file" 
               accept="audio/*" 
               className="hidden" 
+              disabled={!!selectedMusic} // Désactivé si une musique tendance est choisie
               onChange={(e) => {
                 const files = Array.from(e.target.files || []);
                 if (files.length) startUpload(files);
@@ -236,7 +259,6 @@ const { getRootProps, getInputProps, isDragActive } = useDropzone({
   );
 }
 
-// --- COMPOSANT : STUDIO AUDIO ---
 function AudioStudioEditor({ file, onRemove, title, setTitle, artist, setArtist }: any) {
   const containerRef = useRef<HTMLDivElement>(null);
   const waveSurferRef = useRef<WaveSurfer | null>(null);

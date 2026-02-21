@@ -11,7 +11,8 @@ const ADMIN_USERNAMES = ["Tene"];
 export async function submitPost(input: {
   content: string;
   mediaIds: string[];
-  audioId?: string; 
+  audioUrl?: string;     // Modifié : on reçoit l'URL directement
+  audioTitle?: string;   // Modifié : on reçoit le titre
   targetUserId?: string; 
 }) {
   const { user: loggedInUser } = await validateRequest();
@@ -28,19 +29,6 @@ export async function submitPost(input: {
     ? input.targetUserId
     : loggedInUser.id;
 
-  // --- NOUVELLE LOGIQUE POUR L'AUDIO ---
-  let audioUrl = null;
-  
-  // Si un audioId est fourni, on va chercher l'URL correspondante dans la table Media
-  if (input.audioId) {
-    const audioMedia = await prisma.media.findUnique({
-      where: { id: input.audioId },
-      select: { url: true }
-    });
-    audioUrl = audioMedia?.url;
-  }
-
-  // Création du post
   const newPost = await prisma.post.create({
     data: {
       content,
@@ -48,9 +36,8 @@ export async function submitPost(input: {
       attachments: {
         connect: mediaIds.map((id) => ({ id })),
       },
-      // On utilise les champs existants dans ton schéma Prisma
-      audioUrl: audioUrl,
-      audioTitle: "Son original", // Tu pourras dynamiser ceci plus tard si tu le souhaites
+      audioUrl: input.audioUrl,
+      audioTitle: input.audioTitle,
     },
     include: getPostDataInclude(loggedInUser.id),
   });
