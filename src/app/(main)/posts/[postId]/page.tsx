@@ -36,32 +36,41 @@ const getPost = cache(async (postId: string, loggedInUserId?: string) => {
 export async function generateMetadata({
   params: { postId },
 }: PageProps): Promise<Metadata> {
-  // On ne vérifie PAS 'user' ici. On récupère le post en mode "public"
   const post = await getPost(postId);
 
-  // On extrait la première image des attachments pour l'aperçu
+  // On récupère la photo
   const firstImage = post.attachments.find((m) => m.type === "IMAGE")?.url;
-  const description = post.content.slice(0, 160);
+  
+  // On extrait les infos du post (Prix et Nom) pour un titre percutant
+  const productMatch = post.content.match(/🛍️ PRODUIT : (.*)/);
+  const priceMatch = post.content.match(/💰 PRIX : (.*?) FCFA/);
+  const productName = productMatch ? productMatch[1] : post.user.displayName;
+  const price = priceMatch ? `${priceMatch[1]} FCFA` : "";
+
+  const shareTitle = `${productName} - ${price}`.trim();
+  const description = post.content.split('📝 DESCRIPTION :')[1]?.trim().slice(0, 150) || post.content.slice(0, 150);
 
   return {
-    title: `${post.user.displayName}: ${post.content.slice(0, 50)}...`,
+    title: shareTitle,
     description: description,
     openGraph: {
-      title: `${post.user.displayName} sur TonApp`,
+      title: shareTitle,
       description: description,
+      url: `https://dealcity.app/posts/${postId}`,
+      siteName: "DealCity",
       type: "article",
       images: firstImage ? [
         {
           url: firstImage,
-          width: 1200,
-          height: 630,
-          alt: "Aperçu du post",
+          width: 800, // Taille recommandée pour WhatsApp (plus léger que 1200)
+          height: 800,
+          type: 'image/jpeg',
         },
       ] : [],
     },
     twitter: {
       card: "summary_large_image",
-      title: post.user.displayName,
+      title: shareTitle,
       description: description,
       images: firstImage ? [firstImage] : [],
     },
