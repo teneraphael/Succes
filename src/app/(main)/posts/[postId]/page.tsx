@@ -16,12 +16,16 @@ interface PageProps {
   params: { postId: string };
 }
 
-const getPost = cache(async (postId: string, loggedInUserId: string) => {
+/**
+ * On rend le loggedInUserId optionnel pour permettre aux robots 
+ * de prévisualisation de récupérer les données publiques du post.
+ */
+const getPost = cache(async (postId: string, loggedInUserId?: string) => {
   const post = await prisma.post.findUnique({
     where: {
       id: postId,
     },
-    include: getPostDataInclude(loggedInUserId),
+    include: getPostDataInclude(loggedInUserId || ""),
   });
 
   if (!post) notFound();
@@ -32,25 +36,50 @@ const getPost = cache(async (postId: string, loggedInUserId: string) => {
 export async function generateMetadata({
   params: { postId },
 }: PageProps): Promise<Metadata> {
-  const { user } = await validateRequest();
+  // On ne vérifie PAS 'user' ici. On récupère le post en mode "public"
+  const post = await getPost(postId);
 
-  if (!user) return {};
-
-  const post = await getPost(postId, user.id);
+  // On extrait la première image des attachments pour l'aperçu
+  const firstImage = post.attachments.find((m) => m.type === "IMAGE")?.url;
+  const description = post.content.slice(0, 160);
 
   return {
     title: `${post.user.displayName}: ${post.content.slice(0, 50)}...`,
+    description: description,
+    openGraph: {
+      title: `${post.user.displayName} sur TonApp`,
+      description: description,
+      type: "article",
+      images: firstImage ? [
+        {
+          url: firstImage,
+          width: 1200,
+          height: 630,
+          alt: "Aperçu du post",
+        },
+      ] : [],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: post.user.displayName,
+      description: description,
+      images: firstImage ? [firstImage] : [],
+    },
   };
 }
 
 export default async function Page({ params: { postId } }: PageProps) {
   const { user } = await validateRequest();
 
+  // Si tu veux que la page soit consultable sans être connecté, 
+  // retire ce bloc. Sinon, garde-le pour forcer le login.
   if (!user) {
     return (
-      <p className="text-destructive">
-        You&apos;re not authorized to view this page.
-      </p>
+      <main className="mx-auto my-10 max-w-7xl px-3">
+        <p className="text-center text-destructive font-bold">
+          Veuillez vous connecter pour voir ce post.
+        </p>
+      </main>
     );
   }
 
@@ -80,8 +109,8 @@ async function UserInfoSidebar({ user }: UserInfoSidebarProps) {
   if (!loggedInUser) return null;
 
   return (
-    <div className="space-y-5 rounded-2xl bg-card p-5 shadow-sm">
-      <div className="text-xl font-bold">About this user</div>
+    <div className="space-y-5 rounded-2xl bg-card p-5 shadow-sm border">
+      <div className="text-xl font-bold">À propos du vendeur</div>
       <UserTooltip user={user}>
         <Link
           href={`/users/${user.username}`}
@@ -92,14 +121,14 @@ async function UserInfoSidebar({ user }: UserInfoSidebarProps) {
             <p className="line-clamp-1 break-all font-semibold hover:underline">
               {user.displayName}
             </p>
-            <p className="line-clamp-1 break-all text-muted-foreground">
+            <p className="line-clamp-1 break-all text-muted-foreground text-sm">
               @{user.username}
             </p>
           </div>
         </Link>
       </UserTooltip>
       <Linkify>
-        <div className="line-clamp-6 whitespace-pre-line break-words text-muted-foreground">
+        <div className="line-clamp-6 whitespace-pre-line break-words text-muted-foreground text-sm">
           {user.bio}
         </div>
       </Linkify>
