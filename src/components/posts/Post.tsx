@@ -53,16 +53,31 @@ export default function Post({ post }: PostProps) {
   const finalAudioUrl = post.audioUrl || audioMedia?.url;
   const finalAudioTitle = post.audioTitle || "Son original";
 
+  // REDIRECTION WHATSAPP
   const handleChatClick = () => {
-    if (!user) {
-      router.push(`/login?callbackUrl=/posts/${post.id}`);
+    const phoneNumber = post.user.phoneNumber; // Assure-toi que ce champ existe dans ton UserData
+
+    if (!phoneNumber) {
+      alert("Ce vendeur n'a pas renseigné son numéro WhatsApp.");
       return;
     }
-    window.location.href = `/messages?userId=${post.user.id}&postId=${post.id}`;
+
+    // Nettoyage du numéro (garde uniquement les chiffres)
+    const cleanNumber = phoneNumber.replace(/\D/g, '');
+    
+    // Construction du message automatique
+    const message = `Bonjour ${post.user.displayName}, je suis intéressé par votre produit "${productName || 'cet article'}" vu sur DealCity au prix de ${price || '...'} FCFA.\n\nLien : https://dealcity.app/posts/${post.id}`;
+    
+    const encodedMessage = encodeURIComponent(message);
+    
+    // Ouverture dans un nouvel onglet
+    window.open(`https://wa.me/${cleanNumber}?text=${encodedMessage}`, '_blank');
   };
 
   return (
     <article className="group/post w-full space-y-3 bg-card py-4 md:p-5 rounded-none md:rounded-2xl border-y md:border border-border shadow-none md:shadow-sm">
+      
+      {/* HEADER */}
       <div className="flex justify-between gap-3 px-4 md:px-0">
         <div className="flex flex-wrap gap-3">
           <UserTooltip user={post.user}>
@@ -80,6 +95,7 @@ export default function Post({ post }: PostProps) {
         <PostMoreButton post={post} />
       </div>
 
+      {/* PRODUIT INFOS */}
       <div className="space-y-2 px-4 md:px-1">
         {productName && (
           <h3 className="font-black text-xl uppercase tracking-tighter leading-none flex items-center gap-2">
@@ -101,6 +117,7 @@ export default function Post({ post }: PostProps) {
         </div>
       </div>
 
+      {/* MEDIA PREVIEW */}
       <div className="relative overflow-hidden bg-zinc-900 w-full md:rounded-2xl min-h-[400px]">
         <MediaPreviews 
           attachments={visualAttachments} 
@@ -110,12 +127,17 @@ export default function Post({ post }: PostProps) {
         />
       </div>
 
+      {/* CONTACT WHATSAPP */}
       <div className="px-4 md:px-0">
-        <button onClick={handleChatClick} className={cn("w-full py-3.5 rounded-2xl font-black uppercase text-xs shadow-md transition-all active:scale-[0.98]", user ? "bg-[#6ab344] text-white" : "bg-muted text-muted-foreground")}>
-          {user ? "Contacter le vendeur" : "Connectez-vous pour acheter"}
+        <button 
+          onClick={handleChatClick} 
+          className="w-full py-3.5 rounded-2xl font-black uppercase text-xs shadow-md transition-all active:scale-[0.98] bg-[#25D366] text-white flex items-center justify-center gap-2"
+        >
+          Discuter sur WhatsApp
         </button>
       </div>
 
+      {/* ACTIONS (Likes, Comments, Bookmark) */}
       <div className="flex items-center justify-between px-4 md:px-1 pt-1">
         <div className="flex items-center gap-6">
           <LikeButton postId={post.id} initialState={{ likes: post._count.likes, isLikedByUser: post.likes.some(l => l.userId === user?.id) }} />
@@ -166,7 +188,6 @@ function MediaPreviews({ attachments, userAvatar, audioUrl, audioTitle }: any) {
     }
   }, []);
 
-  // SÉCURITÉ 1 : Couper le son si on change d'onglet ou quitte le site
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.hidden) stopAudio();
@@ -175,7 +196,6 @@ function MediaPreviews({ attachments, userAvatar, audioUrl, audioTitle }: any) {
     return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
   }, [stopAudio]);
 
-  // SÉCURITÉ 2 : Observer si le post est visible à l'écran + NETTOYAGE FINAL
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => {
@@ -192,7 +212,6 @@ function MediaPreviews({ attachments, userAvatar, audioUrl, audioTitle }: any) {
     
     return () => {
       observer.disconnect();
-      // NETTOYAGE ABSOLU : On tue l'instance audio quand le post disparaît du DOM
       if (audioRef.current) {
         audioRef.current.pause();
         audioRef.current.src = "";
@@ -202,7 +221,6 @@ function MediaPreviews({ attachments, userAvatar, audioUrl, audioTitle }: any) {
     };
   }, [playAudio, stopAudio]);
 
-  // GESTION DU CAROUSEL (Image vs Video)
   useEffect(() => {
     if (isVideo) {
       stopAudio();
@@ -227,21 +245,11 @@ function MediaPreviews({ attachments, userAvatar, audioUrl, audioTitle }: any) {
       className="relative group/media cursor-pointer select-none overflow-hidden"
       onClick={() => {
         if (isVideo) return;
-        if (isPlaying) {
-          stopAudio();
-        } else {
-          playAudio();
-        }
+        isPlaying ? stopAudio() : playAudio();
       }}
     >
       {audioUrl && (
-        <audio 
-          ref={audioRef} 
-          src={audioUrl} 
-          loop 
-          className="hidden" 
-          preload="metadata" 
-        />
+        <audio ref={audioRef} src={audioUrl} loop className="hidden" preload="metadata" />
       )}
 
       {attachments.length > 1 && (
@@ -250,6 +258,7 @@ function MediaPreviews({ attachments, userAvatar, audioUrl, audioTitle }: any) {
         </div>
       )}
 
+      {/* Navigation Desktop */}
       {attachments.length > 1 && (
         <div className="absolute inset-y-0 inset-x-0 pointer-events-none z-40 hidden md:block">
            {selectedIndex > 0 && (
@@ -265,6 +274,7 @@ function MediaPreviews({ attachments, userAvatar, audioUrl, audioTitle }: any) {
         </div>
       )}
 
+      {/* Disque TikTok Style */}
       {audioUrl && (
         <div className="absolute bottom-12 right-4 z-40 flex flex-col items-end gap-3 pointer-events-none">
           {isPlaying && (

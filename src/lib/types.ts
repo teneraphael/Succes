@@ -19,6 +19,7 @@ export function getUserDataSelect(loggedInUserId?: string) {
     tiktokUrl: true,
     instagramUrl: true,
     whatsappUrl: true,
+    phoneNumber: true,
     isVerified: true,
     allowNotifications: true,
     createdAt: true,

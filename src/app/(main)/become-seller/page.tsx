@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { 
   Briefcase, Mail, ShoppingBag, Tag, Loader2, ArrowLeft, 
-  Sparkles, MessageCircle, Facebook, Instagram, Music2 
+  Sparkles, MessageCircle, Facebook, Instagram, Music2, Phone
 } from "lucide-react";
 import Link from "next/link";
 import { useSession } from "@/app/(main)/SessionProvider";
@@ -34,6 +34,17 @@ export default function BecomeSellerPage() {
     setLoading(true);
     const formData = new FormData(e.currentTarget);
     const values = Object.fromEntries(formData.entries());
+
+    // Petite validation du numéro
+    const phone = values.phoneNumber as string;
+    if (phone && phone.length < 9) {
+        toast({
+            variant: "destructive",
+            description: "Veuillez entrer un numéro de téléphone valide avec indicatif (ex: 237...)",
+        });
+        setLoading(false);
+        return;
+    }
 
     try {
       const response = await fetch("/api/users/become-seller", {
@@ -135,26 +146,42 @@ export default function BecomeSellerPage() {
                   <hr className="my-6 border-zinc-100 dark:border-zinc-800" />
                   
                   <p className="text-[10px] font-black uppercase text-amber-600 tracking-widest ml-1 italic">
-                      Réseaux & Badge Pionnier
+                      Réseaux & Contact Ventes
                   </p>
 
-                  {/* TIKTOK - DESIGNÉ POUR ÊTRE LE PLUS IMPORTANT */}
+                  {/* TIKTOK */}
                   <div className="relative group/tiktok">
                     <div className="absolute -inset-0.5 rounded-2xl bg-gradient-to-r from-[#ff0050] to-[#00f2ea] opacity-20 group-focus-within/tiktok:opacity-100 blur transition duration-500" />
                     <div className="relative">
                         <Music2 className="absolute left-4 top-1/2 -translate-y-1/2 size-5 text-zinc-900 dark:text-white" />
                         <Input 
                             name="tiktokUrl" 
-                            placeholder="Lien TikTok (Le plus important !)" 
+                            placeholder="Lien TikTok" 
                             className="h-14 pl-12 rounded-2xl border-none bg-zinc-50 dark:bg-zinc-800 focus-visible:ring-2 focus-visible:ring-black dark:focus-visible:ring-white" 
                         />
                     </div>
                   </div>
 
-                  {/* WHATSAPP */}
-                  <div className="relative">
-                    <MessageCircle className="absolute left-4 top-1/2 -translate-y-1/2 size-5 text-green-500" />
-                    <Input name="whatsappUrl" placeholder="Lien WhatsApp (wa.me/...)" className="h-14 pl-12 rounded-2xl border-green-500/20 bg-green-500/5 focus-visible:ring-green-500" />
+                  {/* WHATSAPP SECTION - CORRIGÉE */}
+                  <div className="space-y-3">
+                    <div className="relative">
+                      <Phone className="absolute left-4 top-1/2 -translate-y-1/2 size-5 text-green-600" />
+                      <Input 
+                        name="phoneNumber" 
+                        placeholder="Numéro WhatsApp (ex: 237690000000)" 
+                        required 
+                        className="h-14 pl-12 rounded-2xl border-green-500/20 bg-green-500/5 focus-visible:ring-green-500 font-bold" 
+                      />
+                    </div>
+                    
+                    <div className="relative">
+                      <MessageCircle className="absolute left-4 top-1/2 -translate-y-1/2 size-5 text-zinc-400" />
+                      <Input 
+                        name="whatsappUrl" 
+                        placeholder="Lien de votre groupe WhatsApp (Optionnel)" 
+                        className="h-14 pl-12 rounded-2xl bg-zinc-50/50 dark:bg-zinc-800/50 text-xs" 
+                      />
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">

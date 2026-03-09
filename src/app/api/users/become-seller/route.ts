@@ -15,12 +15,13 @@ export async function POST(req: Request) {
       businessEmail, 
       businessProducts, 
       whatsappUrl, 
-      tiktokUrl,    // ✅ Le plus important
+      phoneNumber,   // ✅ Récupéré depuis le nouveau formulaire
+      tiktokUrl, 
       facebookUrl, 
       instagramUrl 
     } = body;
 
-    // 1. Slugification de l'username
+    // 1. Slugification de l'username (URL propre)
     let newUsername = businessName
       .toLowerCase()
       .trim()
@@ -33,22 +34,20 @@ export async function POST(req: Request) {
       where: { username: newUsername },
     });
 
+    // Si l'username existe déjà, on ajoute un suffixe aléatoire
     if (existingUser && existingUser.id !== user.id) {
       newUsername = `${newUsername}-${Math.floor(1000 + Math.random() * 9000)}`;
     }
 
-    // 2. Formatage automatique du WhatsApp
-    let finalWhatsapp = whatsappUrl;
-    if (whatsappUrl && !whatsappUrl.startsWith('http') && whatsappUrl.length >= 8) {
-      // Nettoie les espaces et ajoute le préfixe wa.me
-      const cleanNum = whatsappUrl.replace(/\s+/g, '');
-      finalWhatsapp = `https://wa.me/${cleanNum}`;
-    }
+    // 2. Nettoyage du numéro de téléphone
+    // On enlève tout ce qui n'est pas un chiffre pour avoir un format pur (ex: 237690...)
+    const cleanPhoneNumber = phoneNumber ? phoneNumber.replace(/\D/g, '') : null;
 
-    // 3. Logique Pionnier (TikTok donne le badge direct !)
+    // 3. Logique Pionnier (Si l'un des liens est rempli, il devient Pionnier)
     const hasSocialLink = 
       (tiktokUrl && tiktokUrl.trim() !== "") ||
       (whatsappUrl && whatsappUrl.trim() !== "") || 
+      (phoneNumber && phoneNumber.trim() !== "") || // Le téléphone compte aussi
       (facebookUrl && facebookUrl.trim() !== "") || 
       (instagramUrl && instagramUrl.trim() !== "");
 
@@ -63,9 +62,11 @@ export async function POST(req: Request) {
         businessDomain,
         businessEmail,
         businessProducts,
+        // Contacts
+        phoneNumber: cleanPhoneNumber, // ✅ TRÈS IMPORTANT : Pour le bouton "Discuter"
+        whatsappUrl: whatsappUrl || null, // ✅ Gardé tel quel pour ton sourcing (lien groupe)
         // Réseaux Sociaux
-        tiktokUrl: tiktokUrl || null,      // ✅ Ajouté
-        whatsappUrl: finalWhatsapp || null, // ✅ Formaté
+        tiktokUrl: tiktokUrl || null,
         facebookUrl: facebookUrl || null,
         instagramUrl: instagramUrl || null,
         // Status
