@@ -12,6 +12,7 @@ import VideoPost from "../VideoPost";
 import Link from "next/link";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { useToast } from "@/components/ui/use-toast"; // Ajout du toast
 import Comments from "../comments/Comments";
 import Linkify from "../Linkify";
 import UserAvatar from "../UserAvatar";
@@ -39,8 +40,9 @@ const extractInfo = (content: string) => {
 };
 
 export default function Post({ post }: PostProps) {
-  const { user } = useSession();
+  const { user: loggedInUser } = useSession(); // Renommé pour clarté
   const router = useRouter();
+  const { toast } = useToast();
   const [isExpanded, setIsExpanded] = useState(false);
   const isDesktop = useMediaQuery("(min-width: 768px)");
 
@@ -53,25 +55,39 @@ export default function Post({ post }: PostProps) {
   const finalAudioUrl = post.audioUrl || audioMedia?.url;
   const finalAudioTitle = post.audioTitle || "Son original";
 
-  // REDIRECTION WHATSAPP
+  // LOGIQUE DE CONTACT WHATSAPP CORRIGÉE
   const handleChatClick = () => {
-    const phoneNumber = post.user.phoneNumber; // Assure-toi que ce champ existe dans ton UserData
-
-    if (!phoneNumber) {
-      alert("Ce vendeur n'a pas renseigné son numéro WhatsApp.");
+    // 1. Vérification de connexion
+    if (!loggedInUser) {
+      toast({
+        description: "Veuillez vous connecter pour contacter le vendeur.",
+      });
+      router.push("/login");
       return;
     }
 
-    // Nettoyage du numéro (garde uniquement les chiffres)
-    const cleanNumber = phoneNumber.replace(/\D/g, '');
-    
-    // Construction du message automatique
-    const message = `Bonjour ${post.user.displayName}, je suis intéressé par votre produit "${productName || 'cet article'}" vu sur DealCity au prix de ${price || '...'} FCFA.\n\nLien : https://dealcity.app/posts/${post.id}`;
-    
-    const encodedMessage = encodeURIComponent(message);
-    
-    // Ouverture dans un nouvel onglet
-    window.open(`https://wa.me/${cleanNumber}?text=${encodedMessage}`, '_blank');
+    const phoneNumber = post.user.phoneNumber;
+    const whatsappUrl = post.user.whatsappUrl;
+
+    // 2. Si le numéro existe (vendeur à jour)
+    if (phoneNumber) {
+      const cleanNumber = phoneNumber.replace(/\D/g, '');
+      const message = `Bonjour ${post.user.displayName}, je suis intéressé par votre produit "${productName || 'cet article'}" vu sur DealCity au prix de ${price || '...'} FCFA.\n\nLien : https://dealcity.app/posts/${post.id}`;
+      window.open(`https://wa.me/${cleanNumber}?text=${encodeURIComponent(message)}`, '_blank');
+      return;
+    }
+
+    // 3. Secours : Si pas de numéro mais lien de groupe (anciens vendeurs/sourcing)
+    if (whatsappUrl && whatsappUrl.includes("chat.whatsapp.com")) {
+      window.open(whatsappUrl, '_blank');
+      return;
+    }
+
+    // 4. Si aucun contact n'est disponible
+    toast({
+      variant: "destructive",
+      description: "Ce vendeur n'a pas encore configuré ses coordonnées WhatsApp.",
+    });
   };
 
   return (
@@ -127,20 +143,20 @@ export default function Post({ post }: PostProps) {
         />
       </div>
 
-      {/* CONTACT WHATSAPP */}
+      {/* BOUTON WHATSAPP SÉCURISÉ */}
       <div className="px-4 md:px-0">
         <button 
           onClick={handleChatClick} 
-          className="w-full py-3.5 rounded-2xl font-black uppercase text-xs shadow-md transition-all active:scale-[0.98] bg-[#25D366] text-white flex items-center justify-center gap-2"
+          className="w-full py-3.5 rounded-2xl font-black uppercase text-xs shadow-md transition-all active:scale-[0.98] bg-[#25D366] text-white flex items-center justify-center gap-2 hover:bg-[#20ba5a]"
         >
           Discuter sur WhatsApp
         </button>
       </div>
 
-      {/* ACTIONS (Likes, Comments, Bookmark) */}
+      {/* ACTIONS */}
       <div className="flex items-center justify-between px-4 md:px-1 pt-1">
         <div className="flex items-center gap-6">
-          <LikeButton postId={post.id} initialState={{ likes: post._count.likes, isLikedByUser: post.likes.some(l => l.userId === user?.id) }} />
+          <LikeButton postId={post.id} initialState={{ likes: post._count.likes, isLikedByUser: post.likes.some(l => l.userId === loggedInUser?.id) }} />
           <div className="flex items-center gap-1.5">
             {isDesktop ? (
               <Sheet>
@@ -155,12 +171,11 @@ export default function Post({ post }: PostProps) {
             )}
           </div>
         </div>
-        <BookmarkButton postId={post.id} initialState={{ isBookmarkedByUser: post.bookmarks.some(b => b.userId === user?.id) }} />
+        <BookmarkButton postId={post.id} initialState={{ isBookmarkedByUser: post.bookmarks.some(b => b.userId === loggedInUser?.id) }} />
       </div>
     </article>
   );
 }
-
 function MediaPreviews({ attachments, userAvatar, audioUrl, audioTitle }: any) {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
