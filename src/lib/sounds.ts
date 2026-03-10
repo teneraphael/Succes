@@ -2,7 +2,7 @@ export const TRENDING_MUSIC = [
   // --- AMAPIANO (15) ---
   { id: "ama1", category: "Amapiano", title: "Mnike", url: "/sounds/mnike.mp3", duration: "1:00" },
   { id: "ama2", category: "Amapiano", title: "Tshwala Bam", url: "/sounds/tshwala.mp3", duration: "0:31" },
-    { id: "trust5", category: "Trust", title: "Minimalist Afro", url: "/sounds/minimal.mp3", duration: "1:00" },
+  { id: "ama16", category: "Amapiano", title: "Minimalist Afro", url: "/sounds/minimal.mp3", duration: "1:00" },
   { id: "ama3", category: "Amapiano", title: "Water (Tyla)", url: "/sounds/water.mp3", duration: "0:17" },
   { id: "ama4", category: "Amapiano", title: "Awukhuzeki", url: "/sounds/awukhuzeki.mp3", duration: "1:00" },
   { id: "ama5", category: "Amapiano", title: "Iplan", url: "/sounds/iplan.mp3", duration: "0:28" },
@@ -17,10 +17,11 @@ export const TRENDING_MUSIC = [
   { id: "mot1", category: "Motivation", title: "Success Mindset", url: "/sounds/success.mp3", duration: "0:17" },
   { id: "mot2", category: "Motivation", title: "Last Last (Instrumental)", url: "/sounds/lastlast_inst.mp3", duration: "1:30" },
   { id: "mot3", category: "Motivation", title: "Victory Lap", url: "/sounds/victory.mp3", duration: "1:00" },
-    { id: "lux1", category: "Lifestyle", title: "Tyla - Water (Chill)", url: "/sounds/water_chill.mp3", duration: "1:05" },
+  { id: "mot4", category: "Motivation", title: "One of the girl", url: "/sounds/Oneofthegirls.mp3", duration: "0:41" },
+  { id: "lux1", category: "Lifestyle", title: "Tyla - Water (Chill)", url: "/sounds/water_chill.mp3", duration: "1:05" },
   { id: "lux3", category: "Lifestyle", title: "City Boys (Luxury Mix)", url: "/sounds/cityboys_luxe.mp3", duration: "0:57" },
   { id: "lux4", category: "Lifestyle", title: "Elegant Flow", url: "/sounds/elegant.mp3", duration: "1:00" },
-{ id: "lux5", category: "Lifestyle", title: "Smooth Afro-Jazz", url: "/sounds/afrojazz.mp3", duration: "0:11" },
+  { id: "lux5", category: "Lifestyle", title: "Smooth Afro-Jazz", url: "/sounds/afrojazz.mp3", duration: "0:11" },
 
   // --- AFROBEATS (15) ---
   { id: "afro1", category: "Afrobeats", title: "City Boys", url: "/sounds/cityboys.mp3", duration: "0:25" },
@@ -63,5 +64,5 @@ export const TRENDING_MUSIC = [
   { id: "loc8", category: "Local", title: "Commando", url: "/sounds/commando.mp3", duration: "0:37" },
   { id: "loc9", category: "Local", title: "Bikutsi Hit", url: "/sounds/bikutsi.mp3", duration: "0:59" },
   { id: "loc10", category: "Local", title: "Logobi 2024", url: "/sounds/logobi.mp3", duration: "0:59" },
-  { id: "trust1", category: "Trust", title: "Professional Afro-Beat", url: "/sounds/biz_afro.mp3", duration: "0:23" },
+  { id: "loc11", category: "Local", title: "Professional Afro-Beat", url: "/sounds/biz_afro.mp3", duration: "0:23" },
 ];
