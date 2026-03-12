@@ -41,6 +41,9 @@ model User {
   passwordHash    String?
   googleId        String?        @unique
   avatarUrl       String?
+  hasDeliveryPass   Boolean   @default(false)
+  passExpiryDate    DateTime?
+  deliveryRequests  DeliveryRequest[]
   bio             String?
   allowNotifications Boolean   @default(true)
   sessions        Session[]
@@ -79,6 +82,18 @@ model User {
   createdAt DateTime @default(now())
 
   @@map("users")
+}
+
+model DeliveryRequest {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id])
+  postId       String
+  post         Post     @relation(fields: [postId], references: [id])
+  status       String   @default("PENDING") // PENDING, PICKED_UP, DELIVERED
+  pickupAddr   String   // Adresse du vendeur
+  deliveryAddr String   // Adresse du client
+  createdAt    DateTime @default(now())
 }
 
 model Transaction {
@@ -175,6 +190,7 @@ model Post {
   attachments         Media[]
   likes               Like[]
   bookmarks           Bookmark[]
+  deliveryRequests    DeliveryRequest[]
   category    String   @default("DIVERS") 
   views       Int      @default(0)
   interactions UserInteraction[]

@@ -46,11 +46,8 @@ export default function PostMoreButton({
 
   if (!currentUser) return null;
 
-  // --- LOGIQUE DE RÉCUPÉRATION DU LIEN ---
-  // On définit une priorité : TikTok > Instagram > WhatsApp
   const socialLink = post.user.tiktokUrl || post.user.instagramUrl || post.user.whatsappUrl;
 
-  // --- LOGIQUE DE DÉTECTION AMÉLIORÉE ---
   const getSocialInfo = (url: string) => {
     const lowerUrl = url.toLowerCase();
     
@@ -84,7 +81,6 @@ export default function PostMoreButton({
 
   const socialInfo = socialLink ? getSocialInfo(socialLink) : null;
 
-  // --- ACTIONS ---
   async function copyLink() {
     const url = `${window.location.origin}/posts/${post.id}`;
     await navigator.clipboard.writeText(url);
@@ -163,7 +159,6 @@ export default function PostMoreButton({
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-64 p-2 shadow-2xl border-border/50 rounded-2xl bg-card">
           
-          {/* LIEN SOCIAL DYNAMIQUE */}
           {socialLink && socialInfo && (
             <>
               <DropdownMenuItem asChild>
@@ -171,10 +166,13 @@ export default function PostMoreButton({
                   href={socialLink.startsWith('http') ? socialLink : `https://${socialLink}`} 
                   target="_blank" 
                   rel="noopener noreferrer"
-                  className={`flex items-center ${socialInfo.color} font-black italic cursor-pointer focus:bg-muted transition-all active:scale-95`}
+                  className={`flex items-center ${socialInfo.color} font-black italic cursor-pointer focus:bg-muted transition-all active:scale-95 px-2 py-1.5`}
                 >
-                  {socialInfo.icon}
-                  {socialInfo.label}
+                  {/* FIX: Un seul enfant (div) sous le <a> */}
+                  <div className="flex items-center w-full">
+                    {socialInfo.icon}
+                    <span>{socialInfo.label}</span>
+                  </div>
                 </a>
               </DropdownMenuItem>
               <DropdownMenuSeparator className="my-2" />
@@ -192,9 +190,12 @@ export default function PostMoreButton({
           </DropdownMenuItem>
 
           <DropdownMenuItem asChild className="cursor-pointer font-medium rounded-lg">
-            <a href={`/posts/${post.id}`} target="_blank" rel="noopener noreferrer">
-              <ExternalLink className="mr-2 size-4 text-muted-foreground" />
-              Mode plein écran
+            <a href={`/posts/${post.id}`} target="_blank" rel="noopener noreferrer" className="flex items-center w-full px-2 py-1.5">
+              {/* FIX: Un seul enfant (div ou les éléments directs si gérés par le style du <a>) */}
+              <div className="flex items-center">
+                <ExternalLink className="mr-2 size-4 text-muted-foreground" />
+                <span>Mode plein écran</span>
+              </div>
             </a>
           </DropdownMenuItem>
 
@@ -207,7 +208,6 @@ export default function PostMoreButton({
 
           <DropdownMenuSeparator className="my-2" />
 
-          {/* ACTIONS DE MODÉRATION / PROPRIÉTAIRE */}
           {post.user.id === currentUser.id ? (
             <DropdownMenuItem
               onClick={() => setShowDeleteDialog(true)}

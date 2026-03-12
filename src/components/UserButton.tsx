@@ -15,8 +15,7 @@ import {
   Languages,
   LayoutDashboard,
   Settings,
-  ShieldCheck, // Ajouté pour l'admin
-  Users // Ajouté pour le répertoire
+  ShieldCheck,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import Link from "next/link";
@@ -57,7 +56,7 @@ export default function UserButton({ className, user: propUser }: UserButtonProp
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button className={cn("flex-none rounded-full transition-transform active:scale-95 outline-none", className)}>
+        <button type="button" className={cn("flex-none rounded-full transition-transform active:scale-95 outline-none", className)}>
           <UserAvatar avatarUrl={user.avatarUrl} size={40} className="border-2 border-primary/10" />
         </button>
       </DropdownMenuTrigger>
@@ -74,49 +73,59 @@ export default function UserButton({ className, user: propUser }: UserButtonProp
         
         <DropdownMenuSeparator className="mx-2" />
         
-        {/* --- SECTION ADMIN (UNIQUEMENT POUR TOI) --- */}
+        {/* --- SECTION ADMIN --- */}
         {isAdmin && (
           <>
-            <Link href="/admin/pioneers">
-              <DropdownMenuItem className="rounded-xl py-3 cursor-pointer bg-blue-600/5 text-blue-600 focus:bg-blue-600/10 focus:text-blue-700">
-                <ShieldCheck className="mr-3 size-5" />
-                <span className="font-black uppercase italic text-xs">Répertoire Pionniers</span>
-              </DropdownMenuItem>
-            </Link>
+            <DropdownMenuItem asChild className="rounded-xl py-3 cursor-pointer bg-blue-600/5 text-blue-600 focus:bg-blue-600/10 focus:text-blue-700">
+              <Link href="/admin/pioneers">
+                <div className="flex items-center w-full">
+                  <ShieldCheck className="mr-3 size-5" />
+                  <span className="font-black uppercase italic text-xs">Répertoire Pionniers</span>
+                </div>
+              </Link>
+            </DropdownMenuItem>
             <DropdownMenuSeparator className="mx-2" />
           </>
         )}
 
         {/* SECTION VENDEUR */}
         {user.isSeller ? (
-          <Link href="/seller/dashboard">
-            <DropdownMenuItem className="rounded-xl py-3 cursor-pointer font-bold text-primary focus:bg-primary/5 focus:text-primary">
-              <LayoutDashboard className="mr-3 size-5" />
-              Tableau de Bord
-            </DropdownMenuItem>
-          </Link>
+          <DropdownMenuItem asChild className="rounded-xl py-3 cursor-pointer font-bold text-primary focus:bg-primary/5 focus:text-primary">
+            <Link href="/seller/dashboard">
+              <div className="flex items-center w-full">
+                <LayoutDashboard className="mr-3 size-5" />
+                <span>Tableau de Bord</span>
+              </div>
+            </Link>
+          </DropdownMenuItem>
         ) : (
-          <Link href="/become-seller">
-            <DropdownMenuItem className="rounded-xl py-3 cursor-pointer">
-              <Store className="mr-3 size-5 text-[#6ab344]" />
-              <span className="font-bold">{t.become_seller}</span>
-            </DropdownMenuItem>
-          </Link>
+          <DropdownMenuItem asChild className="rounded-xl py-3 cursor-pointer">
+            <Link href="/become-seller">
+              <div className="flex items-center w-full">
+                <Store className="mr-3 size-5 text-[#6ab344]" />
+                <span className="font-bold">{t.become_seller}</span>
+              </div>
+            </Link>
+          </DropdownMenuItem>
         )}
 
-        <Link href={`/users/${user.username}`}>
-          <DropdownMenuItem className="rounded-xl py-3 cursor-pointer">
-            <UserIcon className="mr-3 size-5 text-muted-foreground" />
-            <span className="font-medium">{t.profile}</span>
-          </DropdownMenuItem>
-        </Link>
+        <DropdownMenuItem asChild className="rounded-xl py-3 cursor-pointer">
+          <Link href={`/users/${user.username}`}>
+            <div className="flex items-center w-full">
+              <UserIcon className="mr-3 size-5 text-muted-foreground" />
+              <span className="font-medium">{t.profile}</span>
+            </div>
+          </Link>
+        </DropdownMenuItem>
 
-        <Link href="/settings">
-          <DropdownMenuItem className="rounded-xl py-3 cursor-pointer">
-            <Settings className="mr-3 size-5 text-muted-foreground" />
-            <span className="font-medium">Paramètres</span>
-          </DropdownMenuItem>
-        </Link>
+        <DropdownMenuItem asChild className="rounded-xl py-3 cursor-pointer">
+          <Link href="/settings">
+            <div className="flex items-center w-full">
+              <Settings className="mr-3 size-5 text-muted-foreground" />
+              <span className="font-medium">Paramètres</span>
+            </div>
+          </Link>
+        </DropdownMenuItem>
 
         <DropdownMenuSeparator className="mx-2" />
 
@@ -128,11 +137,11 @@ export default function UserButton({ className, user: propUser }: UserButtonProp
           </DropdownMenuSubTrigger>
           <DropdownMenuPortal>
             <DropdownMenuSubContent className="rounded-2xl p-2 shadow-lg border-primary/5">
-              <DropdownMenuItem className="rounded-lg py-2" onClick={() => setLang("fr")}>
+              <DropdownMenuItem className="rounded-lg py-2 cursor-pointer" onClick={() => setLang("fr")}>
                 Français
                 {lang === "fr" && <Check className="ms-auto size-4 text-primary" />}
               </DropdownMenuItem>
-              <DropdownMenuItem className="rounded-lg py-2" onClick={() => setLang("en")}>
+              <DropdownMenuItem className="rounded-lg py-2 cursor-pointer" onClick={() => setLang("en")}>
                 English
                 {lang === "en" && <Check className="ms-auto size-4 text-primary" />}
               </DropdownMenuItem>
@@ -147,15 +156,15 @@ export default function UserButton({ className, user: propUser }: UserButtonProp
           </DropdownMenuSubTrigger>
           <DropdownMenuPortal>
             <DropdownMenuSubContent className="rounded-2xl p-2 shadow-lg border-primary/5">
-              <DropdownMenuItem className="rounded-lg py-2" onClick={() => setTheme("system")}>
+              <DropdownMenuItem className="rounded-lg py-2 cursor-pointer" onClick={() => setTheme("system")}>
                 <Monitor className="mr-3 size-4" /> {t.system}
                 {theme === "system" && <Check className="ms-auto size-4 text-primary" />}
               </DropdownMenuItem>
-              <DropdownMenuItem className="rounded-lg py-2" onClick={() => setTheme("light")}>
+              <DropdownMenuItem className="rounded-lg py-2 cursor-pointer" onClick={() => setTheme("light")}>
                 <Sun className="mr-3 size-4" /> {t.light}
                 {theme === "light" && <Check className="ms-auto size-4 text-primary" />}
               </DropdownMenuItem>
-              <DropdownMenuItem className="rounded-lg py-2" onClick={() => setTheme("dark")}>
+              <DropdownMenuItem className="rounded-lg py-2 cursor-pointer" onClick={() => setTheme("dark")}>
                 <Moon className="mr-3 size-4" /> {t.dark}
                 {theme === "dark" && <Check className="ms-auto size-4 text-primary" />}
               </DropdownMenuItem>

@@ -5,14 +5,14 @@ import { PostData } from "@/lib/types";
 import { cn, formatRelativeDate } from "@/lib/utils";
 import { 
   MessageSquare, ShieldCheck, Music, ShoppingBag,
-  ChevronRight, ChevronLeft
+  ChevronRight, ChevronLeft, Truck 
 } from "lucide-react";
 import Image from "next/image";
 import VideoPost from "../VideoPost";
 import Link from "next/link";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { useToast } from "@/components/ui/use-toast"; // Ajout du toast
+import { useToast } from "@/components/ui/use-toast";
 import Comments from "../comments/Comments";
 import Linkify from "../Linkify";
 import UserAvatar from "../UserAvatar";
@@ -40,7 +40,7 @@ const extractInfo = (content: string) => {
 };
 
 export default function Post({ post }: PostProps) {
-  const { user: loggedInUser } = useSession(); // Renommé pour clarté
+  const { user: loggedInUser } = useSession();
   const router = useRouter();
   const { toast } = useToast();
   const [isExpanded, setIsExpanded] = useState(false);
@@ -55,13 +55,9 @@ export default function Post({ post }: PostProps) {
   const finalAudioUrl = post.audioUrl || audioMedia?.url;
   const finalAudioTitle = post.audioTitle || "Son original";
 
-  // LOGIQUE DE CONTACT WHATSAPP CORRIGÉE
   const handleChatClick = () => {
-    // 1. Vérification de connexion
     if (!loggedInUser) {
-      toast({
-        description: "Veuillez vous connecter pour contacter le vendeur.",
-      });
+      toast({ description: "Veuillez vous connecter pour contacter le vendeur." });
       router.push("/login");
       return;
     }
@@ -69,7 +65,6 @@ export default function Post({ post }: PostProps) {
     const phoneNumber = post.user.phoneNumber;
     const whatsappUrl = post.user.whatsappUrl;
 
-    // 2. Si le numéro existe (vendeur à jour)
     if (phoneNumber) {
       const cleanNumber = phoneNumber.replace(/\D/g, '');
       const message = `Bonjour ${post.user.displayName}, je suis intéressé par votre produit "${productName || 'cet article'}" vu sur DealCity au prix de ${price || '...'} FCFA.\n\nLien : https://dealcity.app/posts/${post.id}`;
@@ -77,13 +72,11 @@ export default function Post({ post }: PostProps) {
       return;
     }
 
-    // 3. Secours : Si pas de numéro mais lien de groupe (anciens vendeurs/sourcing)
     if (whatsappUrl && whatsappUrl.includes("chat.whatsapp.com")) {
       window.open(whatsappUrl, '_blank');
       return;
     }
 
-    // 4. Si aucun contact n'est disponible
     toast({
       variant: "destructive",
       description: "Ce vendeur n'a pas encore configuré ses coordonnées WhatsApp.",
@@ -143,30 +136,54 @@ export default function Post({ post }: PostProps) {
         />
       </div>
 
-      {/* BOUTON WHATSAPP SÉCURISÉ */}
-      <div className="px-4 md:px-0">
+      {/* BOUTONS D'ACTION WHATSAPP */}
+      <div className="px-4 md:px-0 space-y-2">
         <button 
           onClick={handleChatClick} 
           className="w-full py-3.5 rounded-2xl font-black uppercase text-xs shadow-md transition-all active:scale-[0.98] bg-[#25D366] text-white flex items-center justify-center gap-2 hover:bg-[#20ba5a]"
         >
           Discuter sur WhatsApp
         </button>
+
+        {loggedInUser?.hasDeliveryPass && (
+          <button 
+            onClick={() => router.push(`/delivery-request?postId=${post.id}`)}
+            className="w-full py-3 rounded-2xl border-2 border-[#4a90e2] text-[#4a90e2] font-black uppercase text-[10px] flex items-center justify-center gap-2 hover:bg-blue-50 transition-colors shadow-sm"
+          >
+            <Truck className="size-4" /> Demander la livraison gratuite (Pass)
+          </button>
+        )}
       </div>
 
-      {/* ACTIONS */}
+      {/* ACTIONS (LIKE / COMMENT / BOOKMARK) */}
       <div className="flex items-center justify-between px-4 md:px-1 pt-1">
         <div className="flex items-center gap-6">
           <LikeButton postId={post.id} initialState={{ likes: post._count.likes, isLikedByUser: post.likes.some(l => l.userId === loggedInUser?.id) }} />
+          
           <div className="flex items-center gap-1.5">
             {isDesktop ? (
               <Sheet>
-                <SheetTrigger className="flex items-center gap-1.5 hover:opacity-70"><MessageSquare className="size-5 text-muted-foreground" /><span className="text-sm font-bold text-muted-foreground">{post._count.comments}</span></SheetTrigger>
-                <SheetContent side="right" className="p-0 sm:max-w-[450px]"><Comments post={post} /></SheetContent>
+                <SheetTrigger asChild>
+                  <button type="button" className="flex items-center gap-1.5 outline-none">
+                    <MessageSquare className="size-5 text-muted-foreground" />
+                    <span className="text-sm font-bold text-muted-foreground">{post._count.comments}</span>
+                  </button>
+                </SheetTrigger>
+                <SheetContent side="right" className="p-0 sm:max-w-[450px]">
+                  <Comments post={post} />
+                </SheetContent>
               </Sheet>
             ) : (
               <Drawer>
-                <DrawerTrigger className="flex items-center gap-1.5"><MessageSquare className="size-5 text-muted-foreground" /><span className="text-sm font-bold text-muted-foreground">{post._count.comments}</span></DrawerTrigger>
-                <DrawerContent className="max-h-[85vh]"><Comments post={post} /></DrawerContent>
+                <DrawerTrigger asChild>
+                  <button type="button" className="flex items-center gap-1.5 outline-none">
+                    <MessageSquare className="size-5 text-muted-foreground" />
+                    <span className="text-sm font-bold text-muted-foreground">{post._count.comments}</span>
+                  </button>
+                </DrawerTrigger>
+                <DrawerContent className="max-h-[85vh]">
+                  <Comments post={post} />
+                </DrawerContent>
               </Drawer>
             )}
           </div>
@@ -176,6 +193,9 @@ export default function Post({ post }: PostProps) {
     </article>
   );
 }
+
+// --- COMPOSANT MEDIA PREVIEWS ---
+
 function MediaPreviews({ attachments, userAvatar, audioUrl, audioTitle }: any) {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -230,8 +250,6 @@ function MediaPreviews({ attachments, userAvatar, audioUrl, audioTitle }: any) {
       if (audioRef.current) {
         audioRef.current.pause();
         audioRef.current.src = "";
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-        audioRef.current.load();
       }
     };
   }, [playAudio, stopAudio]);
@@ -273,23 +291,21 @@ function MediaPreviews({ attachments, userAvatar, audioUrl, audioTitle }: any) {
         </div>
       )}
 
-      {/* Navigation Desktop */}
       {attachments.length > 1 && (
         <div className="absolute inset-y-0 inset-x-0 pointer-events-none z-40 hidden md:block">
            {selectedIndex > 0 && (
-            <button onClick={(e) => { e.stopPropagation(); goPrev(); }} className="absolute left-3 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/50 text-white opacity-0 group-hover/media:opacity-100 transition-opacity pointer-events-auto">
+            <button type="button" onClick={(e) => { e.stopPropagation(); goPrev(); }} className="absolute left-3 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/50 text-white opacity-0 group-hover/media:opacity-100 transition-opacity pointer-events-auto">
               <ChevronLeft size={24} />
             </button>
           )}
           {selectedIndex < attachments.length - 1 && (
-            <button onClick={(e) => { e.stopPropagation(); goNext(); }} className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/50 text-white opacity-0 group-hover/media:opacity-100 transition-opacity pointer-events-auto">
+            <button type="button" onClick={(e) => { e.stopPropagation(); goNext(); }} className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/50 text-white opacity-0 group-hover/media:opacity-100 transition-opacity pointer-events-auto">
               <ChevronRight size={24} />
             </button>
           )}
         </div>
       )}
 
-      {/* Disque TikTok Style */}
       {audioUrl && (
         <div className="absolute bottom-12 right-4 z-40 flex flex-col items-end gap-3 pointer-events-none">
           {isPlaying && (

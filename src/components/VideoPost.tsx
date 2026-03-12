@@ -10,35 +10,70 @@ interface VideoPostProps {
   className?: string;
   style?: React.CSSProperties;
   setIsGlobalPlaying?: (playing: boolean) => void;
+  muted?: boolean; 
 }
 
-const VideoPost = ({ src, className, style, setIsGlobalPlaying }: VideoPostProps) => {
+const MUTE_EVENT = "video-global-mute-change";
+
+const VideoPost = ({ src, className, style, setIsGlobalPlaying, muted: forcedMuted }: VideoPostProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [isMuted, setIsMuted] = useState(true);
+  
+  const [isMuted, setIsMuted] = useState(forcedMuted !== undefined ? false : true);
   const [isLoading, setIsLoading] = useState(true);
   const [isPaused, setIsPaused] = useState(false);
 
-  // Gère la lecture auto quand le post est au milieu de l'écran
+  // 1. GESTION DE LA VISIBILITÉ DE L'ONGLET (ARRÊT QUAND ON QUITTE)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden && videoRef.current) {
+        videoRef.current.pause();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    
+    // Synchronisation du Mute global
+    const handleGlobalMuteChange = (e: any) => {
+      setIsMuted(e.detail.muted);
+    };
+    window.addEventListener(MUTE_EVENT, handleGlobalMuteChange);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener(MUTE_EVENT, handleGlobalMuteChange);
+      // Sécurité : on met en pause si le composant est démonté
+      if (videoRef.current) {
+        videoRef.current.pause();
+        videoRef.current.src = "";
+        videoRef.current.load();
+      }
+    };
+  }, []);
+
+  // Lecture auto quand visible
   useAutoplayOnVisible(videoRef, 0.5); 
 
+  // Volume et Mixage
   useEffect(() => {
     const video = videoRef.current;
     if (video) {
-      // Force le rendu muet pour satisfaire les politiques de sécurité navigateurs
-      video.muted = isMuted;
-      video.defaultMuted = true;
-      
-      // Si on débloque le son, on informe le composant parent (Post)
-      if (!isMuted && !video.paused && setIsGlobalPlaying) {
-        setIsGlobalPlaying(true);
+      if (forcedMuted) {
+        video.muted = false; 
+        video.volume = 0.25; 
+      } else {
+        video.muted = isMuted;
+        video.volume = 1.0;
       }
     }
-  }, [isMuted, setIsGlobalPlaying]);
+  }, [forcedMuted, isMuted]);
 
   const toggleMute = (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
-    setIsMuted(prev => !prev);
+    const newMutedState = !isMuted;
+    setIsMuted(newMutedState);
+    const event = new CustomEvent(MUTE_EVENT, { detail: { muted: newMutedState } });
+    window.dispatchEvent(event);
   };
 
   const handleVideoClick = (e: React.MouseEvent) => {
@@ -61,10 +96,9 @@ const VideoPost = ({ src, className, style, setIsGlobalPlaying }: VideoPostProps
         className="w-full h-full object-cover block cursor-pointer"
         style={style}
         loop 
-        muted={true} 
+        muted={isMuted && !forcedMuted} 
         playsInline 
         onClick={handleVideoClick}
-        // CHANGEMENT CLÉ : metadata au lieu de auto pour éviter AbortError
         preload="metadata" 
         crossOrigin="anonymous"
         onWaiting={() => setIsLoading(true)}
@@ -72,12 +106,11 @@ const VideoPost = ({ src, className, style, setIsGlobalPlaying }: VideoPostProps
         onPlaying={() => {
           setIsLoading(false);
           setIsPaused(false);
-          // Si la vidéo joue avec du son, on coupe l'audio de fond du Post
-          if (!isMuted && setIsGlobalPlaying) setIsGlobalPlaying(true);
+          if (setIsGlobalPlaying) setIsGlobalPlaying(true);
         }}
         onPause={() => {
           setIsPaused(true);
-          if (!isMuted && setIsGlobalPlaying) setIsGlobalPlaying(false);
+          if (setIsGlobalPlaying) setIsGlobalPlaying(false);
         }}
       >
         <source src={src} type="video/mp4" />
@@ -93,21 +126,23 @@ const VideoPost = ({ src, className, style, setIsGlobalPlaying }: VideoPostProps
         </div>
       )}
 
-      {/* Overlay Pause (apparaît brièvement ou si en pause) */}
+      {/* Overlay Pause */}
       {isPaused && !isLoading && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/10 pointer-events-none z-10">
           <Play className="size-12 text-white/50 fill-current" />
         </div>
       )}
 
-      {/* Bouton Mute - Positionné en haut pour éviter les conflits avec le texte en bas */}
-      <button
-        onClick={toggleMute}
-        type="button"
-        className="absolute top-4 right-4 z-50 rounded-full bg-black/60 p-2 text-white backdrop-blur-md transition-all hover:bg-black/80 border border-white/10 shadow-lg active:scale-90"
-      >
-        {isMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
-      </button>
+      {/* Bouton Mute */}
+      {!forcedMuted && (
+        <button
+          onClick={toggleMute}
+          type="button"
+          className="absolute top-4 right-4 z-50 rounded-full bg-black/60 p-2 text-white backdrop-blur-md transition-all hover:bg-black/80 border border-white/10 shadow-lg active:scale-90"
+        >
+          {isMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
+        </button>
+      )}
 
       <div className="absolute bottom-4 left-4 z-20 rounded-md bg-black/40 px-2 py-1 text-[10px] font-bold text-white/80 backdrop-blur-sm pointer-events-none border border-white/5 uppercase tracking-wider">
         Video
