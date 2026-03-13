@@ -8,32 +8,26 @@ export async function GET() {
     const codeVerifier = generateCodeVerifier();
     const cookieStore = await cookies();
 
-    const url = await google.createAuthorizationURL(state, codeVerifier, [
-      "profile",
-      "email",
-    ]);
+    const url = await google.createAuthorizationURL(state, codeVerifier, ["profile", "email"]);
 
+    // On détecte l'environnement
     const isProd = process.env.NODE_ENV === "production";
 
-    // CONFIGURATION DES COOKIES
-    // On définit explicitement les options pour éviter tout rejet du navigateur
+    // Options "Blindées" : Lax est essentiel pour les redirections cross-domain
     const cookieOptions = {
       path: "/",
       httpOnly: true,
-      secure: isProd, // TRÈS IMPORTANT : false en localhost, true sur dealcity.app (HTTPS)
-      maxAge: 60 * 10, // 10 minutes
+      secure: isProd, // Sera false en local (autorise le HTTP), true en prod (exige le HTTPS)
+      maxAge: 60 * 10,
       sameSite: "lax" as const,
     };
 
-    // ÉCRITURE DES COOKIES
     cookieStore.set("state", state, cookieOptions);
     cookieStore.set("code_verifier", codeVerifier, cookieOptions);
 
-    console.log("✅ Cookies 'state' et 'code_verifier' définis avec succès");
-
     return Response.redirect(url);
   } catch (error) {
-    console.error("❌ Erreur dans la route de login Google:", error);
+    console.error("Erreur Login:", error);
     return new Response("Internal Server Error", { status: 500 });
   }
 }
