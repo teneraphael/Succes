@@ -7,14 +7,16 @@ import prisma from "./lib/prisma";
 
 const adapter = new PrismaAdapter(prisma.session, prisma.user);
 
-// Détection de la production
+// Détection propre de l'environnement
 const isProd = process.env.NODE_ENV === "production";
 
 export const lucia = new Lucia(adapter, {
   sessionCookie: {
     expires: false,
     attributes: {
-     secure: true, // Toujours true en prod sur dealcity.app
+      // ✅ En prod (HTTPS), secure doit être true. En local (HTTP), false.
+      secure: isProd,
+      // ✅ Lax est indispensable pour que le cookie de session soit transmis après la redirection Google
       sameSite: "lax",
     },
   },
@@ -50,8 +52,8 @@ interface DatabaseUserAttributes {
   isVerified: boolean;
 }
 
-// ✅ Sécurité : Si NEXT_PUBLIC_BASE_URL est mal lu, on force le domaine
-const baseUrl = process.env.NEXT_PUBLIC_BASE_URL?.replace(/\/$/, "") || "https://dealcity.app";
+// ✅ On nettoie l'URL de base pour éviter les erreurs de redirection (trailing slashes)
+const baseUrl = process.env.NEXT_PUBLIC_BASE_URL?.replace(/\/$/, "") || (isProd ? "https://dealcity.app" : "http://localhost:3000");
 
 export const google = new Google(
   process.env.GOOGLE_CLIENT_ID!,
@@ -71,16 +73,15 @@ export const validateRequest = cache(
     const result = await lucia.validateSession(sessionId);
 
     try {
-      if (result.session) {
-        if (result.session.fresh) {
-          const sessionCookie = lucia.createSessionCookie(result.session.id);
-          cookieStore.set(
-            sessionCookie.name,
-            sessionCookie.value,
-            sessionCookie.attributes
-          );
-        }
-      } else {
+      if (result.session && result.session.fresh) {
+        const sessionCookie = lucia.createSessionCookie(result.session.id);
+        cookieStore.set(
+          sessionCookie.name,
+          sessionCookie.value,
+          sessionCookie.attributes
+        );
+      }
+      if (!result.session) {
         const sessionCookie = lucia.createBlankSessionCookie();
         cookieStore.set(
           sessionCookie.name,
@@ -89,7 +90,8 @@ export const validateRequest = cache(
         );
       }
     } catch (error) {
-      console.error("Error setting cookies:", error);
+      // Les erreurs ici sont souvent dues à Next.js qui empêche de modifier les cookies pendant le rendu des composants
+      console.error("Critical: Error updating session cookies:", error);
     }
 
     return result;

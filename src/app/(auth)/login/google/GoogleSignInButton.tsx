@@ -4,12 +4,13 @@ export default function GoogleSignInButton() {
   return (
     <Button
       variant="outline"
-      className="bg-white text-black hover:bg-gray-100 hover:text-black"
+      className="bg-white text-black hover:bg-gray-100 hover:text-black w-full"
       asChild
     >
-      <a href="/login/google" className="flex w-full items-center gap-2">
+      {/* ✅ Correction du chemin : on pointe vers l'API */}
+      <a href="/api/auth/login/google" className="flex items-center justify-center gap-2">
         <GoogleIcon />
-        Sign in with Google
+        <span>Continuer avec Google</span>
       </a>
     </Button>
   );

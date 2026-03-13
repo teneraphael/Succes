@@ -7,21 +7,30 @@ export async function GET() {
   const state = generateState();
   const codeVerifier = generateCodeVerifier();
   
-  const url = await google.createAuthorizationURL(state, codeVerifier, ["profile", "email"]);
+  // ✅ Détecte si on est sur dealcity.app (production) ou localhost
+  const isProd = process.env.NODE_ENV === "production";
+
+  // Génération de l'URL Google
+  const url = await google.createAuthorizationURL(state, codeVerifier, [
+    "profile",
+    "email",
+  ]);
 
   const cookieStore = await cookies();
 
-  // On définit les cookies de manière à ce qu'ils soient lisibles au retour
+  // ✅ Configuration robuste des cookies
   const cookieOptions = {
     path: "/",
-    secure: true, // Obligatoire sur dealcity.app
     httpOnly: true,
-    maxAge: 60 * 10,
-    sameSite: "lax" as const, // INDISPENSABLE pour OAuth
+    maxAge: 60 * 10, // 10 minutes
+    sameSite: "lax" as const, // Nécessaire pour que Google puisse renvoyer vers ton site
+    secure: isProd, // true en HTTPS (prod), false en HTTP (local)
   };
 
+  // Enregistrement des cookies de validation
   cookieStore.set("state", state, cookieOptions);
   cookieStore.set("code_verifier", codeVerifier, cookieOptions);
 
+  // Redirection vers Google
   return Response.redirect(url);
 }
