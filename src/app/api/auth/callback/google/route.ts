@@ -16,26 +16,24 @@ export async function GET(req: NextRequest) {
   const storedState = cookieStore.get("state")?.value;
   const storedCodeVerifier = cookieStore.get("code_verifier")?.value;
 
-  // 1. VALIDATION DES PARAMÈTRES ET DU STATE
-  if (
-    !code ||
-    !state ||
-    !storedState ||
-    !storedCodeVerifier ||
-    state !== storedState
-  ) {
-    console.error("DEBUG: State mismatch ou cookies manquants.");
-    return new Response("Validation failed: State mismatch or missing cookies.", { status: 400 });
+  // 1. LOGS DE SÉCURITÉ (Visibles dans ton terminal serveur)
+  console.log("--- DEBUG AUTH ---");
+  console.log("State attendu (cookie):", storedState);
+  console.log("State reçu (URL):", state);
+
+  // 2. VALIDATION STRICTE
+  if (!code || !state || !storedState || !storedCodeVerifier || state !== storedState) {
+    return new Response("Validation failed: State mismatch or missing cookies. Assurez-vous d'être sur le bon domaine.", { status: 400 });
   }
 
   try {
-    // 2. ÉCHANGE DU CODE CONTRE LES TOKENS
+    // 3. ÉCHANGE DU CODE CONTRE LES TOKENS
     const tokens = await google.validateAuthorizationCode(
       code,
       storedCodeVerifier,
     );
 
-    // 3. RÉCUPÉRATION DES INFOS UTILISATEUR DEPUIS GOOGLE
+    // 4. RÉCUPÉRATION DES INFOS UTILISATEUR DEPUIS GOOGLE
     const googleUser = await kyInstance
       .get("https://www.googleapis.com/oauth2/v1/userinfo", {
         headers: {
@@ -44,7 +42,7 @@ export async function GET(req: NextRequest) {
       })
       .json<{ id: string; name: string; picture?: string }>();
 
-    // 4. LOGIQUE UTILISATEUR (EXISTANT OU NOUVEAU)
+    // 5. LOGIQUE UTILISATEUR (EXISTANT OU NOUVEAU)
     let userId: string;
 
     const existingUser = await prisma.user.findUnique({
@@ -71,7 +69,7 @@ export async function GET(req: NextRequest) {
           },
         });
         
-        // Synchronisation avec Stream Chat (optionnel)
+        // Synchronisation avec Stream Chat (non-bloquant)
         try {
           await streamServerClient.upsertUser({
             id: userId,
@@ -79,26 +77,28 @@ export async function GET(req: NextRequest) {
             name: googleUser.name,
           });
         } catch (streamError) {
-          console.error("Stream sync error (non-blocking):", streamError);
+          console.error("Stream sync error:", streamError);
         }
       });
     }
 
-    // 5. CRÉATION DE LA SESSION LUCIA
+    // 6. CRÉATION DE LA SESSION LUCIA
     const session = await lucia.createSession(userId, {});
     const sessionCookie = lucia.createSessionCookie(session.id);
     
+    // On définit le cookie de session
     cookieStore.set(
       sessionCookie.name,
       sessionCookie.value,
       sessionCookie.attributes,
     );
 
-    // Suppression des cookies temporaires OAuth
+    // 7. NETTOYAGE DES COOKIES TEMPORAIRES
+    // On utilise les mêmes options (path: "/") pour être sûr qu'ils soient supprimés
     cookieStore.delete("state");
     cookieStore.delete("code_verifier");
 
-    console.log(`✅ Connexion réussie pour l'utilisateur : ${userId}`);
+    console.log(`✅ Connexion réussie : ${userId}`);
 
     // REDIRECTION FINALE
     return new Response(null, {
@@ -109,7 +109,7 @@ export async function GET(req: NextRequest) {
     });
 
   } catch (error) {
-    console.error("Erreur critique lors du callback Google:", error);
+    console.error("Erreur critique Google Callback:", error);
     
     if (error instanceof OAuth2RequestError) {
       return new Response("Invalid authorization code or domain mismatch.", { status: 400 });
