@@ -16,8 +16,10 @@ export const lucia = new Lucia(adapter, {
     attributes: {
       // ✅ En prod (HTTPS), secure doit être true. En local (HTTP), false.
       secure: isProd,
-      // ✅ Lax est indispensable pour que le cookie de session soit transmis après la redirection Google
+      // ✅ Lax est indispensable pour que le cookie soit transmis après la redirection
       sameSite: "lax",
+      // On ajoute le domaine pour la prod pour éviter les conflits de sous-domaines
+      domain: isProd ? ".dealcity.app" : undefined,
     },
   },
   getUserAttributes(databaseUserAttributes) {
@@ -52,13 +54,19 @@ interface DatabaseUserAttributes {
   isVerified: boolean;
 }
 
-// ✅ On nettoie l'URL de base pour éviter les erreurs de redirection (trailing slashes)
-const baseUrl = process.env.NEXT_PUBLIC_BASE_URL?.replace(/\/$/, "") || (isProd ? "https://dealcity.app" : "http://localhost:3000");
+// ✅ LOGIQUE DE REDIRECTION CORRIGÉE
+// On donne la priorité absolue à l'URL actuelle. 
+// Si tu es sur localhost, il DOIT utiliser localhost.
+const getBaseUrl = () => {
+  if (isProd) return "https://dealcity.app";
+  // En local, on utilise l'URL définie ou le défaut localhost
+  return process.env.NEXT_PUBLIC_BASE_URL?.replace(/\/$/, "") || "http://localhost:3000";
+};
 
 export const google = new Google(
   process.env.GOOGLE_CLIENT_ID!,
   process.env.GOOGLE_CLIENT_SECRET!,
-  `${baseUrl}/api/auth/callback/google`
+  `${getBaseUrl()}/api/auth/callback/google`
 );
 
 export const validateRequest = cache(
@@ -90,7 +98,6 @@ export const validateRequest = cache(
         );
       }
     } catch (error) {
-      // Les erreurs ici sont souvent dues à Next.js qui empêche de modifier les cookies pendant le rendu des composants
       console.error("Critical: Error updating session cookies:", error);
     }
 

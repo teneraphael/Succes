@@ -3,39 +3,27 @@ import { generateCodeVerifier, generateState } from "arctic";
 import { cookies } from "next/headers";
 
 export async function GET() {
-  try {
-    const state = generateState();
-    const codeVerifier = generateCodeVerifier();
+  const state = generateState();
+  const codeVerifier = generateCodeVerifier();
+  const cookieStore = await cookies();
+  
+  const isProd = process.env.NODE_ENV === "production";
 
-    const url = await google.createAuthorizationURL(
-      state,
-      codeVerifier,
-      ["profile", "email"]
-    );
+  // CRUCIAL : On s'assure que Google nous renvoie au même endroit que là où on est
+  const url = await google.createAuthorizationURL(state, codeVerifier, ["profile", "email"]);
 
-    const cookieStore = cookies();
-    const isProd = process.env.NODE_ENV === "production";
+  const options = {
+    path: "/",
+    httpOnly: true,
+    secure: isProd,
+    sameSite: "lax" as const,
+    maxAge: 60 * 10,
+    // On ne force le domaine QUE en prod. En local, on laisse par défaut.
+    domain: isProd ? ".dealcity.app" : undefined,
+  };
 
-    (await cookieStore).set("state", state, {
-      path: "/",
-      httpOnly: true,
-      maxAge: 600,
-      sameSite: "lax",
-      secure: isProd
-    });
+  cookieStore.set("state", state, options);
+  cookieStore.set("code_verifier", codeVerifier, options);
 
-    (await cookieStore).set("code_verifier", codeVerifier, {
-      path: "/",
-      httpOnly: true,
-      maxAge: 600,
-      sameSite: "lax",
-      secure: isProd
-    });
-
-    return Response.redirect(url);
-
-  } catch (error) {
-    console.error("Erreur Login:", error);
-    return new Response(null, { status: 500 });
-  }
+  return Response.redirect(url);
 }

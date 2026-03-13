@@ -7,7 +7,6 @@ const nextConfig = {
   },
   serverExternalPackages: ["@node-rs/argon2"],
   images: {
-    // Suppression de 'domains' car il entre en conflit avec remotePatterns
     remotePatterns: [
       {
         protocol: "https",
@@ -16,6 +15,11 @@ const nextConfig = {
       {
         protocol: "https",
         hostname: "un9zgttebh.ufs.sh",
+      },
+      // ✅ AJOUT : Autorise les photos de profil Google
+      {
+        protocol: "https",
+        hostname: "lh3.googleusercontent.com",
       },
     ],
   },
