@@ -9,14 +9,21 @@ import { cookies } from "next/headers";
 import { NextRequest } from "next/server";
 
 export async function GET(req: NextRequest) {
-  const code = req.nextUrl.searchParams.get("code");
-  const state = req.nextUrl.searchParams.get("state");
+  const url = new URL(req.url);
+  const code = url.searchParams.get("code");
+  const state = url.searchParams.get("state");
 
-  const cookieStore = await cookies();
-  const storedState = cookieStore.get("state")?.value;
-  const storedCodeVerifier = cookieStore.get("code_verifier")?.value;
+  // Utilisation de await pour Next.js 15
+  const cookieStore = cookies();
+  const storedState = (await cookieStore).get("state")?.value;
+  const storedCodeVerifier = (await cookieStore).get("code_verifier")?.value;
 
-  // Validation des cookies de sécurité
+  // DEBUG LOGS (Regarde ton terminal après avoir choisi ton compte Google)
+  console.log("--- DEBUG CALLBACK ---");
+  console.log("State URL:", state);
+  console.log("State Cookie:", storedState);
+  console.log("Verifier Cookie:", !!storedCodeVerifier);
+
   if (!code || !state || !storedState || !storedCodeVerifier || state !== storedState) {
     return new Response("Validation failed: State mismatch or missing cookies.", { status: 400 });
   }
@@ -65,15 +72,24 @@ export async function GET(req: NextRequest) {
     const session = await lucia.createSession(userId, {});
     const sessionCookie = lucia.createSessionCookie(session.id);
     
-    cookieStore.set(sessionCookie.name, sessionCookie.value, sessionCookie.attributes);
+    // On applique le cookie de session
+    (await
+      // On applique le cookie de session
+      cookieStore).set(sessionCookie.name, sessionCookie.value, sessionCookie.attributes);
 
-    // NETTOYAGE
-    cookieStore.delete("state");
-    cookieStore.delete("code_verifier");
+    // On nettoie les cookies OAuth
+    (await
+      // On nettoie les cookies OAuth
+      cookieStore).delete("state");
+    (await cookieStore).delete("code_verifier");
 
-    return Response.redirect(new URL("/", req.url));
+    return new Response(null, {
+      status: 302,
+      headers: { Location: "/" },
+    });
 
   } catch (error) {
+    console.error("Erreur OAuth:", error);
     if (error instanceof OAuth2RequestError) {
       return new Response("Invalid code or domain mismatch.", { status: 400 });
     }

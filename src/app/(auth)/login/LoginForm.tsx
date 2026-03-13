@@ -120,7 +120,7 @@ export default function LoginForm() {
 
         {/* --- BOUTON GOOGLE --- */}
         <Link
-          href="/login/google"
+          href="api/auth/login/google"
           className="flex w-full h-[58px] sm:h-[65px] items-center justify-center gap-3 rounded-[1.2rem] sm:rounded-[1.5rem] border-2 border-muted/30 bg-background hover:bg-muted/20 transition-all active:scale-[0.97] group"
         >
           <svg className="size-5 sm:size-6" viewBox="0 0 24 24">
