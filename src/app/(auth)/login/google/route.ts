@@ -5,14 +5,12 @@ import { cookies } from "next/headers";
 export async function GET() {
   const state = generateState();
   const codeVerifier = generateCodeVerifier();
+  const isProduction = process.env.NODE_ENV === "production";
 
- const url = await google.createAuthorizationURL(state, codeVerifier, {
-  scopes: ["profile", "email"] 
-});
-
-  (await cookies()).set("state", state, {
+const url = await google.createAuthorizationURL(state, codeVerifier, ["profile", "email"]);
+ (await cookies()).set("state", state, {
     path: "/",
-    secure: process.env.NODE_ENV === "production",
+    secure: isProduction, // true en HTTPS
     httpOnly: true,
     maxAge: 60 * 10,
     sameSite: "lax",
@@ -20,11 +18,10 @@ export async function GET() {
 
   (await cookies()).set("code_verifier", codeVerifier, {
     path: "/",
-    secure: process.env.NODE_ENV === "production",
+    secure: isProduction, // true en HTTPS
     httpOnly: true,
     maxAge: 60 * 10,
     sameSite: "lax",
   });
-
   return Response.redirect(url);
 }

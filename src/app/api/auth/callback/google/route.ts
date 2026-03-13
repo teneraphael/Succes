@@ -15,6 +15,9 @@ export async function GET(req: NextRequest) {
   const storedState = (await cookies()).get("state")?.value;
   const storedCodeVerifier = (await cookies()).get("code_verifier")?.value;
 
+  console.log("COOKIE STATE:", storedState);
+  console.log("URL STATE:", state);
+
   if (
     !code ||
     !state ||
