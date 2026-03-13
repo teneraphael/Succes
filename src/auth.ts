@@ -14,9 +14,7 @@ export const lucia = new Lucia(adapter, {
   sessionCookie: {
     expires: false,
     attributes: {
-      // ✅ "secure: true" est indispensable sur dealcity.app (HTTPS)
-      secure: isProd,
-      // ✅ "lax" permet de conserver le cookie lors de la redirection depuis Google
+     secure: true, // Toujours true en prod sur dealcity.app
       sameSite: "lax",
     },
   },
