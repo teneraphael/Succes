@@ -9,25 +9,23 @@ import { FollowerInfo, getUserDataSelect, UserData } from "@/lib/types";
 import { formatNumber } from "@/lib/utils";
 import { formatDate } from "date-fns";
 import { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { cache } from "react";
 import EditProfileButton from "./EditProfileButton";
 import UserPosts from "./UserPosts";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import BookmarksFeed from "@/app/(main)/bookmarks/Bookmarks"; 
-import OrderConfirmationList from "./OrderConfirmationList"; // Import ajouté
+import OrderConfirmationList from "./OrderConfirmationList";
 
 interface PageProps {
   params: { username: string };
 }
 
-// --- INTERFACE ---
-interface UserProfileProps {
-  user: UserData;
-  loggedInUserId: string;
-}
-
+// --- RECUPERATION DE L'UTILISATEUR ---
 const getUser = cache(async (username: string, loggedInUserId: string) => {
+  // Si l'utilisateur tape "/users/me", on le redirige vers son vrai pseudo
+  // Note: Cette logique est gérée ici mais idéalement via un fichier /users/me/page.tsx
+  
   const user = await prisma.user.findFirst({
     where: {
       username: {
@@ -43,26 +41,34 @@ const getUser = cache(async (username: string, loggedInUserId: string) => {
   return user;
 });
 
+// --- METADATA ---
 export async function generateMetadata({
   params: { username },
 }: PageProps): Promise<Metadata> {
   const { user: loggedInUser } = await validateRequest();
   if (!loggedInUser) return {};
-  const user = await getUser(username, loggedInUser.id);
-  return {
-    title: `${user.displayName} (@${user.username})`,
-  };
+  
+  try {
+    const user = await getUser(username, loggedInUser.id);
+    return {
+      title: `${user.displayName} (@${user.username})`,
+    };
+  } catch (error) {
+    return { title: "Utilisateur non trouvé" };
+  }
 }
 
+// --- PAGE PRINCIPALE ---
 export default async function Page({ params: { username } }: PageProps) {
   const { user: loggedInUser } = await validateRequest();
 
   if (!loggedInUser) {
-    return (
-      <p className="text-destructive">
-        Vous n&apos;êtes pas autorisé à voir cette page.
-      </p>
-    );
+    redirect("/login"); // Plus propre qu'un simple message d'erreur
+  }
+
+  // Gestion du cas particulier "/users/me"
+  if (username.toLowerCase() === "me") {
+    redirect(`/users/${loggedInUser.username}`);
   }
 
   const user = await getUser(username, loggedInUser.id);
@@ -74,7 +80,7 @@ export default async function Page({ params: { username } }: PageProps) {
         <UserProfile user={user} loggedInUserId={loggedInUser.id} />
         
         <Tabs defaultValue="posts" className="w-full">
-          <TabsList className="bg-card border w-full justify-start rounded-2xl p-1">
+          <TabsList className="bg-card border w-full justify-start rounded-2xl p-1 overflow-x-auto">
             <TabsTrigger value="posts" className="px-6">Annonces</TabsTrigger>
             {isUserProfile && (
               <>
@@ -93,16 +99,19 @@ export default async function Page({ params: { username } }: PageProps) {
             <UserPosts userId={user.id} />
           </TabsContent>
 
-          {/* SECTION DES ACHATS (CONFIRMATION CLIENT) */}
+          {/* SECTION DES ACHATS */}
           {isUserProfile && (
             <TabsContent value="orders" className="space-y-5">
               <div className="rounded-2xl bg-card p-5 shadow-sm border mt-5 text-center">
-                <h2 className="text-xl font-bold uppercase italic tracking-tighter">Suivi de mes commandes</h2>
+                <h2 className="text-xl font-bold uppercase italic tracking-tighter">
+                  Suivi de mes commandes
+                </h2>
               </div>
               <OrderConfirmationList userId={user.id} />
             </TabsContent>
           )}
 
+          {/* SECTION DES FAVORIS */}
           {isUserProfile && (
             <TabsContent value="bookmarks" className="space-y-5">
                <div className="rounded-2xl bg-card p-5 shadow-sm border mt-5">
@@ -118,6 +127,12 @@ export default async function Page({ params: { username } }: PageProps) {
   );
 }
 
+// --- COMPOSANT D'EN-TÊTE DU PROFIL ---
+interface UserProfileProps {
+  user: UserData;
+  loggedInUserId: string;
+}
+
 async function UserProfile({ user, loggedInUserId }: UserProfileProps) {
   const followerInfo: FollowerInfo = {
     followers: user._count.followers,
@@ -131,7 +146,7 @@ async function UserProfile({ user, loggedInUserId }: UserProfileProps) {
       <UserAvatar
         avatarUrl={user.avatarUrl}
         size={250}
-        className="mx-auto size-full max-h-60 max-w-60 rounded-full"
+        className="mx-auto size-full max-h-60 max-w-60 rounded-full border-4 border-background shadow-sm"
       />
       <div className="flex flex-wrap gap-3 sm:flex-nowrap">
         <div className="me-auto space-y-3">
@@ -140,7 +155,7 @@ async function UserProfile({ user, loggedInUserId }: UserProfileProps) {
             <div className="text-muted-foreground">@{user.username}</div>
           </div>
           <div className="text-sm text-muted-foreground">
-            Membre depuis {formatDate(user.createdAt, "MMM d, yyyy")}
+            Membre depuis {formatDate(user.createdAt, "dd MMMM yyyy")}
           </div>
           <div className="flex items-center gap-3 text-sm">
             <span>
@@ -159,7 +174,7 @@ async function UserProfile({ user, loggedInUserId }: UserProfileProps) {
         <>
           <hr />
           <Linkify>
-            <div className="overflow-hidden whitespace-pre-line break-words italic text-muted-foreground text-sm">
+            <div className="overflow-hidden whitespace-pre-line break-words italic text-muted-foreground text-sm leading-relaxed">
               {user.bio}
             </div>
           </Linkify>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { UserData } from "@/lib/types";
 import UserAvatar from "@/components/UserAvatar";
 import { 
@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/sheet";
 import SidebarVendeur from "../SidebarVendeur";
 import { useToast } from "@/components/ui/use-toast";
+import { requestWithdraw, getSellerBalance } from "../actions"; // Import des fonctions serveurs
 
 interface DashboardHeaderProps {
   user: UserData;
@@ -22,32 +23,62 @@ export default function DashboardHeader({ user }: DashboardHeaderProps) {
   const [isWithdrawing, setIsWithdrawing] = useState(false);
   const [withdrawAmount, setWithdrawAmount] = useState("");
   const [openWithdraw, setOpenWithdraw] = useState(false);
+  
+  // ✅ État dynamique pour le solde
+  const [soldeDisponible, setSoldeDisponible] = useState(0);
 
-  // Donnée normalement récupérée via une API
-  const soldeDisponible = 125500; 
+  // Charger le vrai solde au montage du composant
+  useEffect(() => {
+    async function fetchBalance() {
+      try {
+        const balance = await getSellerBalance();
+        setSoldeDisponible(balance);
+      } catch (error) {
+        console.error("Erreur chargement solde:", error);
+      }
+    }
+    fetchBalance();
+  }, []);
 
   const handleWithdrawRequest = async () => {
     const amount = parseInt(withdrawAmount);
+    
     if (!amount || amount < 500) {
       toast({ variant: "destructive", description: "Minimum de retrait : 500 FCFA" });
       return;
     }
+    
     if (amount > soldeDisponible) {
-      toast({ variant: "destructive", description: "Solde insuffisant" });
+      toast({ variant: "destructive", description: "Solde insuffisant dans votre portefeuille" });
       return;
     }
 
     setIsWithdrawing(true);
-    // Simulation de l'appel API vers ton backend (qui contactera Monetbil/Cinapay)
-    setTimeout(() => {
+
+    try {
+      // ✅ Appel à la vraie API de retrait (Monetbil)
+      const result = await requestWithdraw(amount);
+
+      if (result.success) {
+        setIsWithdrawing(false);
+        setOpenWithdraw(false);
+        setWithdrawAmount("");
+        
+        // Mettre à jour le solde localement après le retrait
+        setSoldeDisponible((prev) => prev - amount);
+
+        toast({
+          description: "✅ Push USSD envoyé ! Validez sur votre téléphone.",
+          className: "bg-green-600 text-white border-none rounded-2xl"
+        });
+      }
+    } catch (error: any) {
       setIsWithdrawing(false);
-      setOpenWithdraw(false);
-      setWithdrawAmount("");
       toast({
-        description: "✅ Demande de retrait envoyée ! Traitement en cours.",
-        className: "bg-green-600 text-white border-none rounded-2xl"
+        variant: "destructive",
+        description: error.message || "Le service de retrait a échoué.",
       });
-    }, 2000);
+    }
   };
 
   return (
@@ -92,7 +123,7 @@ export default function DashboardHeader({ user }: DashboardHeaderProps) {
               <h1 className="text-3xl md:text-5xl font-black italic uppercase tracking-tighter text-white leading-[0.8]">{user.displayName}</h1>
               <div className="flex items-center justify-center md:justify-start gap-2 bg-black/20 px-4 py-1.5 rounded-full border border-white/10 w-fit mx-auto md:mx-0">
                 <ShieldCheck className="size-3 text-green-400" />
-                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-white/90 tracking-tighter">Éligible aux retraits</p>
+                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-white/90">Éligible aux retraits</p>
               </div>
             </div>
           </div>
@@ -131,15 +162,15 @@ export default function DashboardHeader({ user }: DashboardHeaderProps) {
                           placeholder="Ex: 5000"
                           value={withdrawAmount}
                           onChange={(e) => setWithdrawAmount(e.target.value)}
-                          className="w-full text-4xl font-black tracking-tighter border-none focus:ring-0 p-0 placeholder:text-zinc-200"
+                          className="w-full text-4xl font-black tracking-tighter border-none focus:ring-0 p-0 placeholder:text-zinc-200 bg-transparent"
                         />
                       </div>
 
                       <div className="flex items-center gap-4 bg-blue-50 p-4 rounded-2xl border border-blue-100">
                         <Smartphone className="size-6 text-blue-600" />
                         <div className="text-left">
-                          <p className="text-[10px] font-black uppercase text-blue-400">Vers ton numéro</p>
-                          <p className="text-sm font-black italic">{user.phoneNumber || "Vérifier profil"}</p>
+                          <p className="text-[10px] font-black uppercase text-blue-400">Vers votre numéro</p>
+                          <p className="text-sm font-black italic">{user.phoneNumber || "Veuillez configurer votre numéro"}</p>
                         </div>
                       </div>
 
