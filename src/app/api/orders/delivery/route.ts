@@ -2,7 +2,6 @@ import { validateRequest } from "@/auth";
 import prisma from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
-// ⚠️ REMPLACE CECI PAR TON ID UNIQUE
 const MY_ADMIN_ID = "4yq76ntw6lpduptd";
 
 export async function GET() {
@@ -11,7 +10,7 @@ export async function GET() {
 
     if (!user || user.id !== MY_ADMIN_ID) {
       return NextResponse.json(
-        { error: "Accès formellement interdit" }, 
+        { error: "Accès interdit" }, 
         { status: 403 }
       );
     }
@@ -19,11 +18,6 @@ export async function GET() {
     const orders = await prisma.order.findMany({
       where: {
         status: "PENDING",
-        // ✅ CORRECTION ICI : Pour vérifier qu'une chaîne n'est pas vide/nulle
-        customerAddress: {
-          not: "", // On exclut les chaînes vides
-          // Si le champ est String? (optionnel), Prisma acceptera 'not: null'
-        },
       },
       include: {
         user: {
@@ -36,9 +30,7 @@ export async function GET() {
         post: {
           include: {
             attachments: {
-              where: {
-                type: "IMAGE",
-              },
+              where: { type: "IMAGE" },
               take: 1,
             },
           },
@@ -49,7 +41,16 @@ export async function GET() {
       },
     });
 
-    return NextResponse.json(orders);
+    // ✅ CORRECTION CRUCIALE : On formate les données pour le frontend
+    const formattedOrders = orders.map(order => ({
+      ...order,
+      // On s'assure que le frontend reçoive 'deliveryAddress' et 'phoneNumber'
+      // même si dans ta base de données ils s'appellent différemment
+      deliveryAddress: (order as any).customerAddress || (order as any).address || "Adresse non fournie",
+      phoneNumber: (order as any).customerPhone || (order as any).phone || "Numéro masqué",
+    }));
+
+    return NextResponse.json(formattedOrders);
   } catch (error) {
     console.error("[DELIVERY_GET_ERROR]:", error);
     return NextResponse.json(
