@@ -2,15 +2,13 @@ import { validateRequest } from "@/auth";
 import prisma from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
-// ⚠️ REMPLACE CECI PAR TON ID UNIQUE (Le même que dans la page frontend)
+// ⚠️ REMPLACE CECI PAR TON ID UNIQUE
 const MY_ADMIN_ID = "4yq76ntw6lpduptd";
 
 export async function GET() {
   try {
-    // 1. Vérification de la session
     const { user } = await validateRequest();
 
-    // 2. Blocage si pas connecté OU si ce n'est pas ton ID
     if (!user || user.id !== MY_ADMIN_ID) {
       return NextResponse.json(
         { error: "Accès formellement interdit" }, 
@@ -18,13 +16,13 @@ export async function GET() {
       );
     }
 
-    // 3. Récupération des commandes à livrer
     const orders = await prisma.order.findMany({
       where: {
-        status: "PENDING", // On ne prend que ce qui n'est pas encore livré
-        // On s'assure qu'il y a une adresse (donc une demande de livraison)
-        NOT: {
-          deliveryAddress: null,
+        status: "PENDING",
+        // ✅ CORRECTION ICI : Pour vérifier qu'une chaîne n'est pas vide/nulle
+        customerAddress: {
+          not: "", // On exclut les chaînes vides
+          // Si le champ est String? (optionnel), Prisma acceptera 'not: null'
         },
       },
       include: {
@@ -39,9 +37,9 @@ export async function GET() {
           include: {
             attachments: {
               where: {
-                type: "IMAGE", // On ne prend que les images pour l'aperçu
+                type: "IMAGE",
               },
-              take: 1, // Juste la première image
+              take: 1,
             },
           },
         },

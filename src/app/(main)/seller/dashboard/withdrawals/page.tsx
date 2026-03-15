@@ -126,7 +126,7 @@ export default function WithdrawalHistory() {
                      {format(new Date(w.createdAt), "dd MMMM yyyy 'à' HH:mm", { locale: fr })}
                    </p>
                    {w.status === "FAILED" && (
-                     <button className="text-[10px] font-black text-blue-600 uppercase border-b border-blue-600">Détails de l'erreur</button>
+                     <button className="text-[10px] font-black text-blue-600 uppercase border-b border-blue-600">Détails de l&apos;erreur</button>
                    )}
                 </div>
               </div>

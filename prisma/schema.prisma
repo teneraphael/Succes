@@ -338,6 +338,7 @@ enum OrderStatus {
   PENDING    // Commande créée, paiement non initié
   PAID       // Argent encaissé par Monetbil (Bloqué sur la plateforme)
   SHIPPED    // Livreur a récupéré/livré le colis
+  FAILED
   COMPLETED  // Client a confirmé la réception (L'argent peut être versé au vendeur)
   CANCELLED  // Annulé ou Échec de paiement
 }
