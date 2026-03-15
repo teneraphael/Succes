@@ -8,7 +8,6 @@ import {
   Loader2, AlertTriangle, User 
 } from "lucide-react";
 import Image from "next/image";
-import { formatRelativeDate } from "@/lib/utils";
 import { useToast } from "@/components/ui/use-toast";
 
 // ⚠️ TON ID ADMIN SÉCURISÉ
@@ -45,7 +44,9 @@ export default function DeliveryDashboard() {
       const res = await fetch("/api/orders/delivery");
       if (!res.ok) throw new Error("Erreur serveur");
       const data = await res.json();
-      setOrders(data);
+      
+      // On s'assure que data est bien un tableau
+      setOrders(Array.isArray(data) ? data : []);
     } catch (error) {
       toast({
         variant: "destructive",
@@ -66,7 +67,6 @@ export default function DeliveryDashboard() {
       });
 
       if (res.ok) {
-        // On retire l'ordre de la liste locale une fois livré
         setOrders((prev) => prev.filter((o) => o.id !== orderId));
         toast({ 
           description: "✅ Statut mis à jour : Colis livré !",
@@ -85,7 +85,7 @@ export default function DeliveryDashboard() {
     }
   }
 
-  // Empêche le flash de contenu
+  // Empêche le flash de contenu pendant la vérification admin
   if (!loggedInUser || loggedInUser.id !== MY_ADMIN_ID) return null;
 
   if (loading) {
@@ -95,7 +95,7 @@ export default function DeliveryDashboard() {
             <Loader2 className="animate-spin size-12 text-blue-600" />
             <Truck className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 size-5 text-blue-600" />
         </div>
-        <p className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground animate-pulse">Synchronisation...</p>
+        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground animate-pulse">Synchronisation...</p>
       </div>
     );
   }
@@ -146,7 +146,8 @@ export default function DeliveryDashboard() {
                 <div className="flex-1 min-w-0 flex flex-col justify-center">
                   <h2 className="font-black text-sm uppercase truncate mb-1">{order.post?.productName || "Article DealCity"}</h2>
                   <div className="text-xl font-black text-[#6ab344] italic">
-                    {order.price.toLocaleString()} <span className="text-[10px]">FCFA</span>
+                    {/* ✅ CORRECTION : Sécurité sur le toLocaleString() */}
+                    {order.price ? order.price.toLocaleString() : "0"} <span className="text-[10px]">FCFA</span>
                   </div>
                 </div>
               </div>
@@ -157,7 +158,7 @@ export default function DeliveryDashboard() {
                   <MapPin className="size-5 text-blue-600 flex-shrink-0 mt-1" />
                   <div>
                     <p className="text-[9px] font-black uppercase text-zinc-400 mb-1">Destination</p>
-                    <p className="text-sm font-bold leading-tight text-zinc-800">{order.deliveryAddress}</p>
+                    <p className="text-sm font-bold leading-tight text-zinc-800">{order.deliveryAddress || "Adresse non spécifiée"}</p>
                   </div>
                 </div>
 
@@ -166,15 +167,17 @@ export default function DeliveryDashboard() {
                     <User className="size-5 text-zinc-400" />
                     <div>
                       <p className="text-[9px] font-black uppercase text-zinc-400 mb-1">Client</p>
-                      <p className="text-sm font-black italic">{order.phoneNumber}</p>
+                      <p className="text-sm font-black italic">{order.phoneNumber || "N/A"}</p>
                     </div>
                   </div>
-                  <a 
-                    href={`tel:${order.phoneNumber}`} 
-                    className="bg-[#6ab344] text-white size-10 rounded-full flex items-center justify-center shadow-lg shadow-green-100 active:scale-90 transition"
-                  >
-                    <Phone className="size-4 fill-current" />
-                  </a>
+                  {order.phoneNumber && (
+                    <a 
+                      href={`tel:${order.phoneNumber}`} 
+                      className="bg-[#6ab344] text-white size-10 rounded-full flex items-center justify-center shadow-lg shadow-green-100 active:scale-90 transition"
+                    >
+                      <Phone className="size-4 fill-current" />
+                    </a>
+                  )}
                 </div>
               </div>
 
