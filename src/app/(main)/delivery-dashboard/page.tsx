@@ -10,7 +10,6 @@ import {
 import Image from "next/image";
 import { useToast } from "@/components/ui/use-toast";
 
-// ⚠️ TON ID ADMIN SÉCURISÉ
 const MY_ADMIN_ID = "4yq76ntw6lpduptd"; 
 
 export default function DeliveryDashboard() {
@@ -22,7 +21,6 @@ export default function DeliveryDashboard() {
   const [isUpdating, setIsUpdating] = useState<string | null>(null);
 
   useEffect(() => {
-    // 1. Protection de la route
     if (!loggedInUser) {
       router.push("/login");
       return;
@@ -35,7 +33,6 @@ export default function DeliveryDashboard() {
     }
 
     fetchOrders();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loggedInUser, router]);
 
   async function fetchOrders() {
@@ -44,14 +41,9 @@ export default function DeliveryDashboard() {
       const res = await fetch("/api/orders/delivery");
       if (!res.ok) throw new Error("Erreur serveur");
       const data = await res.json();
-      
-      // On s'assure que data est bien un tableau
       setOrders(Array.isArray(data) ? data : []);
     } catch (error) {
-      toast({
-        variant: "destructive",
-        description: "Impossible de charger les livraisons.",
-      });
+      toast({ variant: "destructive", description: "Impossible de charger les livraisons." });
     } finally {
       setLoading(false);
     }
@@ -78,24 +70,20 @@ export default function DeliveryDashboard() {
     } catch (error) {
       toast({ 
         variant: "destructive", 
-        description: "Erreur lors de la validation. Vérifiez votre connexion." 
+        description: "Erreur lors de la validation." 
       });
     } finally {
       setIsUpdating(null);
     }
   }
 
-  // Empêche le flash de contenu pendant la vérification admin
   if (!loggedInUser || loggedInUser.id !== MY_ADMIN_ID) return null;
 
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[80vh] gap-4">
-        <div className="relative">
-            <Loader2 className="animate-spin size-12 text-blue-600" />
-            <Truck className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 size-5 text-blue-600" />
-        </div>
-        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground animate-pulse">Synchronisation...</p>
+        <Loader2 className="animate-spin size-12 text-blue-600" />
+        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Mise à jour...</p>
       </div>
     );
   }
@@ -110,7 +98,7 @@ export default function DeliveryDashboard() {
           </div>
           <div>
             <h1 className="text-xl font-black uppercase tracking-tighter leading-none">Livreur Pro</h1>
-            <p className="text-[10px] text-blue-600 font-black uppercase tracking-widest mt-1">Dashboard Mobile</p>
+            <p className="text-[10px] text-blue-600 font-black uppercase tracking-widest mt-1">Dashboard</p>
           </div>
         </div>
         <div className="bg-zinc-100 px-4 py-2 rounded-2xl text-center">
@@ -122,21 +110,19 @@ export default function DeliveryDashboard() {
       {/* LISTE DES COMMANDES */}
       {orders.length === 0 ? (
         <div className="bg-white rounded-[2.5rem] border-2 border-dashed border-zinc-200 py-20 flex flex-col items-center gap-4 text-center px-6">
-          <div className="size-16 bg-zinc-50 rounded-full flex items-center justify-center">
-             <PackageCheck className="size-8 text-zinc-300" />
-          </div>
-          <p className="font-bold text-zinc-400 uppercase text-xs tracking-widest">Tous les colis ont été livrés !</p>
+          <PackageCheck className="size-12 text-zinc-300" />
+          <p className="font-bold text-zinc-400 uppercase text-xs tracking-widest">Aucune livraison en cours</p>
         </div>
       ) : (
         <div className="space-y-6">
           {orders.map((order: any) => (
             <div key={order.id} className="bg-white border border-black/5 rounded-[2.5rem] p-6 shadow-sm space-y-6">
               
-              {/* PRODUIT */}
+              {/* PRODUIT (Utilisation des données aplaties) */}
               <div className="flex gap-4">
                 <div className="relative size-20 rounded-2xl overflow-hidden bg-zinc-100 flex-shrink-0 border border-black/5">
                   <Image 
-                    src={order.post?.attachments?.find((m:any) => m.type === "IMAGE")?.url || "/placeholder.png"} 
+                    src={order.productImage || "/placeholder.png"} 
                     fill 
                     alt="Produit" 
                     className="object-cover"
@@ -144,10 +130,11 @@ export default function DeliveryDashboard() {
                   />
                 </div>
                 <div className="flex-1 min-w-0 flex flex-col justify-center">
-                  <h2 className="font-black text-sm uppercase truncate mb-1">{order.post?.productName || "Article DealCity"}</h2>
+                  <h2 className="font-black text-sm uppercase truncate mb-1">
+                    {order.productName}
+                  </h2>
                   <div className="text-xl font-black text-[#6ab344] italic">
-                    {/* ✅ CORRECTION : Sécurité sur le toLocaleString() */}
-                    {order.price ? order.price.toLocaleString() : "0"} <span className="text-[10px]">FCFA</span>
+                    {Number(order.price).toLocaleString()} <span className="text-[10px]">FCFA</span>
                   </div>
                 </div>
               </div>
@@ -158,7 +145,7 @@ export default function DeliveryDashboard() {
                   <MapPin className="size-5 text-blue-600 flex-shrink-0 mt-1" />
                   <div>
                     <p className="text-[9px] font-black uppercase text-zinc-400 mb-1">Destination</p>
-                    <p className="text-sm font-bold leading-tight text-zinc-800">{order.deliveryAddress || "Adresse non spécifiée"}</p>
+                    <p className="text-sm font-bold leading-tight text-zinc-800">{order.deliveryAddress}</p>
                   </div>
                 </div>
 
@@ -167,17 +154,17 @@ export default function DeliveryDashboard() {
                     <User className="size-5 text-zinc-400" />
                     <div>
                       <p className="text-[9px] font-black uppercase text-zinc-400 mb-1">Client</p>
-                      <p className="text-sm font-black italic">{order.phoneNumber || "N/A"}</p>
+                      <p className="text-sm font-black italic uppercase text-blue-700">
+                        {order.customerName}
+                      </p>
                     </div>
                   </div>
-                  {order.phoneNumber && (
-                    <a 
-                      href={`tel:${order.phoneNumber}`} 
-                      className="bg-[#6ab344] text-white size-10 rounded-full flex items-center justify-center shadow-lg shadow-green-100 active:scale-90 transition"
-                    >
-                      <Phone className="size-4 fill-current" />
-                    </a>
-                  )}
+                  <a 
+                    href={`tel:${order.phoneNumber}`} 
+                    className="bg-[#6ab344] text-white size-10 rounded-full flex items-center justify-center shadow-lg active:scale-90 transition"
+                  >
+                    <Phone className="size-4 fill-current" />
+                  </a>
                 </div>
               </div>
 
@@ -200,14 +187,6 @@ export default function DeliveryDashboard() {
           ))}
         </div>
       )}
-
-      {/* FOOTER */}
-      <div className="flex flex-col items-center gap-2 pt-10">
-        <div className="flex items-center gap-2 opacity-20">
-            <AlertTriangle className="size-3" />
-            <p className="text-[9px] font-black uppercase tracking-[0.3em]">Session Administrateur Sécurisée</p>
-        </div>
-      </div>
     </main>
   );
 }

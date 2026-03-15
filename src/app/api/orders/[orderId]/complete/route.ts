@@ -2,29 +2,39 @@ import { validateRequest } from "@/auth";
 import prisma from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
-export async function POST(
+export async function PATCH(
   req: Request,
-  { params: { orderId } }: { params: { orderId: string } }
+  { params }: { params: { orderId: string } }
 ) {
   try {
-    const { user } = await validateRequest();
-
-    // 1. Vérifie si c'est bien l'admin (livreur) qui fait l'action
-    if (!user || user.id !== "4yq76ntw6lpduptd") {
+    const { user: loggedInUser } = await validateRequest();
+    if (!loggedInUser) {
       return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
     }
 
-    // 2. Mettre à jour la commande en base de données
+    // Next.js 15 : on attend les params
+    const { orderId } = await (params as any);
+
+    // Vérifier que la commande appartient bien à l'utilisateur qui clique
+    const order = await prisma.order.findUnique({
+      where: { id: orderId }
+    });
+
+    if (!order || order.userId !== loggedInUser.id) {
+      return NextResponse.json({ error: "Ce n'est pas votre commande" }, { status: 403 });
+    }
+
+    // Mettre à jour en COMPLETED
     const updatedOrder = await prisma.order.update({
       where: { id: orderId },
       data: {
-        status: "DELIVERED", // Assure-toi que "DELIVERED" existe dans ton ENUM
+        status: "COMPLETED", 
       },
     });
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, status: updatedOrder.status });
   } catch (error) {
-    console.error("Erreur validation commande:", error);
+    console.error("Erreur confirmation client:", error);
     return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });
   }
 }
