@@ -7,18 +7,14 @@ import prisma from "./lib/prisma";
 
 const adapter = new PrismaAdapter(prisma.session, prisma.user);
 
-// Détection propre de l'environnement
 const isProd = process.env.NODE_ENV === "production";
 
 export const lucia = new Lucia(adapter, {
   sessionCookie: {
     expires: false,
     attributes: {
-      // ✅ En prod (HTTPS), secure doit être true. En local (HTTP), false.
       secure: isProd,
-      // ✅ Lax est indispensable pour que le cookie soit transmis après la redirection
       sameSite: "lax",
-      // On ajoute le domaine pour la prod pour éviter les conflits de sous-domaines
       domain: isProd ? ".dealcity.app" : undefined,
     },
   },
@@ -32,6 +28,7 @@ export const lucia = new Lucia(adapter, {
       isSeller: databaseUserAttributes.isSeller,
       isPioneer: databaseUserAttributes.isPioneer,
       isVerified: databaseUserAttributes.isVerified,
+      hasDeliveryPass: databaseUserAttributes.hasDeliveryPass, // Ajouté pour le badge de livraison
     };
   },
 });
@@ -52,14 +49,11 @@ interface DatabaseUserAttributes {
   isSeller: boolean;
   isPioneer: boolean;
   isVerified: boolean;
+  hasDeliveryPass: boolean; // Ajouté ici aussi
 }
 
-// ✅ LOGIQUE DE REDIRECTION CORRIGÉE
-// On donne la priorité absolue à l'URL actuelle. 
-// Si tu es sur localhost, il DOIT utiliser localhost.
 const getBaseUrl = () => {
   if (isProd) return "https://dealcity.app";
-  // En local, on utilise l'URL définie ou le défaut localhost
   return process.env.NEXT_PUBLIC_BASE_URL?.replace(/\/$/, "") || "http://localhost:3000";
 };
 

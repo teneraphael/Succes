@@ -15,12 +15,13 @@ import EditProfileButton from "./EditProfileButton";
 import UserPosts from "./UserPosts";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import BookmarksFeed from "@/app/(main)/bookmarks/Bookmarks"; 
+import OrderConfirmationList from "./OrderConfirmationList"; // Import ajouté
 
 interface PageProps {
   params: { username: string };
 }
 
-// --- AJOUT DE L'INTERFACE MANQUANTE ---
+// --- INTERFACE ---
 interface UserProfileProps {
   user: UserData;
   loggedInUserId: string;
@@ -76,7 +77,10 @@ export default async function Page({ params: { username } }: PageProps) {
           <TabsList className="bg-card border w-full justify-start rounded-2xl p-1">
             <TabsTrigger value="posts" className="px-6">Annonces</TabsTrigger>
             {isUserProfile && (
-              <TabsTrigger value="bookmarks" className="px-6">Mes Favoris</TabsTrigger>
+              <>
+                <TabsTrigger value="orders" className="px-6">Mes Achats</TabsTrigger>
+                <TabsTrigger value="bookmarks" className="px-6">Mes Favoris</TabsTrigger>
+              </>
             )}
           </TabsList>
 
@@ -88,6 +92,16 @@ export default async function Page({ params: { username } }: PageProps) {
             </div>
             <UserPosts userId={user.id} />
           </TabsContent>
+
+          {/* SECTION DES ACHATS (CONFIRMATION CLIENT) */}
+          {isUserProfile && (
+            <TabsContent value="orders" className="space-y-5">
+              <div className="rounded-2xl bg-card p-5 shadow-sm border mt-5 text-center">
+                <h2 className="text-xl font-bold uppercase italic tracking-tighter">Suivi de mes commandes</h2>
+              </div>
+              <OrderConfirmationList userId={user.id} />
+            </TabsContent>
+          )}
 
           {isUserProfile && (
             <TabsContent value="bookmarks" className="space-y-5">

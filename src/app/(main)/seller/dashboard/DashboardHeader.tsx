@@ -1,83 +1,164 @@
 "use client";
 
+import { useState } from "react";
 import { UserData } from "@/lib/types";
 import UserAvatar from "@/components/UserAvatar";
-import { Menu, Star, Zap, Trophy } from "lucide-react";
-import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
+import { 
+  Menu, Star, Zap, ShieldCheck, Wallet, 
+  ArrowUpRight, Loader2, Smartphone, CheckCircle2 
+} from "lucide-react";
+import { 
+  Sheet, SheetContent, SheetTrigger, SheetTitle, SheetHeader 
+} from "@/components/ui/sheet";
 import SidebarVendeur from "../SidebarVendeur";
+import { useToast } from "@/components/ui/use-toast";
 
 interface DashboardHeaderProps {
   user: UserData;
 }
 
 export default function DashboardHeader({ user }: DashboardHeaderProps) {
+  const { toast } = useToast();
+  const [isWithdrawing, setIsWithdrawing] = useState(false);
+  const [withdrawAmount, setWithdrawAmount] = useState("");
+  const [openWithdraw, setOpenWithdraw] = useState(false);
+
+  // Donnée normalement récupérée via une API
+  const soldeDisponible = 125500; 
+
+  const handleWithdrawRequest = async () => {
+    const amount = parseInt(withdrawAmount);
+    if (!amount || amount < 500) {
+      toast({ variant: "destructive", description: "Minimum de retrait : 500 FCFA" });
+      return;
+    }
+    if (amount > soldeDisponible) {
+      toast({ variant: "destructive", description: "Solde insuffisant" });
+      return;
+    }
+
+    setIsWithdrawing(true);
+    // Simulation de l'appel API vers ton backend (qui contactera Monetbil/Cinapay)
+    setTimeout(() => {
+      setIsWithdrawing(false);
+      setOpenWithdraw(false);
+      setWithdrawAmount("");
+      toast({
+        description: "✅ Demande de retrait envoyée ! Traitement en cours.",
+        className: "bg-green-600 text-white border-none rounded-2xl"
+      });
+    }, 2000);
+  };
+
   return (
-    <div className="w-full block overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-primary via-[#83c5be] to-primary p-1 shadow-xl ring-1 ring-black/5">
-      <div className="bg-white/10 backdrop-blur-md rounded-[2.3rem] p-5 md:p-8 border border-white/20">
+    <div className="w-full block overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-[#00b4d8] via-[#48cae4] to-primary p-[2px] shadow-2xl ring-1 ring-black/5">
+      <div className="bg-black/10 backdrop-blur-2xl rounded-[2.4rem] p-5 md:p-8 border border-white/20">
         
-        <div className="flex justify-between items-start md:mb-2">
-          {/* MENU MOBILE */}
+        {/* TOP BAR */}
+        <div className="flex justify-between items-start mb-6">
           <div className="md:hidden">
             <Sheet>
-              {/* CORRECTION : On s'assure que le bouton est l'UNIQUE enfant direct du Trigger */}
               <SheetTrigger asChild>
-                <button 
-                  type="button" 
-                  className="flex items-center gap-2 bg-white/20 backdrop-blur-xl px-4 py-2 rounded-2xl border border-white/30 active:scale-95 shadow-sm outline-none"
-                >
+                <button className="flex items-center gap-2 bg-white/15 backdrop-blur-xl px-4 py-2.5 rounded-2xl border border-white/20 active:scale-95 transition-all outline-none">
                   <Menu className="size-5 text-white" />
                   <span className="text-[10px] font-black uppercase tracking-widest text-white">Menu</span>
                 </button>
               </SheetTrigger>
-              <SheetContent side="left" className="p-0 w-[280px] border-none bg-card">
-                <SheetTitle className="sr-only">Menu Vendeur</SheetTitle>
+              <SheetContent side="left" className="p-0 w-[280px] border-none">
+                <SheetTitle className="sr-only">Menu</SheetTitle>
                 <SidebarVendeur className="h-full pt-10" />
               </SheetContent>
             </Sheet>
           </div>
 
-          {/* BADGE SCORE DESKTOP */}
-          <div className="hidden md:flex bg-white/20 px-4 py-2 rounded-2xl backdrop-blur-md border border-white/20 items-center gap-2">
-            <Star className="size-4 text-yellow-300 fill-yellow-300" />
-            <span className="text-xs font-black text-white italic tracking-tighter">SCORE 4.9</span>
+          <div className="flex bg-white/15 px-4 py-2 rounded-2xl backdrop-blur-md border border-white/10 items-center gap-3">
+            <Star className="size-3 text-yellow-300 fill-yellow-300" />
+            <span className="text-[10px] font-black text-white italic tracking-widest uppercase">Vendeur Certifié</span>
           </div>
         </div>
 
-        <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="flex flex-col md:flex-row items-center gap-4 md:gap-6">
-            {/* AVATAR SECTION */}
-            <div className="relative rounded-[2rem] border-[4px] border-white/40 p-1 backdrop-blur-3xl shadow-2xl">
-              <UserAvatar 
-                avatarUrl={user.avatarUrl} 
-                size={80} 
-                className="size-20 md:size-24 rounded-[1.5rem] border-2 border-white/20" 
-              />
-              <div className="absolute -bottom-1 -right-1 bg-green-400 p-1.5 rounded-xl border-4 border-primary shadow-lg">
-                <Zap className="size-3 text-white fill-white" />
-              </div>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+          {/* INFOS PROFIL */}
+          <div className="lg:col-span-7 flex flex-col md:flex-row items-center gap-6 md:gap-8">
+            <div className="relative">
+                <div className="rounded-[2.1rem] border-[4px] border-white/30 p-1 backdrop-blur-3xl shadow-2xl bg-white/10">
+                    <UserAvatar avatarUrl={user.avatarUrl} size={100} className="size-24 md:size-28 rounded-[1.6rem] border-2 border-white/10" />
+                    <div className="absolute -bottom-2 -right-2 bg-blue-600 p-2 rounded-xl border-4 border-[#48cae4] shadow-xl">
+                        <Zap className="size-4 text-white fill-white" />
+                    </div>
+                </div>
             </div>
-
-            {/* INFOS VENDEUR */}
-            <div className="text-center md:text-left space-y-1">
-              <h1 className="text-2xl md:text-4xl font-black italic uppercase tracking-tighter text-white drop-shadow-sm leading-tight">
-                Salut, {user.displayName}
-              </h1>
-              <div className="flex items-center justify-center md:justify-start gap-2 bg-white/20 px-3 py-1 rounded-full border border-white/20 w-fit mx-auto md:mx-0">
-                <span className="relative flex h-2 w-2">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-300 opacity-75"></span>
-                  <span className="relative inline-flex h-2 w-2 rounded-full bg-green-400"></span>
-                </span>
-                <p className="text-[10px] md:text-xs font-black uppercase tracking-widest text-white/90">Boutique Certifiée</p>
+            <div className="text-center md:text-left space-y-2">
+              <h1 className="text-3xl md:text-5xl font-black italic uppercase tracking-tighter text-white leading-[0.8]">{user.displayName}</h1>
+              <div className="flex items-center justify-center md:justify-start gap-2 bg-black/20 px-4 py-1.5 rounded-full border border-white/10 w-fit mx-auto md:mx-0">
+                <ShieldCheck className="size-3 text-green-400" />
+                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-white/90 tracking-tighter">Éligible aux retraits</p>
               </div>
             </div>
           </div>
 
-          {/* BADGE NIVEAU */}
-          <div className="flex items-center justify-center bg-white/20 px-5 py-2.5 rounded-2xl backdrop-blur-xl border border-white/20 shadow-inner">
-            <Trophy className="size-5 text-white mr-3" />
-            <div className="flex flex-col">
-              <span className="text-[9px] font-black uppercase tracking-tighter text-white/70 leading-none">Niveau</span>
-              <span className="text-xs font-black text-white uppercase italic">Vendeur Pro</span>
+          {/* CARTE FINANCIÈRE AVEC TIROIR DE RETRAIT */}
+          <div className="lg:col-span-5 w-full">
+            <div className="bg-white/10 backdrop-blur-md rounded-[2.5rem] border border-white/20 p-6 shadow-inner relative overflow-hidden">
+              <div className="flex justify-between items-start relative z-10">
+                <div className="space-y-1">
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/60">Solde Retirable</p>
+                  <h2 className="text-4xl font-black text-white tracking-tighter">
+                    {soldeDisponible.toLocaleString()} <span className="text-sm font-bold opacity-80">FCFA</span>
+                  </h2>
+                </div>
+                
+                {/* TIGGER DU RETRAIT */}
+                <Sheet open={openWithdraw} onOpenChange={setOpenWithdraw}>
+                  <SheetTrigger asChild>
+                    <button className="bg-white text-blue-600 p-4 rounded-2xl shadow-xl active:scale-90 transition-all hover:bg-blue-50 flex flex-col items-center">
+                      <ArrowUpRight className="size-6" />
+                    </button>
+                  </SheetTrigger>
+                  <SheetContent side="bottom" className="h-[500px] rounded-t-[3rem] border-none p-8 bg-zinc-50">
+                    <SheetHeader className="items-center text-center space-y-4">
+                      <div className="size-16 bg-blue-100 rounded-full flex items-center justify-center text-blue-600">
+                        <Wallet className="size-8" />
+                      </div>
+                      <SheetTitle className="text-2xl font-black uppercase tracking-tighter">Demander un retrait</SheetTitle>
+                    </SheetHeader>
+
+                    <div className="max-w-md mx-auto mt-8 space-y-6">
+                      <div className="bg-white p-6 rounded-[2rem] border shadow-sm">
+                        <label className="text-[10px] font-black uppercase text-zinc-400 block mb-2">Montant à retirer (FCFA)</label>
+                        <input 
+                          type="number" 
+                          placeholder="Ex: 5000"
+                          value={withdrawAmount}
+                          onChange={(e) => setWithdrawAmount(e.target.value)}
+                          className="w-full text-4xl font-black tracking-tighter border-none focus:ring-0 p-0 placeholder:text-zinc-200"
+                        />
+                      </div>
+
+                      <div className="flex items-center gap-4 bg-blue-50 p-4 rounded-2xl border border-blue-100">
+                        <Smartphone className="size-6 text-blue-600" />
+                        <div className="text-left">
+                          <p className="text-[10px] font-black uppercase text-blue-400">Vers ton numéro</p>
+                          <p className="text-sm font-black italic">{user.phoneNumber || "Vérifier profil"}</p>
+                        </div>
+                      </div>
+
+                      <button 
+                        onClick={handleWithdrawRequest}
+                        disabled={isWithdrawing || !withdrawAmount}
+                        className="w-full py-5 bg-black text-white rounded-[1.8rem] font-black uppercase text-xs italic tracking-[0.2em] shadow-xl active:scale-95 transition flex items-center justify-center gap-3 disabled:opacity-50"
+                      >
+                        {isWithdrawing ? <Loader2 className="animate-spin" /> : "Confirmer le retrait"}
+                      </button>
+                    </div>
+                  </SheetContent>
+                </Sheet>
+              </div>
+
+              <div className="mt-6 flex items-center gap-2 text-white/50">
+                <CheckCircle2 className="size-3 text-green-400" />
+                <p className="text-[9px] font-black uppercase">Paiements via Mobile Money actifs</p>
+              </div>
             </div>
           </div>
         </div>

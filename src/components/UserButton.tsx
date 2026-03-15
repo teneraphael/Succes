@@ -16,10 +16,13 @@ import {
   LayoutDashboard,
   Settings,
   ShieldCheck,
+  ShoppingBag,
+  Truck, // Import de l'icône Camion pour la livraison
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import Link from "next/link";
 import { useLanguage } from "@/components/LanguageProvider";
+import { useCart } from "@/context/cart-context";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -44,14 +47,16 @@ export default function UserButton({ className, user: propUser }: UserButtonProp
   const { user: sessionUser } = useSession();
   const { theme, setTheme } = useTheme();
   const { t, lang, setLang } = useLanguage(); 
+  const { cart } = useCart(); 
   const queryClient = useQueryClient();
 
   const user = propUser || sessionUser;
 
   if (!user) return null;
 
-  // Constante pour vérifier si c'est toi l'admin
-  const isAdmin = user.id === "4yq76ntw6lpduptd";
+  // Ton ID unique pour l'accès Admin et Livreur
+  const MY_ADMIN_ID = "4yq76ntw6lpduptd"; 
+  const isAdmin = user.id === MY_ADMIN_ID;
 
   return (
     <DropdownMenu>
@@ -73,7 +78,7 @@ export default function UserButton({ className, user: propUser }: UserButtonProp
         
         <DropdownMenuSeparator className="mx-2" />
         
-        {/* --- SECTION ADMIN --- */}
+        {/* SECTION ADMIN & LIVRAISON (Visible uniquement par toi) */}
         {isAdmin && (
           <>
             <DropdownMenuItem asChild className="rounded-xl py-3 cursor-pointer bg-blue-600/5 text-blue-600 focus:bg-blue-600/10 focus:text-blue-700">
@@ -84,9 +89,37 @@ export default function UserButton({ className, user: propUser }: UserButtonProp
                 </div>
               </Link>
             </DropdownMenuItem>
+
+            {/* ✅ NOUVEAU : BOUTON LIVRAISONS */}
+            <DropdownMenuItem asChild className="rounded-xl py-3 mt-1 cursor-pointer bg-emerald-600/5 text-emerald-600 focus:bg-emerald-600/10 focus:text-emerald-700">
+              <Link href="/delivery-dashboard">
+                <div className="flex items-center w-full">
+                  <Truck className="mr-3 size-5" />
+                  <span className="font-black uppercase italic text-xs">Gestion Livraisons</span>
+                </div>
+              </Link>
+            </DropdownMenuItem>
+
             <DropdownMenuSeparator className="mx-2" />
           </>
         )}
+
+        {/* SECTION PANIER */}
+        <DropdownMenuItem asChild className="rounded-xl py-3 cursor-pointer bg-orange-500/5 text-orange-600 focus:bg-orange-500/10 focus:text-orange-700">
+          <Link href="/cart">
+            <div className="flex items-center w-full">
+              <ShoppingBag className="mr-3 size-5" />
+              <span className="font-bold flex-1">Mon Panier</span>
+              {cart.length > 0 && (
+                <span className="bg-orange-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full animate-in zoom-in">
+                  {cart.length}
+                </span>
+              )}
+            </div>
+          </Link>
+        </DropdownMenuItem>
+
+        <DropdownMenuSeparator className="mx-2" />
 
         {/* SECTION VENDEUR */}
         {user.isSeller ? (
@@ -94,7 +127,7 @@ export default function UserButton({ className, user: propUser }: UserButtonProp
             <Link href="/seller/dashboard">
               <div className="flex items-center w-full">
                 <LayoutDashboard className="mr-3 size-5" />
-                <span>Tableau de Bord</span>
+                <span>Tableau de Bord Vendeur</span>
               </div>
             </Link>
           </DropdownMenuItem>
@@ -109,6 +142,8 @@ export default function UserButton({ className, user: propUser }: UserButtonProp
           </DropdownMenuItem>
         )}
 
+        <DropdownMenuSeparator className="mx-2" />
+        
         <DropdownMenuItem asChild className="rounded-xl py-3 cursor-pointer">
           <Link href={`/users/${user.username}`}>
             <div className="flex items-center w-full">
@@ -129,7 +164,7 @@ export default function UserButton({ className, user: propUser }: UserButtonProp
 
         <DropdownMenuSeparator className="mx-2" />
 
-        {/* PRÉFÉRENCES (LANGUE & THÈME) */}
+        {/* LANGUES */}
         <DropdownMenuSub>
           <DropdownMenuSubTrigger className="rounded-xl py-3 cursor-pointer">
             <Languages className="mr-3 size-5 text-muted-foreground" />
@@ -149,6 +184,7 @@ export default function UserButton({ className, user: propUser }: UserButtonProp
           </DropdownMenuPortal>
         </DropdownMenuSub>
 
+        {/* THÈME */}
         <DropdownMenuSub>
           <DropdownMenuSubTrigger className="rounded-xl py-3 cursor-pointer">
             <Monitor className="mr-3 size-5 text-muted-foreground" />
@@ -174,7 +210,6 @@ export default function UserButton({ className, user: propUser }: UserButtonProp
         
         <DropdownMenuSeparator className="mx-2" />
         
-        {/* DÉCONNEXION */}
         <DropdownMenuItem
           className="rounded-xl py-3 cursor-pointer text-destructive focus:bg-destructive/10 focus:text-destructive"
           onClick={() => {

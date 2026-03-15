@@ -15,6 +15,7 @@ import SessionProvider from "./(main)/SessionProvider";
 import { validateRequest } from "@/auth"; 
 import { LanguageProvider } from "@/components/LanguageProvider";
 import LanguageSync from "@/components/LanguageSync";
+import { CartProvider } from "@/context/cart-context";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -79,7 +80,9 @@ export default async function RootLayout({
                   enableSystem
                   disableTransitionOnChange
                 >
-                  {children}
+                 <CartProvider>
+          {children}
+        </CartProvider>
                   <CookieBanner />
                 </ThemeProvider>
                 <SonnerToaster richColors />
