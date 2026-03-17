@@ -9,7 +9,7 @@ import Image from 'next/image';
 
 export default function CheckoutPage() {
   return (
-    <Suspense fallback={<div className="flex items-center justify-center min-h-screen font-black uppercase italic text-gray-400">Chargement...</div>}>
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen font-black uppercase italic text-gray-400 dark:text-zinc-600">Chargement...</div>}>
       <CheckoutContent />
     </Suspense>
   );
@@ -48,7 +48,6 @@ function CheckoutContent() {
     }
   };
 
-  // --- LOGIQUE DE PAIEMENT CORRIGÉE ---
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (displayItems.length === 0) {
@@ -59,7 +58,6 @@ function CheckoutContent() {
     setIsSubmitting(true);
     const formData = new FormData(e.currentTarget);
     
-    // Nettoyage du numéro de téléphone (enlève les espaces et le +237 éventuel)
     const rawPhone = formData.get('phone') as string;
     const cleanPhone = rawPhone.replace(/\s+/g, '').replace(/^\+237/, '');
 
@@ -80,7 +78,6 @@ function CheckoutContent() {
 
       const result = await response.json();
 
-      // 1. GESTION DES ERREURS
       if (!response.ok) {
         if (response.status === 402 || result.error?.toLowerCase().includes("solde")) {
           toast({ 
@@ -99,12 +96,9 @@ function CheckoutContent() {
         return; 
       }
 
-      // 2. GESTION DU SUCCÈS
       if (result.url) {
-        // Redirection MTN ou Guichet Web
         window.location.href = result.url;
       } else if (result.success) {
-        // Détection du réseau
         const isOrange = /^(69|655|656|657|658|659)/.test(cleanPhone);
 
         toast({ 
@@ -132,53 +126,53 @@ function CheckoutContent() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8F9FA] pb-20">
-      <div className="bg-white border-b sticky top-0 z-10 px-4 py-6">
+    <div className="min-h-screen bg-[#F8F9FA] dark:bg-zinc-950 pb-20 transition-colors">
+      <div className="bg-white dark:bg-zinc-900 border-b dark:border-white/10 sticky top-0 z-10 px-4 py-6 transition-colors">
         <div className="max-w-md mx-auto flex items-center gap-4">
-          <button onClick={() => router.back()} className="p-2 -ml-2 hover:bg-gray-100 rounded-full transition">
-            <ArrowLeft className="size-6 text-black" />
+          <button onClick={() => router.back()} className="p-2 -ml-2 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-full transition">
+            <ArrowLeft className="size-6 text-black dark:text-white" />
           </button>
-          <h1 className="text-xl font-black uppercase tracking-tighter text-black">Paiement Sécurisé</h1>
+          <h1 className="text-xl font-black uppercase tracking-tighter text-black dark:text-white">Paiement Sécurisé</h1>
         </div>
       </div>
 
       <div className="max-w-md mx-auto p-4 space-y-6 mt-4">
         <div className="space-y-3">
-          <p className="text-[11px] font-black text-muted-foreground uppercase tracking-widest px-1">
+          <p className="text-[11px] font-black text-muted-foreground dark:text-zinc-500 uppercase tracking-widest px-1">
             {directId ? "Achat immédiat" : "Votre Panier"}
           </p>
-          <div className="bg-white rounded-[2.5rem] border border-black/5 p-4 shadow-sm space-y-4">
+          <div className="bg-white dark:bg-zinc-900 rounded-[2.5rem] border border-black/5 dark:border-white/10 p-4 shadow-sm space-y-4">
             {displayItems.map((item, index) => (
               <div key={`${item.id}-${index}`} className="flex gap-4">
-                <div className="relative size-20 rounded-2xl overflow-hidden bg-gray-50 flex-shrink-0 border border-black/5">
+                <div className="relative size-20 rounded-2xl overflow-hidden bg-gray-50 dark:bg-zinc-800 flex-shrink-0 border border-black/5 dark:border-white/5">
                   {item.image && <Image src={item.image} alt={item.name} fill className="object-cover" />}
                 </div>
                 <div className="flex-1 min-w-0 flex flex-col justify-center">
-                  <h3 className="font-bold text-[11px] uppercase truncate leading-tight mb-1 text-black">{item.name}</h3>
+                  <h3 className="font-bold text-[11px] uppercase truncate leading-tight mb-1 text-black dark:text-white">{item.name}</h3>
                   <div className="flex items-center gap-2 mb-2">
                     {item.color && (
-                      <div className="flex items-center gap-1 text-[9px] font-black text-[#4a90e2] bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100 uppercase">
+                      <div className="flex items-center gap-1 text-[9px] font-black text-[#4a90e2] dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10 px-2 py-0.5 rounded-md border border-blue-100 dark:border-blue-500/20 uppercase">
                         <Palette className="size-2.5" /> {item.color}
                       </div>
                     )}
                   </div>
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 bg-gray-50 p-1 rounded-xl border border-black/5">
+                    <div className="flex items-center gap-2 bg-gray-50 dark:bg-zinc-800 p-1 rounded-xl border border-black/5 dark:border-white/5">
                       <button 
                         type="button"
                         onClick={() => handleQtyChange(item.id, item.quantity, item.color, -1)}
-                        className="size-7 flex items-center justify-center bg-white rounded-lg shadow-sm active:scale-90 transition disabled:opacity-30"
+                        className="size-7 flex items-center justify-center bg-white dark:bg-zinc-700 rounded-lg shadow-sm active:scale-90 transition disabled:opacity-30 dark:disabled:opacity-20"
                         disabled={item.quantity <= 1}
                       >
-                        <Minus className="size-3 text-black" />
+                        <Minus className="size-3 text-black dark:text-white" />
                       </button>
-                      <span className="font-black text-xs px-1 min-w-[20px] text-center text-black">{item.quantity}</span>
+                      <span className="font-black text-xs px-1 min-w-[20px] text-center text-black dark:text-white">{item.quantity}</span>
                       <button 
                         type="button"
                         onClick={() => handleQtyChange(item.id, item.quantity, item.color, 1)}
-                        className="size-7 flex items-center justify-center bg-white rounded-lg shadow-sm active:scale-90 transition"
+                        className="size-7 flex items-center justify-center bg-white dark:bg-zinc-700 rounded-lg shadow-sm active:scale-90 transition"
                       >
-                        <Plus className="size-3 text-black" />
+                        <Plus className="size-3 text-black dark:text-white" />
                       </button>
                     </div>
                     <p className="text-[#6ab344] font-black text-base italic">
@@ -191,36 +185,36 @@ function CheckoutContent() {
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-[2.5rem] border border-black/5 shadow-sm">
+        <div className="bg-white dark:bg-zinc-900 p-6 rounded-[2.5rem] border border-black/5 dark:border-white/10 shadow-sm">
           <div className="flex justify-between items-center mb-2">
-            <span className="text-muted-foreground font-bold text-[10px] uppercase tracking-widest text-gray-500">Montant à régler</span>
-            <span className="bg-blue-100 text-[#4a90e2] text-[10px] font-black px-2 py-1 rounded-md uppercase italic border border-blue-200 flex items-center gap-1">
+            <span className="text-muted-foreground font-bold text-[10px] uppercase tracking-widest dark:text-zinc-500">Montant à régler</span>
+            <span className="bg-blue-100 dark:bg-blue-500/10 text-[#4a90e2] dark:text-blue-400 text-[10px] font-black px-2 py-1 rounded-md uppercase italic border border-blue-200 dark:border-blue-500/20 flex items-center gap-1">
                 <ShieldCheck className="size-3" /> Mobile Money
             </span>
           </div>
-          <p className="text-4xl font-black tracking-tighter text-black">{totalAmount.toLocaleString()} <span className="text-sm">FCFA</span></p>
+          <p className="text-4xl font-black tracking-tighter text-black dark:text-white">{totalAmount.toLocaleString()} <span className="text-sm">FCFA</span></p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <p className="text-[11px] font-black text-muted-foreground uppercase tracking-widest px-1 text-gray-500">Adresse de livraison</p>
+          <p className="text-[11px] font-black text-muted-foreground dark:text-zinc-500 uppercase tracking-widest px-1">Adresse de livraison</p>
           <div className="space-y-3">
             <div className="relative">
-              <User className="absolute left-4 top-1/2 -translate-y-1/2 size-5 text-gray-400" />
-              <input required name="name" placeholder="Ton nom complet" className="w-full bg-white border-none ring-1 ring-black/5 rounded-2xl py-5 pl-12 pr-4 font-bold focus:ring-2 focus:ring-[#4a90e2] outline-none transition-all shadow-sm text-black" />
+              <User className="absolute left-4 top-1/2 -translate-y-1/2 size-5 text-gray-400 dark:text-zinc-600" />
+              <input required name="name" placeholder="Ton nom complet" className="w-full bg-white dark:bg-zinc-900 border-none ring-1 ring-black/5 dark:ring-white/10 rounded-2xl py-5 pl-12 pr-4 font-bold focus:ring-2 focus:ring-[#4a90e2] outline-none transition-all shadow-sm text-black dark:text-white placeholder:text-gray-400 dark:placeholder:text-zinc-600" />
             </div>
             <div className="relative">
-              <Phone className="absolute left-4 top-1/2 -translate-y-1/2 size-5 text-gray-400" />
-              <input required type="tel" name="phone" placeholder="Numéro Mobile Money (6xxxx...)" className="w-full bg-white border-none ring-1 ring-black/5 rounded-2xl py-5 pl-12 pr-4 font-bold focus:ring-2 focus:ring-[#4a90e2] outline-none transition-all shadow-sm text-black" />
+              <Phone className="absolute left-4 top-1/2 -translate-y-1/2 size-5 text-gray-400 dark:text-zinc-600" />
+              <input required type="tel" name="phone" placeholder="Numéro Mobile Money (6xxxx...)" className="w-full bg-white dark:bg-zinc-900 border-none ring-1 ring-black/5 dark:ring-white/10 rounded-2xl py-5 pl-12 pr-4 font-bold focus:ring-2 focus:ring-[#4a90e2] outline-none transition-all shadow-sm text-black dark:text-white placeholder:text-gray-400 dark:placeholder:text-zinc-600" />
             </div>
             <div className="relative">
-              <MapPin className="absolute left-4 top-5 size-5 text-gray-400" />
-              <textarea required name="address" placeholder="Ville, Quartier et indications précises..." rows={3} className="w-full bg-white border-none ring-1 ring-black/5 rounded-2xl py-5 pl-12 pr-4 font-bold focus:ring-2 focus:ring-[#4a90e2] outline-none transition-all shadow-sm resize-none text-black" />
+              <MapPin className="absolute left-4 top-5 size-5 text-gray-400 dark:text-zinc-600" />
+              <textarea required name="address" placeholder="Ville, Quartier et indications précises..." rows={3} className="w-full bg-white dark:bg-zinc-900 border-none ring-1 ring-black/5 dark:ring-white/10 rounded-2xl py-5 pl-12 pr-4 font-bold focus:ring-2 focus:ring-[#4a90e2] outline-none transition-all shadow-sm resize-none text-black dark:text-white placeholder:text-gray-400 dark:placeholder:text-zinc-600" />
             </div>
           </div>
 
-          <div className="p-5 bg-green-50 rounded-2xl border border-green-100 flex gap-4 items-start">
+          <div className="p-5 bg-green-50 dark:bg-green-500/5 rounded-2xl border border-green-100 dark:border-green-500/10 flex gap-4 items-start">
             <CheckCircle2 className="size-6 text-[#6ab344] flex-shrink-0" />
-            <p className="text-[12px] text-green-700 font-bold leading-snug italic">
+            <p className="text-[12px] text-green-700 dark:text-green-500 font-bold leading-snug italic">
               Paiement sécurisé : Votre argent est conservé par DealCity jusqu&apos;à confirmation de la livraison.
             </p>
           </div>
@@ -228,7 +222,7 @@ function CheckoutContent() {
           <button 
             type="submit"
             disabled={isSubmitting || displayItems.length === 0}
-            className="w-full bg-black text-white py-6 rounded-[2.5rem] font-black text-base uppercase italic tracking-widest shadow-xl active:scale-95 transition flex items-center justify-center gap-3 disabled:opacity-50"
+            className="w-full bg-black dark:bg-white text-white dark:text-black py-6 rounded-[2.5rem] font-black text-base uppercase italic tracking-widest shadow-xl active:scale-95 transition flex items-center justify-center gap-3 disabled:opacity-50 dark:disabled:bg-zinc-800 dark:disabled:text-zinc-500"
           >
             {isSubmitting ? (
               <>

@@ -4,7 +4,7 @@ import { useSession } from "@/app/(main)/SessionProvider";
 import { PostData } from "@/lib/types";
 import { cn, formatRelativeDate } from "@/lib/utils";
 import { 
-  MessageSquare, ShieldCheck, Music, ShoppingBag,
+  MessageSquare, ShieldCheck, Music, ShoppingBag, Palette,
   ChevronRight, ChevronLeft, Truck, Loader2, CreditCard 
 } from "lucide-react";
 import Image from "next/image";
@@ -52,6 +52,17 @@ export default function Post({ post }: PostProps) {
   const isDesktop = useMediaQuery("(min-width: 768px)");
 
   const { productName, price, cleanDescription, availableColors } = extractInfo(post.content);
+  
+  // NOUVEAU : État pour la couleur sélectionnée
+  const [selectedColor, setSelectedColor] = useState<string | null>(null);
+
+  // Initialisation de la couleur par défaut
+  useEffect(() => {
+    if (availableColors.length > 0 && !selectedColor) {
+      setSelectedColor(availableColors[0]);
+    }
+  }, [availableColors, selectedColor]);
+
   const charLimit = 150; 
   const isLongText = cleanDescription.length > charLimit;
 
@@ -60,9 +71,8 @@ export default function Post({ post }: PostProps) {
   const finalAudioUrl = post.audioUrl || audioMedia?.url;
   const finalAudioTitle = post.audioTitle || "Son original";
 
-  // --- LOGIQUE D'ACHAT CORRIGÉE POUR MONETBIL ---
+  // --- LOGIQUE D'ACHAT MISE À JOUR ---
   const handleAddToCart = (redirect = false) => {
-    // Nettoyage du prix pour n'avoir que des chiffres
     const numericPrice = price ? parseInt(price.replace(/\D/g, '')) : 0;
     const firstImage = visualAttachments.find(m => m.type === "IMAGE")?.url || visualAttachments[0]?.url || "";
 
@@ -72,11 +82,10 @@ export default function Post({ post }: PostProps) {
       price: numericPrice,
       image: firstImage,
       quantity: 1,
-      color: availableColors.length > 0 ? availableColors[0] : null,
+      color: selectedColor, // Utilise la couleur sélectionnée par l'utilisateur
     };
 
     if (redirect) {
-      // Préparation des paramètres pour la page Checkout (Monetbil)
       const params = new URLSearchParams({
         directId: post.id,
         name: product.name,
@@ -89,7 +98,7 @@ export default function Post({ post }: PostProps) {
     } else {
       addToCart({ ...product, availableColors });
       toast({ 
-        description: `🛒 ${product.name} ajouté au panier !`,
+        description: `🛒 ${product.name} (${product.color}) ajouté !`,
         duration: 2000 
       });
     }
@@ -149,7 +158,32 @@ export default function Post({ post }: PostProps) {
         />
       </div>
 
-      {/* BOUTONS D'ACTION (Paiement Sécurisé mis en avant) */}
+      {/* SÉLECTEUR DE COULEURS */}
+      {availableColors.length > 0 && (
+        <div className="px-4 md:px-0 py-2 space-y-2">
+          <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest flex items-center gap-2">
+            <Palette className="size-3" /> Choisir une couleur :
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {availableColors.map((color) => (
+              <button
+                key={color}
+                onClick={() => setSelectedColor(color)}
+                className={cn(
+                  "px-4 py-2 rounded-xl text-[11px] font-bold uppercase transition-all border",
+                  selectedColor === color
+                    ? "bg-black text-white border-black dark:bg-white dark:text-black shadow-md scale-105"
+                    : "bg-secondary text-secondary-foreground border-border hover:border-primary/50"
+                )}
+              >
+                {color}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* BOUTONS D'ACTION */}
       <div className="px-4 md:px-0 space-y-2">
         <div className="flex gap-2">
           <button 
@@ -283,7 +317,6 @@ function MediaPreviews({ attachments, userAvatar, audioUrl, audioTitle }: any) {
         </div>
       )}
 
-      {/* ROUELLE MUSICALE (VINYLE) */}
       {audioUrl && !isVideo && (
         <div className="absolute bottom-6 left-4 z-50 flex items-center gap-3 bg-black/40 backdrop-blur-md p-2 pr-4 rounded-full border border-white/10 pointer-events-none transition-transform group-hover/media:scale-105">
           <div className={cn(
@@ -309,7 +342,6 @@ function MediaPreviews({ attachments, userAvatar, audioUrl, audioTitle }: any) {
         </div>
       )}
 
-      {/* NAVIGATION */}
       {attachments.length > 1 && (
         <>
           <div className="absolute top-4 right-4 z-50 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-full text-white text-[11px] font-bold border border-white/10">
@@ -338,7 +370,6 @@ function MediaPreviews({ attachments, userAvatar, audioUrl, audioTitle }: any) {
         </>
       )}
 
-      {/* CONTENEUR DES MÉDIAS */}
       <div 
         className="flex h-full w-full transition-transform duration-500 ease-out" 
         style={{ transform: `translateX(-${selectedIndex * 100}%)` }}
@@ -361,7 +392,6 @@ function MediaPreviews({ attachments, userAvatar, audioUrl, audioTitle }: any) {
         ))}
       </div>
 
-      {/* DOTS DE PROGRESSION */}
       {attachments.length > 1 && (
         <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5 z-30 px-2 py-1.5 rounded-full bg-black/20 backdrop-blur-[2px]">
           {attachments.map((_: any, i: number) => (

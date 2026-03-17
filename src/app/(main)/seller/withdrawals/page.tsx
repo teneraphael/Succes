@@ -51,10 +51,10 @@ export default function WithdrawalHistory() {
 
   const getStatusStyle = (status: string) => {
     switch (status) {
-      case "COMPLETED": return "bg-green-50 text-green-600 border-green-100";
-      case "PENDING": return "bg-orange-50 text-orange-600 border-orange-100";
-      case "FAILED": return "bg-red-50 text-red-600 border-red-100";
-      default: return "bg-zinc-50 text-zinc-600";
+      case "COMPLETED": return "bg-green-50 dark:bg-green-500/10 text-green-600 dark:text-green-400 border-green-100 dark:border-green-500/20";
+      case "PENDING": return "bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-100 dark:border-orange-500/20";
+      case "FAILED": return "bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 border-red-100 dark:border-red-500/20";
+      default: return "bg-zinc-50 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400";
     }
   };
 
@@ -67,16 +67,16 @@ export default function WithdrawalHistory() {
   };
 
   return (
-    <main className="min-h-screen bg-[#F8F9FA] pb-20">
+    <main className="min-h-screen bg-[#F8F9FA] dark:bg-zinc-950 pb-20 transition-colors">
       {/* HEADER FIXE */}
-      <div className="bg-white border-b sticky top-0 z-20 px-6 py-6">
+      <div className="bg-white dark:bg-zinc-900 border-b dark:border-white/10 sticky top-0 z-20 px-6 py-6 transition-colors">
         <div className="max-w-2xl mx-auto flex items-center justify-between">
-          <button onClick={() => router.back()} className="p-2 -ml-2 hover:bg-zinc-100 rounded-full transition">
-            <ArrowLeft className="size-6 text-black" />
+          <button onClick={() => router.back()} className="p-2 -ml-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition">
+            <ArrowLeft className="size-6 text-black dark:text-white" />
           </button>
-          <h1 className="text-xl font-black uppercase tracking-tighter italic text-black">Mes Retraits</h1>
-          <div className="size-10 bg-zinc-100 rounded-2xl flex items-center justify-center">
-            <Wallet className="size-5 text-zinc-500" />
+          <h1 className="text-xl font-black uppercase tracking-tighter italic text-black dark:text-white">Mes Retraits</h1>
+          <div className="size-10 bg-zinc-100 dark:bg-zinc-800 rounded-2xl flex items-center justify-center">
+            <Wallet className="size-5 text-zinc-500 dark:text-zinc-400" />
           </div>
         </div>
       </div>
@@ -85,50 +85,52 @@ export default function WithdrawalHistory() {
         
         {/* BARRE DE RECHERCHE */}
         <div className="relative group">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-zinc-400 group-focus-within:text-black transition-colors" />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-zinc-400 group-focus-within:text-black dark:group-focus-within:text-white transition-colors" />
           <input 
             type="text" 
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Rechercher une référence..." 
-            className="w-full bg-white border-none rounded-2xl py-4 pl-12 pr-4 shadow-sm focus:ring-2 focus:ring-black/5 font-bold text-sm text-black"
+            className="w-full bg-white dark:bg-zinc-900 border-none rounded-2xl py-4 pl-12 pr-4 shadow-sm focus:ring-2 focus:ring-black/5 dark:focus:ring-white/5 font-bold text-sm text-black dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-600 outline-none transition-all"
           />
         </div>
 
         {/* LISTE DES TRANSACTIONS */}
         <div className="space-y-3">
-          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 px-2">Historique récent</p>
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 dark:text-zinc-500 px-2">Historique récent</p>
           
           {loading ? (
              <div className="flex flex-col items-center justify-center py-20 space-y-4">
-                <Loader2 className="animate-spin size-8 text-zinc-300" />
-                <p className="text-[10px] font-black uppercase text-zinc-400">Chargement des données...</p>
+                <Loader2 className="animate-spin size-8 text-zinc-300 dark:text-zinc-700" />
+                <p className="text-[10px] font-black uppercase text-zinc-400 dark:text-zinc-600">Chargement des données...</p>
              </div>
           ) : filteredWithdrawals.length === 0 ? (
-            <div className="text-center py-20 bg-white rounded-[2.5rem] border-2 border-dashed border-zinc-200">
-              <p className="text-zinc-400 font-bold uppercase text-xs italic">
+            <div className="text-center py-20 bg-white dark:bg-zinc-900 rounded-[2.5rem] border-2 border-dashed border-zinc-200 dark:border-white/5 transition-colors">
+              <p className="text-zinc-400 dark:text-zinc-600 font-bold uppercase text-xs italic">
                 {searchTerm ? "Aucun résultat pour cette recherche" : "Aucun retrait effectué"}
               </p>
             </div>
           ) : (
             filteredWithdrawals.map((w) => (
-              <div key={w.id} className="bg-white p-5 rounded-[2rem] border border-black/5 shadow-sm hover:shadow-md transition-all group">
+              <div key={w.id} className="bg-white dark:bg-zinc-900 p-5 rounded-[2rem] border border-black/5 dark:border-white/10 shadow-sm hover:shadow-md transition-all group">
                 <div className="flex justify-between items-center">
                   <div className="flex items-center gap-4">
                     <div className={cn(
                       "size-12 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110",
-                      w.status === "COMPLETED" ? "bg-green-100 text-green-600" : "bg-zinc-100 text-zinc-400"
+                      w.status === "COMPLETED" 
+                        ? "bg-green-100 dark:bg-green-500/20 text-green-600 dark:text-green-400" 
+                        : "bg-zinc-100 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-500"
                     )}>
                       <ArrowDownLeft className="size-6" />
                     </div>
                     <div>
-                      <h3 className="font-black text-sm uppercase tracking-tight text-black">{w.method}</h3>
-                      <p className="text-[10px] font-bold text-zinc-400">Réf: {w.reference}</p>
+                      <h3 className="font-black text-sm uppercase tracking-tight text-black dark:text-white">{w.method}</h3>
+                      <p className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500">Réf: {w.reference}</p>
                     </div>
                   </div>
 
                   <div className="text-right">
-                    <p className="text-lg font-black italic text-black">-{w.amount.toLocaleString()} <span className="text-[10px]">FCFA</span></p>
+                    <p className="text-lg font-black italic text-black dark:text-white">-{w.amount.toLocaleString()} <span className="text-[10px]">FCFA</span></p>
                     <div className={cn(
                       "flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[9px] font-black uppercase mt-1",
                       getStatusStyle(w.status)
@@ -139,12 +141,12 @@ export default function WithdrawalHistory() {
                   </div>
                 </div>
                 
-                <div className="mt-4 pt-4 border-t border-dashed border-zinc-100 flex justify-between items-center">
-                   <p className="text-[10px] font-black text-zinc-300 uppercase italic">
+                <div className="mt-4 pt-4 border-t border-dashed border-zinc-100 dark:border-white/10 flex justify-between items-center">
+                   <p className="text-[10px] font-black text-zinc-300 dark:text-zinc-600 uppercase italic">
                      {format(new Date(w.createdAt), "dd MMMM yyyy 'à' HH:mm", { locale: fr })}
                    </p>
                    {w.status === "FAILED" && (
-                     <button className="text-[10px] font-black text-red-600 uppercase border-b border-red-600">Erreur de réseau</button>
+                     <button className="text-[10px] font-black text-red-600 dark:text-red-400 uppercase border-b border-red-600 dark:border-red-400">Erreur de réseau</button>
                    )}
                 </div>
               </div>
