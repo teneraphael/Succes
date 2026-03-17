@@ -4,80 +4,43 @@ import { NextResponse } from "next/server";
 
 const MY_ADMIN_ID = "4yq76ntw6lpduptd";
 
-export async function GET() {
+export async function PATCH(
+  req: Request,
+  { params }: { params: Promise<{ orderId: string }> } // CRITIQUE : Promise pour Next 15
+) {
   try {
     const { user: loggedInUser } = await validateRequest();
 
+    // 1. Vérification Admin/Livreur
     if (!loggedInUser || loggedInUser.id !== MY_ADMIN_ID) {
-      return NextResponse.json(
-        { error: "Accès interdit" }, 
-        { status: 403 }
-      );
+      return NextResponse.json({ error: "Accès interdit" }, { status: 403 });
     }
 
-    const orders = await prisma.order.findMany({
-      where: {
-        status: "PENDING",
-      },
-      include: {
-        user: {
-          select: {
-            displayName: true,
-            username: true,
-          },
-        },
-        post: {
-          select: {
-            content: true, // Ce champ semble valide d'après ton code
-            attachments: {
-              where: { type: "IMAGE" },
-              take: 1,
-            },
-          },
-        },
-      },
-      orderBy: { 
-        createdAt: "desc" 
+    // 2. Récupération de l'ID (on attend la promise)
+    const { orderId } = await params;
+
+    if (!orderId) {
+      return NextResponse.json({ error: "ID de commande manquant" }, { status: 400 });
+    }
+
+    // 3. Mise à jour du statut
+    // On passe de PENDING à SHIPPED (ou DELIVERED)
+    const updatedOrder = await prisma.order.update({
+      where: { id: orderId },
+      data: {
+        status: "SHIPPED", // C'est ce statut qui fera apparaître le bouton chez le client
       },
     });
 
-    const formattedOrders = orders.map(order => {
-      // On force le passage en 'any' pour éviter que TS bloque sur les noms de colonnes
-      const orderAny = order as any;
-      const postAny = order.post as any;
-
-      return {
-        id: order.id,
-        status: order.status,
-        createdAt: order.createdAt,
-        
-        // NOM DU CLIENT
-        customerName: order.user?.displayName || order.user?.username || "Client Inconnu",
-        
-        // PRIX : On cherche dans l'ordre de priorité : 
-        // 1. totalAmount (souvent utilisé avec Monetbil) 
-        // 2. price 
-        // 3. amount
-        price: orderAny.totalAmount || orderAny.price || orderAny.amount || 0,
-
-        // NOM DU PRODUIT : On utilise 'content' que tu as dans ton select
-        productName: postAny?.content || "Article DealCity",
-
-        // IMAGE
-        productImage: order.post?.attachments?.[0]?.url || null,
-
-        // ADRESSE & TÉLÉPHONE
-        deliveryAddress: orderAny.customerAddress || orderAny.address || "Adresse non fournie",
-        phoneNumber: orderAny.customerPhone || orderAny.phone || "Numéro masqué",
-      };
+    return NextResponse.json({ 
+      success: true, 
+      newStatus: updatedOrder.status 
     });
 
-    return NextResponse.json(formattedOrders);
-
-  } catch (error) {
-    console.error("[DELIVERY_GET_ERROR]:", error);
+  } catch (error: any) {
+    console.error("[DELIVERY_CONFIRM_ERROR]:", error);
     return NextResponse.json(
-      { error: "Erreur de récupération" }, 
+      { error: "Erreur lors de la validation", details: error.message }, 
       { status: 500 }
     );
   }
