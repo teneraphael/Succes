@@ -10,7 +10,7 @@ import StarterKit from "@tiptap/starter-kit";
 import { useDropzone } from "@uploadthing/react";
 import { 
   Camera, Loader2, X, Tag, Banknote, 
-  Sparkles, Music, Zap, Play, Pause, Scissors, SlidersHorizontal, Check, Type
+  Sparkles, Music, Zap, Play, Pause, Scissors, SlidersHorizontal, Check, Type, Palette
 } from "lucide-react";
 import { useRef, useState, useEffect } from "react";
 import { useSubmitPostMutation } from "./mutations";
@@ -39,6 +39,7 @@ export default function PostEditor() {
 
   const [productName, setProductName] = useState("");
   const [price, setPrice] = useState("");
+  const [colors, setColors] = useState(""); // ÉTAT POUR LES COULEURS
   const [targetUserId, setTargetUserId] = useState("me");
   
   // ÉTAT POUR LA MUSIQUE TENDANCE
@@ -99,13 +100,15 @@ export default function PostEditor() {
     // Priorité à la musique tendance si sélectionnée, sinon au titre manuel
     const finalAudioTitle = selectedMusic ? selectedMusic.title : audioTitle;
     const audioInfo = finalAudioTitle ? `\n\n🎵 TRACK : ${finalAudioTitle}${audioArtist ? ` - ${audioArtist}` : ""}` : "";
+    
+    // Construction de la ligne des couleurs pour l'extracteur
+    const colorsInfo = colors.trim() ? `\n🎨 COULEURS : ${colors}` : "";
 
     mutation.mutate(
       {
-        content: `🛍️ PRODUIT : ${productName}\n💰 PRIX : ${price} FCFA\n\n📝 DESCRIPTION :\n${description}${audioInfo}`,
+        content: `🛍️ PRODUIT : ${productName}\n💰 PRIX : ${price} FCFA${colorsInfo}\n\n📝 DESCRIPTION :\n${description}${audioInfo}`,
         mediaIds: attachments.map((a) => a.mediaId).filter(Boolean) as string[],
         audioId: audioAttachment?.mediaId,
-        // PASSAGE DES NOUVELLES DONNÉES AUDIO
         audioUrl: selectedMusic?.url, 
         audioTitle: finalAudioTitle,
         targetUserId: isAdmin && targetUserId !== "me" ? targetUserId : undefined,
@@ -115,9 +118,10 @@ export default function PostEditor() {
           editor?.commands.clearContent();
           setProductName("");
           setPrice("");
+          setColors(""); // Reset couleurs
           setAudioTitle("");
           setAudioArtist("");
-          setSelectedMusic(null); // Reset musique
+          setSelectedMusic(null); 
           setTargetUserId("me");
           resetMediaUploads();
           toast({ description: "Publication réussie !" });
@@ -182,6 +186,17 @@ export default function PostEditor() {
         </div>
       </div>
 
+      {/* NOUVEAU : INPUT COULEURS */}
+      <div className="relative">
+        <Palette className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+        <input
+          placeholder="COULEURS DISPONIBLES (EX: NOIR, BLEU, ROUGE)"
+          value={colors}
+          onChange={(e) => setColors(e.target.value)}
+          className="w-full h-12 pl-12 rounded-xl bg-muted/50 border border-transparent focus:border-primary/30 focus:bg-background outline-none transition-all text-[11px] font-bold uppercase"
+        />
+      </div>
+
       {/* TEXT EDITOR / DROPZONE */}
       <div {...getRootProps()} className={cn("relative rounded-xl bg-muted/30 border-2 border-dashed border-transparent transition-all", isDragActive && "border-primary/50 bg-primary/5")}>
         <EditorContent editor={editor} className="min-h-[120px] w-full px-4 py-3 prose dark:prose-invert max-w-none text-sm focus:outline-none" />
@@ -236,7 +251,7 @@ export default function PostEditor() {
               type="file" 
               accept="audio/*" 
               className="hidden" 
-              disabled={!!selectedMusic} // Désactivé si une musique tendance est choisie
+              disabled={!!selectedMusic} 
               onChange={(e) => {
                 const files = Array.from(e.target.files || []);
                 if (files.length) startUpload(files);
@@ -259,6 +274,7 @@ export default function PostEditor() {
   );
 }
 
+// ... Les sous-composants (AudioStudioEditor, AttachmentStudio, AddAttachmentsButton) restent identiques à ton code original
 function AudioStudioEditor({ file, onRemove, title, setTitle, artist, setArtist }: any) {
   const containerRef = useRef<HTMLDivElement>(null);
   const waveSurferRef = useRef<WaveSurfer | null>(null);
@@ -358,7 +374,6 @@ function AudioStudioEditor({ file, onRemove, title, setTitle, artist, setArtist 
   );
 }
 
-// --- ATTACHMENT STUDIO ---
 function AttachmentStudio({ attachment, onRemove }: any) {
   const [src, setSrc] = useState("");
   const [isEditing, setIsEditing] = useState(false);
