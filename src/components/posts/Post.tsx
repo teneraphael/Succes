@@ -30,14 +30,15 @@ import SellerBadge from "../SellerBadge";
 interface PostProps { post: PostData; }
 
 const extractInfo = (content: string) => {
-  const productMatch = content.match(/🛍️ PRODUIT : (.*)/);
-  const priceMatch = content.match(/💰 PRIX : (.*?) FCFA/);
-  const colorsMatch = content.match(/🎨 COULEURS : (.*)/);
-  const descMatch = content.match(/📝 DESCRIPTION :\n([\s\S]*?)(?=\n\n🎵|$)/);
+  // Correction Regex pour être plus flexible sur les espaces et la casse
+  const productMatch = content.match(/🛍️\s*PRODUIT\s*:\s*(.*)/i);
+  const priceMatch = content.match(/💰\s*PRIX\s*:\s*(.*?)\s*FCFA/i);
+  const colorsMatch = content.match(/🎨\s*COULEURS\s*:\s*(.*)/i);
+  const descMatch = content.match(/📝\s*DESCRIPTION\s*:\s*\n?([\s\S]*?)(?=\n\n🎵|$)/i);
   
   return {
-    productName: productMatch ? productMatch[1] : null,
-    price: priceMatch ? priceMatch[1] : null,
+    productName: productMatch ? productMatch[1].trim() : null,
+    price: priceMatch ? priceMatch[1].trim() : null,
     availableColors: colorsMatch ? colorsMatch[1].split(',').map(c => c.trim()).filter(c => c !== "") : [],
     cleanDescription: descMatch ? descMatch[1].trim() : content,
   };
@@ -53,7 +54,6 @@ export default function Post({ post }: PostProps) {
 
   const { productName, price, cleanDescription, availableColors } = extractInfo(post.content);
   
-  // État pour la couleur sélectionnée
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
 
   useEffect(() => {
@@ -288,8 +288,10 @@ function MediaPreviews({
     <div 
       ref={(el) => { containerRef.current = el; handlers.ref(el); }}
       className="relative group/media cursor-pointer select-none overflow-hidden h-full flex items-center justify-center"
-      onClick={() => {
+      onClick={(e) => {
+        // Correction : On ignore le clic si c'est une vidéo ou si on clique sur une couleur
         if (isVideo) return;
+        if ((e.target as HTMLElement).closest('button')) return;
         isPlaying ? stopAudio() : playAudio();
       }}
     >
@@ -301,30 +303,30 @@ function MediaPreviews({
         </div>
       )}
 
-      {/* SÉLECTEUR DE COULEURS FLOTTANT AU-DESSUS DE LA MUSIQUE */}
-     {/* SÉLECTEUR DE COULEURS FLOTTANT AVEC ANIMATION */}
-{availableColors.length > 0 && (
-  <div className="absolute bottom-20 left-4 z-[60] flex flex-wrap gap-1.5 max-w-[220px] animate-in fade-in slide-in-from-bottom-2 duration-700 delay-300">
-    {availableColors.map((color: string) => (
-      <button
-        key={color}
-        onClick={(e) => {
-          e.stopPropagation();
-          setSelectedColor(color);
-        }}
-        className={cn(
-          "px-3 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all duration-300 border backdrop-blur-md",
-          "hover:scale-110 active:scale-95", // Animation au survol et au clic
-          selectedColor === color
-            ? "bg-white text-black border-white shadow-[0_0_20px_rgba(255,255,255,0.4)] scale-110 z-10"
-            : "bg-black/40 text-white/80 border-white/10 hover:bg-black/60 hover:border-white/40"
-        )}
-      >
-        {color}
-      </button>
-    ))}
-  </div>
-)}
+      {/* SÉLECTEUR DE COULEURS */}
+      {availableColors.length > 0 && (
+        <div className="absolute bottom-20 left-4 z-[60] flex flex-wrap gap-1.5 max-w-[220px] animate-in fade-in slide-in-from-bottom-2 duration-700 delay-300">
+          {availableColors.map((color: string) => (
+            <button
+              key={color}
+              onClick={(e) => {
+                e.stopPropagation();
+                setSelectedColor(color);
+              }}
+              className={cn(
+                "px-3 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all duration-300 border backdrop-blur-md",
+                "hover:scale-110 active:scale-95",
+                selectedColor === color
+                  ? "bg-white text-black border-white shadow-[0_0_20px_rgba(255,255,255,0.4)] scale-110 z-10"
+                  : "bg-black/40 text-white/80 border-white/10 hover:bg-black/60 hover:border-white/40"
+              )}
+            >
+              {color}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* ROUELLE MUSICALE (VINYLE) */}
       {audioUrl && !isVideo && (
         <div className="absolute bottom-6 left-4 z-50 flex items-center gap-3 bg-black/40 backdrop-blur-md p-2 pr-4 rounded-full border border-white/10 pointer-events-none transition-transform group-hover/media:scale-105">
