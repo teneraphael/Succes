@@ -53,10 +53,9 @@ export default function Post({ post }: PostProps) {
 
   const { productName, price, cleanDescription, availableColors } = extractInfo(post.content);
   
-  // NOUVEAU : État pour la couleur sélectionnée
+  // État pour la couleur sélectionnée
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
 
-  // Initialisation de la couleur par défaut
   useEffect(() => {
     if (availableColors.length > 0 && !selectedColor) {
       setSelectedColor(availableColors[0]);
@@ -71,7 +70,6 @@ export default function Post({ post }: PostProps) {
   const finalAudioUrl = post.audioUrl || audioMedia?.url;
   const finalAudioTitle = post.audioTitle || "Son original";
 
-  // --- LOGIQUE D'ACHAT MISE À JOUR ---
   const handleAddToCart = (redirect = false) => {
     const numericPrice = price ? parseInt(price.replace(/\D/g, '')) : 0;
     const firstImage = visualAttachments.find(m => m.type === "IMAGE")?.url || visualAttachments[0]?.url || "";
@@ -82,7 +80,7 @@ export default function Post({ post }: PostProps) {
       price: numericPrice,
       image: firstImage,
       quantity: 1,
-      color: selectedColor, // Utilise la couleur sélectionnée par l'utilisateur
+      color: selectedColor,
     };
 
     if (redirect) {
@@ -107,7 +105,7 @@ export default function Post({ post }: PostProps) {
   return (
     <article className="group/post w-full space-y-3 bg-card py-4 md:p-5 rounded-none md:rounded-2xl border-y md:border border-border shadow-none md:shadow-sm">
       
-      {/* HEADER : Infos Vendeur */}
+      {/* HEADER */}
       <div className="flex justify-between gap-3 px-4 md:px-0">
         <div className="flex flex-wrap gap-3">
           <UserTooltip user={post.user}>
@@ -148,40 +146,18 @@ export default function Post({ post }: PostProps) {
         </div>
       </div>
 
-      {/* MÉDIA : Photos / Vidéos / Audio */}
+      {/* MÉDIA AVEC SÉLECTEUR DE COULEURS INTÉGRÉ */}
       <div className="relative overflow-hidden bg-zinc-900 w-full md:rounded-2xl min-h-[400px]">
         <MediaPreviews 
           attachments={visualAttachments} 
           userAvatar={post.user.avatarUrl}
           audioUrl={finalAudioUrl}
           audioTitle={finalAudioTitle}
+          availableColors={availableColors}
+          selectedColor={selectedColor}
+          setSelectedColor={setSelectedColor}
         />
       </div>
-
-      {/* SÉLECTEUR DE COULEURS */}
-      {availableColors.length > 0 && (
-        <div className="px-4 md:px-0 py-2 space-y-2">
-          <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest flex items-center gap-2">
-            <Palette className="size-3" /> Choisir une couleur :
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {availableColors.map((color) => (
-              <button
-                key={color}
-                onClick={() => setSelectedColor(color)}
-                className={cn(
-                  "px-4 py-2 rounded-xl text-[11px] font-bold uppercase transition-all border",
-                  selectedColor === color
-                    ? "bg-black text-white border-black dark:bg-white dark:text-black shadow-md scale-105"
-                    : "bg-secondary text-secondary-foreground border-border hover:border-primary/50"
-                )}
-              >
-                {color}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* BOUTONS D'ACTION */}
       <div className="px-4 md:px-0 space-y-2">
@@ -251,7 +227,15 @@ export default function Post({ post }: PostProps) {
 }
 
 // --- SOUS-COMPOSANT MÉDIA ---
-function MediaPreviews({ attachments, userAvatar, audioUrl, audioTitle }: any) {
+function MediaPreviews({ 
+  attachments, 
+  userAvatar, 
+  audioUrl, 
+  audioTitle, 
+  availableColors, 
+  selectedColor, 
+  setSelectedColor 
+}: any) {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -317,6 +301,31 @@ function MediaPreviews({ attachments, userAvatar, audioUrl, audioTitle }: any) {
         </div>
       )}
 
+      {/* SÉLECTEUR DE COULEURS FLOTTANT AU-DESSUS DE LA MUSIQUE */}
+     {/* SÉLECTEUR DE COULEURS FLOTTANT AVEC ANIMATION */}
+{availableColors.length > 0 && (
+  <div className="absolute bottom-20 left-4 z-[60] flex flex-wrap gap-1.5 max-w-[220px] animate-in fade-in slide-in-from-bottom-2 duration-700 delay-300">
+    {availableColors.map((color: string) => (
+      <button
+        key={color}
+        onClick={(e) => {
+          e.stopPropagation();
+          setSelectedColor(color);
+        }}
+        className={cn(
+          "px-3 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all duration-300 border backdrop-blur-md",
+          "hover:scale-110 active:scale-95", // Animation au survol et au clic
+          selectedColor === color
+            ? "bg-white text-black border-white shadow-[0_0_20px_rgba(255,255,255,0.4)] scale-110 z-10"
+            : "bg-black/40 text-white/80 border-white/10 hover:bg-black/60 hover:border-white/40"
+        )}
+      >
+        {color}
+      </button>
+    ))}
+  </div>
+)}
+      {/* ROUELLE MUSICALE (VINYLE) */}
       {audioUrl && !isVideo && (
         <div className="absolute bottom-6 left-4 z-50 flex items-center gap-3 bg-black/40 backdrop-blur-md p-2 pr-4 rounded-full border border-white/10 pointer-events-none transition-transform group-hover/media:scale-105">
           <div className={cn(
@@ -342,6 +351,7 @@ function MediaPreviews({ attachments, userAvatar, audioUrl, audioTitle }: any) {
         </div>
       )}
 
+      {/* NAVIGATION */}
       {attachments.length > 1 && (
         <>
           <div className="absolute top-4 right-4 z-50 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-full text-white text-[11px] font-bold border border-white/10">
@@ -370,6 +380,7 @@ function MediaPreviews({ attachments, userAvatar, audioUrl, audioTitle }: any) {
         </>
       )}
 
+      {/* CONTENEUR DES MÉDIAS */}
       <div 
         className="flex h-full w-full transition-transform duration-500 ease-out" 
         style={{ transform: `translateX(-${selectedIndex * 100}%)` }}
@@ -392,6 +403,7 @@ function MediaPreviews({ attachments, userAvatar, audioUrl, audioTitle }: any) {
         ))}
       </div>
 
+      {/* DOTS DE PROGRESSION */}
       {attachments.length > 1 && (
         <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5 z-30 px-2 py-1.5 rounded-full bg-black/20 backdrop-blur-[2px]">
           {attachments.map((_: any, i: number) => (
