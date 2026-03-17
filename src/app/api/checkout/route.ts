@@ -34,7 +34,7 @@ export async function POST(req: Request) {
         sellerId: post.userId,
         postId: postId,
         totalAmount: totalAmount,
-        total: totalAmount, // Ajouté car obligatoire dans ton schéma
+        total: totalAmount,
         commission: commission,
         sellerEarnings: sellerEarnings,
         customerName: name,
@@ -49,7 +49,7 @@ export async function POST(req: Request) {
     formData.append("service", process.env.MONETBIL_SERVICE_KEY!);
     formData.append("amount", totalAmount.toString());
     formData.append("phonenumber", phone);
-    formData.append("item_ref", order.id); // Utilisé par le Webhook pour identifier la commande
+    formData.append("item_ref", order.id);
     formData.append("payment_phrase", `DealCity: ${post.content?.substring(0, 30)}`);
     formData.append("currency", "XAF");
     formData.append("notify_url", `${process.env.NEXT_PUBLIC_BASE_URL}/api/webhooks/monetbil`);
@@ -66,25 +66,39 @@ export async function POST(req: Request) {
 
     const data = await response.json();
 
-    // 7. Gestion de la réponse Monetbil
+    // 7. GESTION DE LA RÉPONSE (CORRIGÉE)
+
+    // CAS A : Redirection externe (Lien de paiement)
     if (data.payment_url) {
-      // Cas classique (souvent MTN) : on redirige vers l'URL
       return NextResponse.json({ url: data.payment_url });
     } 
     
+    // CAS B : Succès - Le solde est suffisant et le "Push" est lancé
     if (data.status === "REQUEST_ACCEPTED" || data.message === "payment pending") {
-      // Cas Orange Money : l'utilisateur doit valider sur son téléphone
       return NextResponse.json({ 
         success: true,
-        message: "Veuillez valider le paiement sur votre téléphone.",
+        message: "Session ouverte ! Saisissez votre code PIN sur votre téléphone pour valider.",
         ussd: data.channel_ussd || "#150*50#" 
       });
     }
 
-    // Si on arrive ici, c'est que Monetbil a renvoyé une erreur réelle
+    // CAS C : ÉCHEC SPÉCIFIQUE (Solde insuffisant)
+    // Monetbil renvoie souvent 402 ou un message contenant "balance"
+    const isInsufficient = data.code === 402 || 
+                           data.status === "REQUEST_FAILED" && 
+                           data.message?.toLowerCase().includes("balance");
+
+    if (isInsufficient) {
+      return NextResponse.json({ 
+        error: "Solde insuffisant ! Rechargez votre compte Orange/MTN et réessayez.",
+        step: "RECHARGE"
+      }, { status: 402 });
+    }
+
+    // CAS D : Autre erreur (Numéro invalide, etc.)
     console.error("Détails Erreur Monetbil:", data);
     return NextResponse.json({ 
-      error: data.message || "Erreur lors de l'initialisation du paiement" 
+      error: data.message || "Impossible d'initier le paiement. Vérifiez votre numéro ou votre solde." 
     }, { status: 400 });
 
   } catch (error) {

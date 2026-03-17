@@ -3,13 +3,13 @@
 import { useState, useEffect } from "react";
 import { 
   ArrowLeft, Wallet, Clock, CheckCircle2, 
-  XCircle, ArrowDownLeft, Search, Filter 
+  XCircle, ArrowDownLeft, Search, Loader2 
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 
-// Structure type d'un retrait
+// Structure exacte de ta base de données
 interface Withdrawal {
   id: string;
   amount: number;
@@ -23,18 +23,31 @@ export default function WithdrawalHistory() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [withdrawals, setWithdrawals] = useState<Withdrawal[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
 
-  // Simulation des données (À remplacer par ton fetch API)
+  // --- RÉCUPÉRATION DES VRAIS DONNÉES ---
   useEffect(() => {
-    setTimeout(() => {
-      setWithdrawals([
-        { id: "1", amount: 25000, status: "COMPLETED", method: "Orange Money", createdAt: new Date().toISOString(), reference: "DC-99283" },
-        { id: "2", amount: 12000, status: "PENDING", method: "MTN MoMo", createdAt: new Date().toISOString(), reference: "DC-99102" },
-        { id: "3", amount: 5000, status: "FAILED", method: "MTN MoMo", createdAt: new Date().toISOString(), reference: "DC-98750" },
-      ]);
-      setLoading(false);
-    }, 1000);
+    const fetchWithdrawals = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch("/api/withdrawals"); // Ton endpoint API
+        if (!response.ok) throw new Error("Erreur lors du chargement");
+        const data = await response.json();
+        setWithdrawals(data);
+      } catch (error) {
+        console.error("Erreur:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchWithdrawals();
   }, []);
+
+  // Filtrage par référence
+  const filteredWithdrawals = withdrawals.filter(w => 
+    w.reference.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   const getStatusStyle = (status: string) => {
     switch (status) {
@@ -59,9 +72,9 @@ export default function WithdrawalHistory() {
       <div className="bg-white border-b sticky top-0 z-20 px-6 py-6">
         <div className="max-w-2xl mx-auto flex items-center justify-between">
           <button onClick={() => router.back()} className="p-2 -ml-2 hover:bg-zinc-100 rounded-full transition">
-            <ArrowLeft className="size-6" />
+            <ArrowLeft className="size-6 text-black" />
           </button>
-          <h1 className="text-xl font-black uppercase tracking-tighter italic">Mes Retraits</h1>
+          <h1 className="text-xl font-black uppercase tracking-tighter italic text-black">Mes Retraits</h1>
           <div className="size-10 bg-zinc-100 rounded-2xl flex items-center justify-center">
             <Wallet className="size-5 text-zinc-500" />
           </div>
@@ -70,13 +83,15 @@ export default function WithdrawalHistory() {
 
       <div className="max-w-2xl mx-auto p-4 mt-4 space-y-6">
         
-        {/* BARRE DE RECHERECHE RAPIDE */}
+        {/* BARRE DE RECHERCHE */}
         <div className="relative group">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-zinc-400 group-focus-within:text-black transition-colors" />
           <input 
             type="text" 
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Rechercher une référence..." 
-            className="w-full bg-white border-none rounded-2xl py-4 pl-12 pr-4 shadow-sm focus:ring-2 focus:ring-black/5 font-bold text-sm"
+            className="w-full bg-white border-none rounded-2xl py-4 pl-12 pr-4 shadow-sm focus:ring-2 focus:ring-black/5 font-bold text-sm text-black"
           />
         </div>
 
@@ -85,15 +100,18 @@ export default function WithdrawalHistory() {
           <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 px-2">Historique récent</p>
           
           {loading ? (
-             <div className="animate-pulse space-y-3">
-               {[1, 2, 3].map((i) => <div key={i} className="h-24 bg-zinc-200 rounded-[2rem]" />)}
+             <div className="flex flex-col items-center justify-center py-20 space-y-4">
+                <Loader2 className="animate-spin size-8 text-zinc-300" />
+                <p className="text-[10px] font-black uppercase text-zinc-400">Chargement des données...</p>
              </div>
-          ) : withdrawals.length === 0 ? (
-            <div className="text-center py-20 bg-white rounded-[2.5rem] border-2 border-dashed">
-              <p className="text-zinc-400 font-bold uppercase text-xs">Aucun retrait effectué</p>
+          ) : filteredWithdrawals.length === 0 ? (
+            <div className="text-center py-20 bg-white rounded-[2.5rem] border-2 border-dashed border-zinc-200">
+              <p className="text-zinc-400 font-bold uppercase text-xs italic">
+                {searchTerm ? "Aucun résultat pour cette recherche" : "Aucun retrait effectué"}
+              </p>
             </div>
           ) : (
-            withdrawals.map((w) => (
+            filteredWithdrawals.map((w) => (
               <div key={w.id} className="bg-white p-5 rounded-[2rem] border border-black/5 shadow-sm hover:shadow-md transition-all group">
                 <div className="flex justify-between items-center">
                   <div className="flex items-center gap-4">
@@ -104,13 +122,13 @@ export default function WithdrawalHistory() {
                       <ArrowDownLeft className="size-6" />
                     </div>
                     <div>
-                      <h3 className="font-black text-sm uppercase tracking-tight">{w.method}</h3>
+                      <h3 className="font-black text-sm uppercase tracking-tight text-black">{w.method}</h3>
                       <p className="text-[10px] font-bold text-zinc-400">Réf: {w.reference}</p>
                     </div>
                   </div>
 
                   <div className="text-right">
-                    <p className="text-lg font-black italic">-{w.amount.toLocaleString()} <span className="text-[10px]">FCFA</span></p>
+                    <p className="text-lg font-black italic text-black">-{w.amount.toLocaleString()} <span className="text-[10px]">FCFA</span></p>
                     <div className={cn(
                       "flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[9px] font-black uppercase mt-1",
                       getStatusStyle(w.status)
@@ -121,12 +139,12 @@ export default function WithdrawalHistory() {
                   </div>
                 </div>
                 
-                <div className="mt-4 pt-4 border-t border-dashed flex justify-between items-center">
+                <div className="mt-4 pt-4 border-t border-dashed border-zinc-100 flex justify-between items-center">
                    <p className="text-[10px] font-black text-zinc-300 uppercase italic">
                      {format(new Date(w.createdAt), "dd MMMM yyyy 'à' HH:mm", { locale: fr })}
                    </p>
                    {w.status === "FAILED" && (
-                     <button className="text-[10px] font-black text-blue-600 uppercase border-b border-blue-600">Détails de l&apos;erreur</button>
+                     <button className="text-[10px] font-black text-red-600 uppercase border-b border-red-600">Erreur de réseau</button>
                    )}
                 </div>
               </div>
@@ -138,7 +156,7 @@ export default function WithdrawalHistory() {
   );
 }
 
-// Petite fonction utilitaire pour les classes
+// Fonction utilitaire pour fusionner les classes Tailwind
 function cn(...classes: any[]) {
   return classes.filter(Boolean).join(' ');
 }

@@ -33,6 +33,7 @@ export default function DeliveryDashboard() {
     }
 
     fetchOrders();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loggedInUser, router]);
 
   async function fetchOrders() {

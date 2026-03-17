@@ -10,17 +10,26 @@ export async function POST(req: Request) {
       body: new URLSearchParams({
         service: process.env.MONETBIL_SERVICE_KEY!,
         amount: amount.toString(),
-        phonenumber: phoneNumber, // Format: 6xxxxxxx
-        operator: "CM", // Pour le Cameroun
+        phonenumber: phoneNumber,
+        operator: "CM",
         item_ref: orderId,
-        return_url: `${process.env.NEXT_PUBLIC_BASE_URL}/payment/success`,
-        notify_url: `${process.env.NEXT_PUBLIC_BASE_URL}/api/webhooks/monetbil`,
+        user_id: "customer_id", // Optionnel mais recommandé
       }),
     });
 
     const data = await response.json();
+
+    // Monetbil renvoie souvent un code d'erreur si le solde est bas ou si le numéro est invalide
+    if (data.status === "REQUEST_FAILED" || data.code === 402) {
+       return NextResponse.json({ 
+         error: "Solde insuffisant ou erreur opérateur", 
+         details: data 
+       }, { status: 400 });
+    }
+
     return NextResponse.json(data);
   } catch (error) {
-    return NextResponse.json({ error: "Erreur de paiement" }, { status: 500 });
+    console.error("Erreur Monetbil:", error);
+    return NextResponse.json({ error: "Erreur de connexion au service" }, { status: 500 });
   }
 }

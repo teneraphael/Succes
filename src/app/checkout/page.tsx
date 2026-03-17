@@ -16,7 +16,7 @@ export default function CheckoutPage() {
 }
 
 function CheckoutContent() {
-  const { cart, clearCart, updateQuantity } = useCart();
+  const { cart, updateQuantity } = useCart();
   const searchParams = useSearchParams();
   const router = useRouter();
   const { toast } = useToast();
@@ -48,7 +48,7 @@ function CheckoutContent() {
     }
   };
 
-  // --- LOGIQUE DE PAIEMENT MISE À JOUR ---
+  // --- LOGIQUE DE PAIEMENT CORRIGÉE ---
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (displayItems.length === 0) {
@@ -58,12 +58,16 @@ function CheckoutContent() {
 
     setIsSubmitting(true);
     const formData = new FormData(e.currentTarget);
+    
+    // Nettoyage du numéro de téléphone (enlève les espaces et le +237 éventuel)
+    const rawPhone = formData.get('phone') as string;
+    const cleanPhone = rawPhone.replace(/\s+/g, '').replace(/^\+237/, '');
 
     const orderData = {
       postId: displayItems[0].id,
       price: totalAmount,
       name: formData.get('name'),
-      phone: formData.get('phone'),
+      phone: cleanPhone,
       address: formData.get('address'),
     };
 
@@ -76,28 +80,51 @@ function CheckoutContent() {
 
       const result = await response.json();
 
+      // 1. GESTION DES ERREURS
+      if (!response.ok) {
+        if (response.status === 402 || result.error?.toLowerCase().includes("solde")) {
+          toast({ 
+            variant: "destructive", 
+            title: "SOLDE INSUFFISANT ⚠️",
+            description: "Votre compte n'a pas assez de fonds (prévoyez les frais). Rechargez et réessayez.",
+            duration: 8000,
+          });
+        } else {
+          toast({ 
+            variant: "destructive", 
+            title: "ÉCHEC DU PAIEMENT",
+            description: result.error || "Une erreur est survenue lors de l'initialisation." 
+          });
+        }
+        return; 
+      }
+
+      // 2. GESTION DU SUCCÈS
       if (result.url) {
-        // Cas 1 : Redirection (MTN Money ou Guichet Web)
+        // Redirection MTN ou Guichet Web
         window.location.href = result.url;
-      } else if (result.ussd || result.success) {
-        // Cas 2 : Orange Money (Paiement en attente sur mobile)
+      } else if (result.success) {
+        // Détection du réseau
+        const isOrange = /^(69|655|656|657|658|659)/.test(cleanPhone);
+
         toast({ 
-          title: "Action requise",
-          description: `Veuillez composer le ${result.ussd || '#150*50#'} sur votre téléphone pour confirmer le paiement de ${totalAmount} FCFA.`,
-          duration: 10000,
+          title: "ACTION REQUISE ✅",
+          description: isOrange 
+            ? `Validez sur votre écran ou composez le #150*50# pour payer ${totalAmount} FCFA.`
+            : `Saisissez votre code PIN sur le message push reçu pour payer ${totalAmount} FCFA.`,
+          duration: 15000,
         });
         
-        // On attend un peu puis on redirige vers les commandes pour que l'utilisateur suive le statut
         setTimeout(() => {
-            router.push(`/users/me?tab=orders`); // Adapte selon ta route profil
-        }, 5000);
-      } else {
-        throw new Error(result.error || "Erreur lors de l'initialisation");
+            router.push(`/users/me?tab=orders`);
+        }, 8000);
       }
+
     } catch (error: any) {
       toast({ 
         variant: "destructive", 
-        description: error.message || "Impossible de joindre Monetbil. Réessayez." 
+        title: "ERREUR RÉSEAU",
+        description: "Impossible de joindre le service de paiement." 
       });
     } finally {
       setIsSubmitting(false);
@@ -124,7 +151,7 @@ function CheckoutContent() {
             {displayItems.map((item, index) => (
               <div key={`${item.id}-${index}`} className="flex gap-4">
                 <div className="relative size-20 rounded-2xl overflow-hidden bg-gray-50 flex-shrink-0 border border-black/5">
-                  <Image src={item.image} alt={item.name} fill className="object-cover" />
+                  {item.image && <Image src={item.image} alt={item.name} fill className="object-cover" />}
                 </div>
                 <div className="flex-1 min-w-0 flex flex-col justify-center">
                   <h3 className="font-bold text-[11px] uppercase truncate leading-tight mb-1 text-black">{item.name}</h3>
