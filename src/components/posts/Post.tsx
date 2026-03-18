@@ -245,11 +245,25 @@ function MediaPreviews({
   const currentMedia = attachments[selectedIndex];
   const isVideo = currentMedia?.type === "VIDEO";
 
+  // Reset le chargement quand on change de média
+  useEffect(() => {
+    setIsLoading(true);
+  }, [selectedIndex]);
+
   const playAudio = useCallback(async () => {
+    // Si c'est une vidéo ou qu'il n'y a pas d'URL, on ne joue pas l'audio additionnel
     if (!audioRef.current || isVideo || !audioUrl) return;
+    
     try {
-      await audioRef.current.play();
-      setIsPlaying(true);
+      const playPromise = audioRef.current.play();
+      if (playPromise !== undefined) {
+        playPromise.then(() => {
+          setIsPlaying(true);
+        }).catch(error => {
+          console.error("Lecture audio bloquée :", error);
+          setIsPlaying(false);
+        });
+      }
     } catch (err) {
       setIsPlaying(false);
     }
@@ -265,14 +279,20 @@ function MediaPreviews({
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting) playAudio();
-        else stopAudio();
+        if (entry.isIntersecting) {
+          // On ne déclenche playAudio que si ce n'est pas une vidéo
+          if (!isVideo) {
+            playAudio();
+          }
+        } else {
+          stopAudio();
+        }
       },
       { threshold: 0.2 } 
     );
     if (containerRef.current) observer.observe(containerRef.current);
     return () => observer.disconnect();
-  }, [playAudio, stopAudio]);
+  }, [playAudio, stopAudio, isVideo]);
 
   const goNext = () => setSelectedIndex((p) => Math.min(p + 1, attachments.length - 1));
   const goPrev = () => setSelectedIndex((p) => Math.max(p - 1, 0));
@@ -289,13 +309,14 @@ function MediaPreviews({
       ref={(el) => { containerRef.current = el; handlers.ref(el); }}
       className="relative group/media cursor-pointer select-none overflow-hidden h-full flex items-center justify-center"
       onClick={(e) => {
-        // Correction : On ignore le clic si c'est une vidéo ou si on clique sur une couleur
-        if (isVideo) return;
+        if (isVideo) return; // La vidéo gère son propre clic via VideoPost
         if ((e.target as HTMLElement).closest('button')) return;
         isPlaying ? stopAudio() : playAudio();
       }}
     >
-      {audioUrl && <audio ref={audioRef} src={audioUrl} loop className="hidden" />}
+      {audioUrl && !isVideo && (
+        <audio ref={audioRef} src={audioUrl} loop className="hidden" />
+      )}
 
       {isLoading && (
         <div className="absolute inset-0 flex items-center justify-center bg-zinc-900 z-10">
@@ -305,7 +326,7 @@ function MediaPreviews({
 
       {/* SÉLECTEUR DE COULEURS */}
       {availableColors.length > 0 && (
-        <div className="absolute bottom-20 left-4 z-[60] flex flex-wrap gap-1.5 max-w-[220px] animate-in fade-in slide-in-from-bottom-2 duration-700 delay-300">
+        <div className="absolute bottom-20 right-4 z-[60] flex flex-wrap-reverse gap-1.5 max-w-[220px] justify-end animate-in fade-in slide-in-from-bottom-2 duration-700 delay-300">
           {availableColors.map((color: string) => (
             <button
               key={color}
@@ -327,7 +348,7 @@ function MediaPreviews({
         </div>
       )}
 
-      {/* ROUELLE MUSICALE (VINYLE) */}
+      {/* ROUELLE MUSICALE (Affichée uniquement si ce n'est pas une vidéo) */}
       {audioUrl && !isVideo && (
         <div className="absolute bottom-6 left-4 z-50 flex items-center gap-3 bg-black/40 backdrop-blur-md p-2 pr-4 rounded-full border border-white/10 pointer-events-none transition-transform group-hover/media:scale-105">
           <div className={cn(
@@ -399,7 +420,13 @@ function MediaPreviews({
                 onLoadingComplete={() => setIsLoading(false)}
               />
             ) : (
-              <VideoPost src={m.url} setIsGlobalPlaying={setIsPlaying} />
+              <VideoPost 
+                src={m.url} 
+                setIsGlobalPlaying={(playing: boolean) => {
+                  setIsPlaying(playing);
+                  setIsLoading(false); // On retire le loader quand la vidéo est prête
+                }} 
+              />
             )}
           </div>
         ))}
