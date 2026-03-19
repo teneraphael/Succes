@@ -10,7 +10,7 @@ export default async function Navbar() {
   const { user } = await validateRequest();
 
   return (
-    <header className="sticky top-0 z-10 bg-card/80 backdrop-blur-md border-b shadow-sm">
+    <header className="sticky top-0 z-50 bg-card/80 backdrop-blur-md border-b shadow-sm">
       <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-5 px-5 py-3">
         
         {/* LOGO */}

@@ -238,20 +238,23 @@ function MediaPreviews({
 }: any) {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false); // Initialisé à false
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   const currentMedia = attachments[selectedIndex];
   const isVideo = currentMedia?.type === "VIDEO";
 
-  // Reset le chargement quand on change de média
+  // On ne gère le loading que pour les vidéos
   useEffect(() => {
-    setIsLoading(true);
-  }, [selectedIndex]);
+    if (isVideo) {
+      setIsLoading(true);
+    } else {
+      setIsLoading(false);
+    }
+  }, [selectedIndex, isVideo]);
 
   const playAudio = useCallback(async () => {
-    // Si c'est une vidéo ou qu'il n'y a pas d'URL, on ne joue pas l'audio additionnel
     if (!audioRef.current || isVideo || !audioUrl) return;
     
     try {
@@ -280,10 +283,7 @@ function MediaPreviews({
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
-          // On ne déclenche playAudio que si ce n'est pas une vidéo
-          if (!isVideo) {
-            playAudio();
-          }
+          if (!isVideo) playAudio();
         } else {
           stopAudio();
         }
@@ -307,9 +307,9 @@ function MediaPreviews({
   return (
     <div 
       ref={(el) => { containerRef.current = el; handlers.ref(el); }}
-      className="relative group/media cursor-pointer select-none overflow-hidden h-full flex items-center justify-center"
+      className="relative group/media cursor-pointer select-none overflow-hidden h-full flex items-center justify-center bg-zinc-900"
       onClick={(e) => {
-        if (isVideo) return; // La vidéo gère son propre clic via VideoPost
+        if (isVideo) return;
         if ((e.target as HTMLElement).closest('button')) return;
         isPlaying ? stopAudio() : playAudio();
       }}
@@ -318,7 +318,8 @@ function MediaPreviews({
         <audio ref={audioRef} src={audioUrl} loop className="hidden" />
       )}
 
-      {isLoading && (
+      {/* Le loader ne s'affiche que pour les vidéos maintenant */}
+      {isLoading && isVideo && (
         <div className="absolute inset-0 flex items-center justify-center bg-zinc-900 z-10">
           <Loader2 className="size-10 text-primary animate-spin" />
         </div>
@@ -326,7 +327,7 @@ function MediaPreviews({
 
       {/* SÉLECTEUR DE COULEURS */}
       {availableColors.length > 0 && (
-        <div className="absolute bottom-20 right-4 z-[60] flex flex-wrap-reverse gap-1.5 max-w-[220px] justify-end animate-in fade-in slide-in-from-bottom-2 duration-700 delay-300">
+        <div className="absolute bottom-20 right-4 z-20 flex flex-wrap-reverse gap-1.5 max-w-[220px] justify-end animate-in fade-in slide-in-from-bottom-2 duration-700 delay-300">
           {availableColors.map((color: string) => (
             <button
               key={color}
@@ -348,9 +349,9 @@ function MediaPreviews({
         </div>
       )}
 
-      {/* ROUELLE MUSICALE (Affichée uniquement si ce n'est pas une vidéo) */}
+      {/* ROUELLE MUSICALE */}
       {audioUrl && !isVideo && (
-        <div className="absolute bottom-6 left-4 z-50 flex items-center gap-3 bg-black/40 backdrop-blur-md p-2 pr-4 rounded-full border border-white/10 pointer-events-none transition-transform group-hover/media:scale-105">
+        <div className="absolute bottom-6 left-4 z-20 flex items-center gap-3 bg-black/40 backdrop-blur-md p-2 pr-4 rounded-full border border-white/10 pointer-events-none transition-transform group-hover/media:scale-105">
           <div className={cn(
             "relative size-10 rounded-full border-2 border-white/20 overflow-hidden shadow-2xl",
             isPlaying ? "animate-[spin_4s_linear_infinite]" : ""
@@ -377,10 +378,10 @@ function MediaPreviews({
       {/* NAVIGATION */}
       {attachments.length > 1 && (
         <>
-          <div className="absolute top-4 right-4 z-50 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-full text-white text-[11px] font-bold border border-white/10">
+          <div className="absolute top-4 right-4 z-20 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-full text-white text-[11px] font-bold border border-white/10">
             {selectedIndex + 1}/{attachments.length}
           </div>
-          <div className="absolute inset-0 z-40 pointer-events-none hidden md:block">
+          <div className="absolute inset-0 z-20 pointer-events-none hidden md:block">
             {selectedIndex > 0 && (
               <button 
                 type="button" 
@@ -405,7 +406,7 @@ function MediaPreviews({
 
       {/* CONTENEUR DES MÉDIAS */}
       <div 
-        className="flex h-full w-full transition-transform duration-500 ease-out" 
+        className="flex h-full w-full transition-transform duration-300 ease-out will-change-transform" 
         style={{ transform: `translateX(-${selectedIndex * 100}%)` }}
       >
         {attachments.map((m: any, i: number) => (
@@ -415,16 +416,18 @@ function MediaPreviews({
                 src={m.url} 
                 alt="Product" 
                 fill
-                unoptimized
+                priority={i === selectedIndex}
                 className="object-cover" 
-                onLoadingComplete={() => setIsLoading(false)}
+                // onLoadingComplete supprimé pour enlever le lien avec le state isLoading
               />
             ) : (
               <VideoPost 
                 src={m.url} 
                 setIsGlobalPlaying={(playing: boolean) => {
-                  setIsPlaying(playing);
-                  setIsLoading(false); // On retire le loader quand la vidéo est prête
+                  if (i === selectedIndex) {
+                    setIsPlaying(playing);
+                    setIsLoading(false); // La vidéo est prête
+                  }
                 }} 
               />
             )}
@@ -434,7 +437,7 @@ function MediaPreviews({
 
       {/* DOTS DE PROGRESSION */}
       {attachments.length > 1 && (
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5 z-30 px-2 py-1.5 rounded-full bg-black/20 backdrop-blur-[2px]">
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5 z-20 px-2 py-1.5 rounded-full bg-black/20 backdrop-blur-[2px]">
           {attachments.map((_: any, i: number) => (
             <div key={i} className={cn("h-1.5 rounded-full transition-all duration-300", i === selectedIndex ? "w-4 bg-primary" : "w-1.5 bg-white/50")} />
           ))}
