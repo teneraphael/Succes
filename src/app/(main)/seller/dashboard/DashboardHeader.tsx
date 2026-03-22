@@ -25,7 +25,7 @@ export default function DashboardHeader({ user }: DashboardHeaderProps) {
   const [openWithdraw, setOpenWithdraw] = useState(false);
   const [soldeDisponible, setSoldeDisponible] = useState(0);
 
-  // Fonction pour charger le solde
+  // Fonction pour charger le solde en temps réel
   const fetchBalance = async () => {
     try {
       const balance = await getSellerBalance();
@@ -39,7 +39,7 @@ export default function DashboardHeader({ user }: DashboardHeaderProps) {
     fetchBalance();
   }, []);
 
-  // On recharge le solde à chaque ouverture du tiroir de retrait
+  // On recharge le solde à chaque fois que le vendeur ouvre le tiroir de retrait
   useEffect(() => {
     if (openWithdraw) fetchBalance();
   }, [openWithdraw]);
@@ -57,8 +57,12 @@ export default function DashboardHeader({ user }: DashboardHeaderProps) {
       return;
     }
 
+    // VÉRIFICATION DU NUMÉRO (Indispensable pour Mobile Money)
     if (!user.phoneNumber) {
-      toast({ variant: "destructive", description: "Veuillez configurer votre numéro dans votre profil." });
+      toast({ 
+        variant: "destructive", 
+        description: "Veuillez configurer votre numéro de téléphone dans vos paramètres pour recevoir l'argent." 
+      });
       return;
     }
 
@@ -72,19 +76,19 @@ export default function DashboardHeader({ user }: DashboardHeaderProps) {
         setOpenWithdraw(false);
         setWithdrawAmount("");
         
-        // Mise à jour immédiate du solde local
+        // Mise à jour immédiate du solde local pour une sensation de fluidité
         setSoldeDisponible((prev) => prev - amount);
 
         toast({
-          description: "✅ Demande envoyée ! L'argent arrivera sur votre compte après vérification.",
-          className: "bg-green-600 text-white border-none rounded-2xl shadow-xl"
+          description: "✅ Demande envoyée ! L'argent sera transféré sur votre numéro après vérification.",
+          className: "bg-green-600 text-white border-none rounded-[1.5rem] shadow-xl"
         });
       }
     } catch (error: any) {
       setIsWithdrawing(false);
       toast({
         variant: "destructive",
-        description: error.message || "Le service de retrait a échoué.",
+        description: error.message || "Le service de retrait est indisponible.",
       });
     }
   };
@@ -104,7 +108,7 @@ export default function DashboardHeader({ user }: DashboardHeaderProps) {
                 </button>
               </SheetTrigger>
               <SheetContent side="left" className="p-0 w-[280px] border-none">
-                <SheetTitle className="sr-only">Menu</SheetTitle>
+                <SheetTitle className="sr-only">Menu Vendeur</SheetTitle>
                 <SidebarVendeur className="h-full pt-10" />
               </SheetContent>
             </Sheet>
@@ -153,7 +157,7 @@ export default function DashboardHeader({ user }: DashboardHeaderProps) {
                       <ArrowUpRight className="size-6" />
                     </button>
                   </SheetTrigger>
-                  <SheetContent side="bottom" className="h-[520px] rounded-t-[3rem] border-none p-8 bg-zinc-50 outline-none">
+                  <SheetContent side="bottom" className="h-[550px] rounded-t-[3rem] border-none p-8 bg-zinc-50 outline-none">
                     <SheetHeader className="items-center text-center space-y-4">
                       <div className="size-16 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 shadow-inner">
                         <Wallet className="size-8" />
@@ -176,7 +180,7 @@ export default function DashboardHeader({ user }: DashboardHeaderProps) {
                       <div className="flex items-center gap-4 bg-blue-50 p-4 rounded-2xl border border-blue-100">
                         <Smartphone className="size-6 text-blue-600" />
                         <div className="text-left">
-                          <p className="text-[10px] font-black uppercase text-blue-400">Envoi vers</p>
+                          <p className="text-[10px] font-black uppercase text-blue-400">Envoi vers votre numéro</p>
                           <p className="text-sm font-black italic">{user.phoneNumber || "Numéro non configuré"}</p>
                         </div>
                       </div>
@@ -195,7 +199,12 @@ export default function DashboardHeader({ user }: DashboardHeaderProps) {
                           "Confirmer le retrait"
                         )}
                       </button>
-                      <p className="text-center text-[9px] font-bold text-zinc-400 uppercase tracking-widest">Délai moyen : 15 min</p>
+                      
+                      <div className="bg-zinc-100 p-4 rounded-xl">
+                         <p className="text-center text-[9px] font-bold text-zinc-500 uppercase tracking-widest leading-relaxed">
+                            Les fonds seront envoyés via Orange Money ou MTN Mobile Money. Délai moyen : 15 min.
+                         </p>
+                      </div>
                     </div>
                   </SheetContent>
                 </Sheet>
@@ -203,7 +212,7 @@ export default function DashboardHeader({ user }: DashboardHeaderProps) {
 
               <div className="mt-6 flex items-center gap-2 text-white/50">
                 <CheckCircle2 className="size-3 text-green-400" />
-                <p className="text-[9px] font-black uppercase tracking-tighter">Sécurisé par Monetbil CM</p>
+                <p className="text-[9px] font-black uppercase tracking-tighter">Paiements sécurisés DealCity</p>
               </div>
             </div>
           </div>

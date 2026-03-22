@@ -28,7 +28,9 @@ export const lucia = new Lucia(adapter, {
       isSeller: databaseUserAttributes.isSeller,
       isPioneer: databaseUserAttributes.isPioneer,
       isVerified: databaseUserAttributes.isVerified,
-      hasDeliveryPass: databaseUserAttributes.hasDeliveryPass, // Ajouté pour le badge de livraison
+      hasDeliveryPass: databaseUserAttributes.hasDeliveryPass,
+      phoneNumber: databaseUserAttributes.phoneNumber, // Ajouté pour les notifications SMS
+      balance: databaseUserAttributes.balance, // Ajouté pour le dashboard financier
     };
   },
 });
@@ -49,7 +51,9 @@ interface DatabaseUserAttributes {
   isSeller: boolean;
   isPioneer: boolean;
   isVerified: boolean;
-  hasDeliveryPass: boolean; // Ajouté ici aussi
+  hasDeliveryPass: boolean;
+  phoneNumber: string | null;
+  balance: number;
 }
 
 const getBaseUrl = () => {
@@ -74,9 +78,11 @@ export const validateRequest = cache(
 
     const result = await lucia.validateSession(sessionId);
 
+    // FIX NEXT.JS 15: On enveloppe dans un try/catch et on vérifie si on peut écrire
     try {
       if (result.session && result.session.fresh) {
         const sessionCookie = lucia.createSessionCookie(result.session.id);
+        // On ne set le cookie que si on est dans un contexte qui le permet
         cookieStore.set(
           sessionCookie.name,
           sessionCookie.value,
@@ -92,7 +98,9 @@ export const validateRequest = cache(
         );
       }
     } catch (error) {
-      console.error("Critical: Error updating session cookies:", error);
+      // Cette erreur arrive souvent dans les Server Components (Readonly Context)
+      // On la log mais on ne bloque pas l'application car la session est quand même valide
+      console.warn("Info: Session cookie refresh skipped (Readonly context)");
     }
 
     return result;

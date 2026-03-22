@@ -10,9 +10,11 @@ import DashboardHeader from "./DashboardHeader";
 import { useTransition } from "react";
 import { boostPost } from "./actions";
 import { cn, formatRelativeDate } from "@/lib/utils";
+import { useToast } from "@/components/ui/use-toast"; // Ajouté pour les notifications pro
 
 export default function SellerDashboard({ posts, user }: { posts: PostData[], user: UserData }) {
   const [isPending, startTransition] = useTransition();
+  const { toast } = useToast();
   
   const totalLikes = posts.reduce((acc, p) => acc + (p._count?.likes || 0), 0);
   const totalComments = posts.reduce((acc, p) => acc + (p._count?.comments || 0), 0);
@@ -32,9 +34,24 @@ export default function SellerDashboard({ posts, user }: { posts: PostData[], us
   const handleBoost = (postId: string) => {
     startTransition(async () => {
       try {
-        await boostPost(postId);
+        const result = await boostPost(postId);
+        
+        if (result.success) {
+          toast({
+            description: "🚀 Article propulsé en tête de liste !",
+            className: "bg-primary text-white border-none rounded-2xl shadow-xl"
+          });
+        } else {
+          toast({
+            variant: "destructive",
+            description: result.error || "Erreur lors du boost"
+          });
+        }
       } catch (error) {
-        alert("Erreur lors du boost");
+        toast({
+          variant: "destructive",
+          description: "Une erreur est survenue. Vérifiez votre solde."
+        });
       }
     });
   };
@@ -43,7 +60,7 @@ export default function SellerDashboard({ posts, user }: { posts: PostData[], us
     <div className="w-full space-y-6 pb-10">
       <DashboardHeader user={user} />
 
-      {/* 1. STATS : GRILLE AVEC ALIGNEMENT START POUR ÉVITER L'ÉTIREMENT */}
+      {/* 1. STATS QUICK VIEW */}
       <div className="grid gap-4 grid-cols-2 lg:grid-cols-4 px-4 md:px-0 items-start">
         <QuickStat 
           title="Intérêt" 
@@ -64,20 +81,20 @@ export default function SellerDashboard({ posts, user }: { posts: PostData[], us
           value={posts.length.toString()} 
           icon={<Package className="size-5" />} 
           color="blue"
-          description="Articles"
+          description="Articles en ligne"
         />
         <QuickStat 
           title="Visibilité" 
           value="TOP" 
           icon={<Zap className="size-5" />} 
           color="amber"
-          description="Score"
+          description="Score d'activité"
         />
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 px-4 md:px-0 items-start">
         
-        {/* 2. INTERACTIONS FEED */}
+        {/* 2. INTERACTIONS FEED (Prospecteurs) */}
         <Card className="border-none shadow-xl shadow-black/[0.03] bg-card/60 backdrop-blur-xl rounded-[2.5rem] overflow-hidden">
           <CardHeader className="pb-4 pt-8 px-6">
             <CardTitle className="text-sm font-black uppercase tracking-[0.2em] text-muted-foreground/70 flex items-center gap-2">
@@ -99,13 +116,13 @@ export default function SellerDashboard({ posts, user }: { posts: PostData[], us
               ))
             ) : (
               <div className="text-center py-10 bg-muted/10 rounded-[2rem] border border-dashed border-muted">
-                <p className="text-xs text-muted-foreground italic tracking-tight">Aucun mouvement.</p>
+                <p className="text-xs text-muted-foreground italic tracking-tight">Aucune interaction récente.</p>
               </div>
             )}
           </CardContent>
         </Card>
 
-        {/* 3. BOOST ENGINE */}
+        {/* 3. BOOST ENGINE (Propulsion) */}
         <Card className="border-none shadow-xl shadow-black/[0.03] bg-gradient-to-br from-card to-primary/5 rounded-[2.5rem] overflow-hidden">
           <CardHeader className="flex flex-row items-center justify-between pb-4 pt-8 px-6">
             <CardTitle className="text-sm font-black uppercase tracking-[0.2em] text-muted-foreground/70 flex items-center gap-2">
@@ -142,7 +159,7 @@ export default function SellerDashboard({ posts, user }: { posts: PostData[], us
                 </div>
               ))
             ) : (
-              <p className="text-xs text-muted-foreground text-center py-6 italic">Aucun article.</p>
+              <p className="text-xs text-muted-foreground text-center py-6 italic">Aucun article disponible pour le boost.</p>
             )}
           </CardContent>
         </Card>
@@ -151,10 +168,11 @@ export default function SellerDashboard({ posts, user }: { posts: PostData[], us
   );
 }
 
+// COMPOSANTS INTERNES (Gardés tels quels car ils sont parfaits)
 function ProspectItem({ name, article, time }: { name: string, article: string, time: string }) {
   return (
     <div className="flex items-center gap-4 p-4 rounded-[1.8rem] bg-muted/5 border border-transparent hover:border-primary/10 transition-all group">
-      <div className="size-11 rounded-2xl bg-gradient-to-tr from-primary/20 to-primary/5 flex items-center justify-center text-primary font-black text-sm shadow-inner shrink-0">
+      <div className="size-11 rounded-2xl bg-gradient-to-tr from-primary/20 to-primary/5 flex items-center justify-center text-primary font-black text-sm shadow-inner shrink-0 uppercase">
         {name.charAt(0)}
       </div>
       <div className="min-w-0 flex-1">
@@ -181,7 +199,7 @@ function QuickStat({ title, value, icon, color, description }: { title: string, 
           <div className={cn("p-3 rounded-2xl shrink-0 transition-transform group-hover:scale-110", colorMap[color])}>
             {icon}
           </div>
-          <div className="flex flex-col items-end min-w-0">
+          <div className="flex flex-col items-end min-w-0 text-right">
              <span className="text-xl md:text-2xl font-black tracking-tighter leading-none">{value}</span>
              <p className="text-[10px] font-black uppercase text-muted-foreground/50 tracking-tight mt-1">{title}</p>
           </div>

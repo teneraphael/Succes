@@ -41,31 +41,31 @@ model User {
   passwordHash    String?
   googleId        String?        @unique
   avatarUrl       String?
-  hasDeliveryPass   Boolean   @default(false)
-  passExpiryDate    DateTime?
-  deliveryRequests  DeliveryRequest[]
+  hasDeliveryPass Boolean        @default(false)
+  passExpiryDate  DateTime?
+  deliveryRequests DeliveryRequest[]
   bio             String?
-  allowNotifications Boolean   @default(true)
+  allowNotifications Boolean     @default(true)
   sessions        Session[]
-  orders          Order[]     @relation("BuyerOrders") 
-  sales           Order[]     @relation("SellerOrders")
+  orders          Order[]        @relation("BuyerOrders") 
+  sales           Order[]        @relation("SellerOrders")
   posts           Post[]
-  deals         Deal[]
-  balance        Int      @default(0)
-  transactions Transaction[]
-  interactions  UserInteraction[]
+  deals           Deal[]
+  balance         Int            @default(0)
+  transactions    Transaction[]
+  interactions    UserInteraction[]
   following       Follow[]       @relation("Following")
   followers       Follow[]       @relation("Followers")
   likes           Like[]
   bookmarks       Bookmark[]
   comments        Comment[]
-  isPioneer        Boolean        @default(false) 
-  isVerified       Boolean        @default(false)
-  whatsappUrl      String?
-  facebookUrl      String?
-  instagramUrl     String?
-  tiktokUrl String?
-  phoneNumber      String?
+  isPioneer       Boolean        @default(false) 
+  isVerified      Boolean        @default(false)
+  whatsappUrl     String?
+  facebookUrl     String?
+  instagramUrl    String?
+  tiktokUrl       String?
+  phoneNumber     String?
   
   // RELATION AJOUTÉE POUR LES SIGNALEMENTS
   reports         Report[]       
@@ -87,33 +87,35 @@ model User {
 }
 
 model Order {
-  id               String      @id @default(cuid())
-  status           OrderStatus @default(PENDING)
+  id                String      @id @default(cuid())
+  status            OrderStatus @default(PENDING)
   
   // Informations de paiement
-  total            Int         // Prix total en XAF
-  paymentId        String?     @unique // ID de transaction Monetbil
-  totalAmount      Int         // Prix total payé par le client
-  commission       Int         // Les 5% que tu gardes (totalAmount * 0.05)
-  sellerEarnings   Int
-  // Informations de livraison
-  customerName     String
-  customerPhone    String
-  customerAddress  String
-  notes            String?
+  total             Int         // Prix total en XAF
+  paymentId         String?     @unique // ID de transaction Monetbil
+  totalAmount       Int         // Prix total payé par le client
+  commission        Int         // Les 5% que tu gardes (totalAmount * 0.05)
+  sellerEarnings    Int
+  
+  // Informations de livraison & Sécurité
+  customerName      String
+  customerPhone     String
+  customerAddress   String
+  notes             String?
+  deliveryCode      String?     // <--- AJOUTÉ : Le code secret à 4 chiffres pour la validation
   
   // Relations
-  userId           String      // L'acheteur
-  user             User        @relation("BuyerOrders", fields: [userId], references: [id], onDelete: Cascade)
+  userId            String      // L'acheteur
+  user              User        @relation("BuyerOrders", fields: [userId], references: [id], onDelete: Cascade)
   
-  sellerId         String      // Le vendeur (extrait du Post)
-  seller           User        @relation("SellerOrders", fields: [sellerId], references: [id], onDelete: Cascade)
+  sellerId          String      // Le vendeur (extrait du Post)
+  seller            User        @relation("SellerOrders", fields: [sellerId], references: [id], onDelete: Cascade)
   
-  postId           String      // Le produit acheté
-  post             Post        @relation(fields: [postId], references: [id], onDelete: Cascade)
-  items          OrderItem[]
-  createdAt        DateTime    @default(now())
-  updatedAt        DateTime    @updatedAt
+  postId            String      // Le produit acheté
+  post              Post        @relation(fields: [postId], references: [id], onDelete: Cascade)
+  items           OrderItem[]
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
 
   @@map("orders")
 }
@@ -142,9 +144,9 @@ model Transaction {
   id        String   @id @default(cuid())
   userId    String
   amount    Int
-  type        String
-  reason    String
-  status    String   @default("SUCCESS") // Ajoute cette ligne avec une valeur par défaut
+  type      String?  // Passé en optionnel pour éviter les erreurs de Reset
+  reason    String?  // Passé en optionnel pour éviter les erreurs de Reset
+  status    String   @default("SUCCESS")
   createdAt DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 

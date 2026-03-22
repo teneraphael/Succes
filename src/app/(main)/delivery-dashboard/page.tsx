@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { 
   Truck, MapPin, Phone, PackageCheck, 
-  Loader2, User, MessageSquare, ExternalLink 
+  Loader2, User, MessageSquare, ExternalLink, ShieldCheck 
 } from "lucide-react";
 import Image from "next/image";
 import { useToast } from "@/components/ui/use-toast";
@@ -19,6 +19,9 @@ export default function DeliveryDashboard() {
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState<string | null>(null);
+
+  // ÉTAT AJOUTÉ : Pour gérer la saisie du code OTP par commande
+  const [otpInputs, setOtpInputs] = useState<{ [key: string]: string }>({});
 
   useEffect(() => {
     if (!loggedInUser) {
@@ -53,14 +56,24 @@ export default function DeliveryDashboard() {
     }
   }
 
+  // FONCTION MODIFIÉE : Utilise maintenant l'API verify-otp
   async function handleMarkAsDelivered(orderId: string) {
-    if (!confirm("Confirmes-tu que ce colis a été remis ? Cela informera le client.")) return;
+    const code = otpInputs[orderId];
+
+    if (!code || code.length !== 4) {
+      toast({ 
+        variant: "destructive", 
+        description: "Veuillez saisir le code de vérification à 4 chiffres reçu par le client." 
+      });
+      return;
+    }
 
     setIsUpdating(orderId);
     try {
-      const res = await fetch(`/api/orders/${orderId}/complete`, { 
+      const res = await fetch(`/api/orders/verify-otp`, { 
         method: "POST",
-        headers: { "Content-Type": "application/json" }
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderId, otpCode: code })
       });
 
       const result = await res.json();
@@ -68,18 +81,18 @@ export default function DeliveryDashboard() {
       if (res.ok) {
         setOrders((prev) => prev.filter((o) => o.id !== orderId));
         toast({ 
-          description: "✅ Colis validé ! Le client peut maintenant confirmer la réception.",
+          description: "✅ Code valide ! Livraison confirmée et vendeur crédité.",
           className: "bg-green-600 text-white border-none shadow-lg"
         });
       } else {
-        throw new Error(result.error || "Erreur lors de la validation");
+        throw new Error(result.error || "Code incorrect");
       }
     } catch (error: any) {
       console.error("DEBUG_DELIVERY_ERROR:", error);
       toast({ 
         variant: "destructive", 
         title: "Échec de validation",
-        description: error.message || "Vérifiez votre connexion ou vos droits admin." 
+        description: error.message || "Vérifiez le code ou vos droits admin." 
       });
     } finally {
       setIsUpdating(null);
@@ -212,6 +225,23 @@ export default function DeliveryDashboard() {
                 </div>
               </div>
 
+              {/* --- NOUVELLE ZONE DE SÉCURITÉ OTP --- */}
+              <div className="bg-blue-50 dark:bg-blue-900/10 p-5 rounded-[2.5rem] border border-blue-100 dark:border-blue-800/30 space-y-4">
+                <div className="flex items-center gap-2">
+                  <ShieldCheck className="size-4 text-blue-600" />
+                  <span className="text-[9px] font-black uppercase text-blue-600 tracking-widest italic">Vérification de sécurité</span>
+                </div>
+                
+                <input 
+                  type="text" 
+                  maxLength={4}
+                  placeholder="CODE SMS DU CLIENT"
+                  value={otpInputs[order.id] || ""}
+                  onChange={(e) => setOtpInputs({...otpInputs, [order.id]: e.target.value.replace(/\D/g, '')})}
+                  className="w-full py-4 px-6 rounded-2xl border-2 border-blue-200 dark:border-blue-800 bg-white dark:bg-zinc-950 text-center text-2xl font-black tracking-[0.8rem] focus:border-blue-600 outline-none transition-all dark:text-white placeholder:text-zinc-300 dark:placeholder:text-zinc-700 placeholder:tracking-normal placeholder:text-xs"
+                />
+              </div>
+
               {/* ACTION FINALE */}
               <button 
                 onClick={() => handleMarkAsDelivered(order.id)}
@@ -221,7 +251,7 @@ export default function DeliveryDashboard() {
                 {isUpdating === order.id ? (
                   <>
                     <Loader2 className="animate-spin size-5" />
-                    Validation...
+                    Vérification...
                   </>
                 ) : (
                   <>
