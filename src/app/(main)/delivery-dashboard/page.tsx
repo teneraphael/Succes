@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { 
   Truck, MapPin, Phone, PackageCheck, 
-  Loader2, User 
+  Loader2, User, MessageSquare, ExternalLink 
 } from "lucide-react";
 import Image from "next/image";
 import { useToast } from "@/components/ui/use-toast";
@@ -100,15 +100,15 @@ export default function DeliveryDashboard() {
   }
 
   return (
-    <main className="max-w-2xl mx-auto p-4 pb-20 space-y-8">
+    <main className="max-w-2xl mx-auto p-4 pb-20 space-y-8 transition-colors">
       {/* HEADER STATS */}
-      <div className="flex items-center justify-between bg-white dark:bg-zinc-900 p-6 rounded-[2.5rem] border border-black/5 dark:border-white/10 shadow-sm transition-colors">
+      <div className="flex items-center justify-between bg-white dark:bg-zinc-900 p-6 rounded-[2.5rem] border border-black/5 dark:border-white/10 shadow-sm">
         <div className="flex items-center gap-4">
           <div className="bg-blue-600 p-3 rounded-2xl text-white shadow-lg shadow-blue-200 dark:shadow-none">
             <Truck className="size-6" />
           </div>
           <div>
-            <h1 className="text-xl font-black uppercase tracking-tighter leading-none dark:text-white">Livreur Pro</h1>
+            <h1 className="text-xl font-black uppercase tracking-tighter leading-none dark:text-white italic">Livreur Pro</h1>
             <p className="text-[10px] text-blue-600 dark:text-blue-400 font-black uppercase tracking-widest mt-1">Dashboard Officiel</p>
           </div>
         </div>
@@ -124,7 +124,7 @@ export default function DeliveryDashboard() {
           <div className="bg-zinc-50 dark:bg-zinc-800 p-6 rounded-full">
             <PackageCheck className="size-12 text-zinc-300 dark:text-zinc-600" />
           </div>
-          <p className="font-bold text-zinc-400 dark:text-zinc-500 uppercase text-xs tracking-widest">
+          <p className="font-bold text-zinc-400 dark:text-zinc-500 uppercase text-xs tracking-widest italic">
             Aucun colis à livrer pour le moment
           </p>
         </div>
@@ -145,24 +145,52 @@ export default function DeliveryDashboard() {
                   />
                 </div>
                 <div className="flex-1 min-w-0 flex flex-col justify-center">
-                  <span className="text-[8px] font-black text-blue-600 dark:text-blue-400 uppercase mb-1">Désignation</span>
-                  <h2 className="font-black text-sm uppercase truncate mb-1 dark:text-white">
+                  <span className="text-[8px] font-black text-blue-600 dark:text-blue-400 uppercase mb-1 tracking-widest">Désignation</span>
+                  <h2 className="font-black text-sm uppercase truncate mb-1 dark:text-white italic">
                     {order.productName || "Article DealCity"}
                   </h2>
-                  <div className="text-xl font-black text-[#6ab344] italic">
-                    {Number(order.price || 0).toLocaleString()} <span className="text-[10px] not-italic">FCFA</span>
+                  <div className="text-xl font-black text-[#6ab344] italic leading-none">
+                    {Number(order.price || 0).toLocaleString('fr-FR')} <span className="text-[10px] not-italic">FCFA</span>
                   </div>
                 </div>
               </div>
 
+              {/* SECTION NOTES / PERSONNALISATION */}
+              {order.notes && (
+                <div className="bg-orange-50 dark:bg-orange-500/5 p-4 rounded-2xl border border-orange-100 dark:border-orange-500/10 flex items-start gap-3">
+                  <MessageSquare className="size-4 text-orange-500 mt-1 flex-shrink-0" />
+                  <div>
+                    <p className="text-[9px] font-black uppercase text-orange-600/70 dark:text-orange-400/70 tracking-tighter">Préférences client :</p>
+                    <p className="text-xs font-bold text-orange-700 dark:text-orange-500 italic">
+                      &quot;{order.notes}&quot;
+                    </p>
+                  </div>
+                </div>
+              )}
+
               {/* COORDONNÉES LIVRAISON */}
               <div className="grid gap-3">
-                <div className="flex items-start gap-4 bg-zinc-50 dark:bg-zinc-800/50 p-4 rounded-2xl border border-black/5 dark:border-white/5">
-                  <MapPin className="size-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-1" />
-                  <div>
-                    <p className="text-[9px] font-black uppercase text-zinc-400 dark:text-zinc-500 mb-1">Point de remise</p>
-                    <p className="text-sm font-bold leading-tight text-zinc-800 dark:text-zinc-200">{order.deliveryAddress}</p>
+                <div className="flex items-start justify-between bg-zinc-50 dark:bg-zinc-800/50 p-4 rounded-2xl border border-black/5 dark:border-white/5">
+                  <div className="flex items-start gap-4">
+                    <MapPin className="size-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-1" />
+                    <div className="min-w-0">
+                      <p className="text-[9px] font-black uppercase text-zinc-400 dark:text-zinc-500 mb-1">Point de remise</p>
+                      <p className="text-sm font-bold leading-tight text-zinc-800 dark:text-zinc-200">{order.deliveryAddress}</p>
+                    </div>
                   </div>
+                  
+                  {/* BOUTON ITINÉRAIRE GOOGLE MAPS */}
+                  <a 
+                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(order.deliveryAddress)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="bg-white dark:bg-zinc-700 p-2 rounded-xl shadow-sm border border-black/5 dark:border-white/10 active:scale-90 transition-all flex flex-col items-center gap-1 min-w-[55px] flex-shrink-0"
+                  >
+                    <div className="size-6 bg-red-100 dark:bg-red-500/20 rounded-lg flex items-center justify-center">
+                      <ExternalLink className="size-3 text-red-600" />
+                    </div>
+                    <span className="text-[8px] font-black uppercase dark:text-white">Aller</span>
+                  </a>
                 </div>
 
                 <div className="flex items-center justify-between bg-zinc-50 dark:bg-zinc-800/50 p-4 rounded-2xl border border-black/5 dark:border-white/5">
@@ -176,7 +204,7 @@ export default function DeliveryDashboard() {
                     </div>
                   </div>
                   <a 
-                    href={`tel:${order.phoneNumber}`} 
+                    href={`tel:${order.customerPhone || order.phoneNumber}`} 
                     className="bg-[#6ab344] text-white size-11 rounded-full flex items-center justify-center shadow-lg hover:bg-[#5aa139] active:scale-90 transition-all"
                   >
                     <Phone className="size-5 fill-current" />
@@ -193,7 +221,7 @@ export default function DeliveryDashboard() {
                 {isUpdating === order.id ? (
                   <>
                     <Loader2 className="animate-spin size-5" />
-                    Mise à jour...
+                    Validation...
                   </>
                 ) : (
                   <>

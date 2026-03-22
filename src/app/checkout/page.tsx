@@ -3,7 +3,7 @@
 import { useCart } from '@/context/cart-context';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useState, Suspense } from 'react';
-import { ArrowLeft, MapPin, Phone, User, CheckCircle2, ShieldCheck, Palette, Plus, Minus, Loader2 } from 'lucide-react';
+import { ArrowLeft, MapPin, Phone, User, CheckCircle2, ShieldCheck, Palette, Plus, Minus, Loader2, MessageSquare } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import Image from 'next/image';
 
@@ -22,6 +22,7 @@ function CheckoutContent() {
   const { toast } = useToast();
   
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [orderNote, setOrderNote] = useState(""); // État pour la personnalisation de l'article
 
   const directId = searchParams.get('directId');
   const [directQty, setDirectQty] = useState(Number(searchParams.get('qty')) || 1);
@@ -67,6 +68,7 @@ function CheckoutContent() {
       name: formData.get('name'),
       phone: cleanPhone,
       address: formData.get('address'),
+      note: orderNote, // Envoi de la note au serveur
     };
 
     try {
@@ -104,8 +106,8 @@ function CheckoutContent() {
         toast({ 
           title: "ACTION REQUISE ✅",
           description: isOrange 
-            ? `Validez sur votre écran ou composez le #150*50# pour payer ${totalAmount} FCFA.`
-            : `Saisissez votre code PIN sur le message push reçu pour payer ${totalAmount} FCFA.`,
+            ? `Validez sur votre écran ou composez le #150*50# pour payer ${totalAmount.toLocaleString()} FCFA.`
+            : `Saisissez votre code PIN sur le message push reçu pour payer ${totalAmount.toLocaleString()} FCFA.`,
           duration: 15000,
         });
         
@@ -132,11 +134,12 @@ function CheckoutContent() {
           <button onClick={() => router.back()} className="p-2 -ml-2 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-full transition">
             <ArrowLeft className="size-6 text-black dark:text-white" />
           </button>
-          <h1 className="text-xl font-black uppercase tracking-tighter text-black dark:text-white">Paiement Sécurisé</h1>
+          <h1 className="text-xl font-black uppercase tracking-tighter text-black dark:text-white italic">Paiement Sécurisé</h1>
         </div>
       </div>
 
       <div className="max-w-md mx-auto p-4 space-y-6 mt-4">
+        {/* Section Articles */}
         <div className="space-y-3">
           <p className="text-[11px] font-black text-muted-foreground dark:text-zinc-500 uppercase tracking-widest px-1">
             {directId ? "Achat immédiat" : "Votre Panier"}
@@ -185,6 +188,7 @@ function CheckoutContent() {
           </div>
         </div>
 
+        {/* Résumé du montant */}
         <div className="bg-white dark:bg-zinc-900 p-6 rounded-[2.5rem] border border-black/5 dark:border-white/10 shadow-sm">
           <div className="flex justify-between items-center mb-2">
             <span className="text-muted-foreground font-bold text-[10px] uppercase tracking-widest dark:text-zinc-500">Montant à régler</span>
@@ -192,20 +196,34 @@ function CheckoutContent() {
                 <ShieldCheck className="size-3" /> Mobile Money
             </span>
           </div>
-          <p className="text-4xl font-black tracking-tighter text-black dark:text-white">{totalAmount.toLocaleString()} <span className="text-sm">FCFA</span></p>
+          <p className="text-4xl font-black tracking-tighter text-black dark:text-white">{totalAmount.toLocaleString()} <span className="text-sm text-[#6ab344]">FCFA</span></p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <p className="text-[11px] font-black text-muted-foreground dark:text-zinc-500 uppercase tracking-widest px-1">Adresse de livraison</p>
+          <p className="text-[11px] font-black text-muted-foreground dark:text-zinc-500 uppercase tracking-widest px-1">Coordonnées de livraison</p>
           <div className="space-y-3">
             <div className="relative">
               <User className="absolute left-4 top-1/2 -translate-y-1/2 size-5 text-gray-400 dark:text-zinc-600" />
               <input required name="name" placeholder="Ton nom complet" className="w-full bg-white dark:bg-zinc-900 border-none ring-1 ring-black/5 dark:ring-white/10 rounded-2xl py-5 pl-12 pr-4 font-bold focus:ring-2 focus:ring-[#4a90e2] outline-none transition-all shadow-sm text-black dark:text-white placeholder:text-gray-400 dark:placeholder:text-zinc-600" />
             </div>
+            
             <div className="relative">
               <Phone className="absolute left-4 top-1/2 -translate-y-1/2 size-5 text-gray-400 dark:text-zinc-600" />
               <input required type="tel" name="phone" placeholder="Numéro Mobile Money (6xxxx...)" className="w-full bg-white dark:bg-zinc-900 border-none ring-1 ring-black/5 dark:ring-white/10 rounded-2xl py-5 pl-12 pr-4 font-bold focus:ring-2 focus:ring-[#4a90e2] outline-none transition-all shadow-sm text-black dark:text-white placeholder:text-gray-400 dark:placeholder:text-zinc-600" />
             </div>
+
+            {/* LA CASE QUE TU VOULAIS AJOUTER */}
+            <div className="relative">
+              <MessageSquare className="absolute left-4 top-5 size-5 text-gray-400 dark:text-zinc-600" />
+              <textarea 
+                value={orderNote}
+                onChange={(e) => setOrderNote(e.target.value)}
+                placeholder="Comment voulez-vous votre article ? (Taille, couleur, préférence de livraison...)" 
+                rows={2} 
+                className="w-full bg-white dark:bg-zinc-900 border-none ring-1 ring-black/5 dark:ring-white/10 rounded-2xl py-5 pl-12 pr-4 font-bold focus:ring-2 focus:ring-[#4a90e2] outline-none transition-all shadow-sm resize-none text-black dark:text-white placeholder:text-gray-400 dark:placeholder:text-zinc-600 italic text-sm" 
+              />
+            </div>
+
             <div className="relative">
               <MapPin className="absolute left-4 top-5 size-5 text-gray-400 dark:text-zinc-600" />
               <textarea required name="address" placeholder="Ville, Quartier et indications précises..." rows={3} className="w-full bg-white dark:bg-zinc-900 border-none ring-1 ring-black/5 dark:ring-white/10 rounded-2xl py-5 pl-12 pr-4 font-bold focus:ring-2 focus:ring-[#4a90e2] outline-none transition-all shadow-sm resize-none text-black dark:text-white placeholder:text-gray-400 dark:placeholder:text-zinc-600" />
@@ -230,7 +248,7 @@ function CheckoutContent() {
                 Lancement...
               </>
             ) : (
-              "Payer maintenant"
+              "Confirmer & Payer"
             )}
           </button>
         </form>

@@ -8,12 +8,19 @@ import { ShoppingBag, Trash2, ArrowLeft, ChevronRight, Plus, Minus, ShieldCheck 
 import { cn } from '@/lib/utils';
 
 export default function CartPage() {
+  // Récupération sécurisée du contexte
   const { cart, removeFromCart, clearCart, updateQuantity, updateColor } = useCart();
   const router = useRouter();
 
-  const total = cart.reduce((acc, item) => acc + (item.price * (item.quantity || 1)), 0);
+  // Correction : Vérification que cart existe avant le reduce pour éviter le crash
+  const total = cart?.reduce((acc, item) => {
+    const price = item.price || 0;
+    const qty = item.quantity || 1;
+    return acc + (price * qty);
+  }, 0) || 0;
 
-  if (cart.length === 0) {
+  // État vide
+  if (!cart || cart.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[80vh] p-6 text-center bg-white dark:bg-zinc-950 transition-colors">
         <div className="size-24 bg-gray-100 dark:bg-zinc-900 rounded-full flex items-center justify-center mb-6">
@@ -34,7 +41,7 @@ export default function CartPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F8F9FA] dark:bg-zinc-950 pb-40 transition-colors">
+    <div className="min-h-screen bg-[#F8F9FA] dark:bg-zinc-950 pb-40 transition-colors font-sans">
       {/* Header */}
       <div className="bg-white dark:bg-zinc-900 border-b dark:border-white/10 sticky top-0 z-10 px-4 py-6 transition-colors">
         <div className="max-w-md mx-auto flex items-center justify-between">
@@ -44,10 +51,10 @@ export default function CartPage() {
           >
             <ArrowLeft className="size-6" />
           </button>
-          <h1 className="text-xl font-black uppercase tracking-tighter dark:text-white">Mon Panier</h1>
+          <h1 className="text-xl font-black uppercase tracking-tighter dark:text-white italic">Mon Panier</h1>
           <button 
             onClick={clearCart} 
-            className="text-[10px] font-black uppercase bg-red-50 dark:bg-red-500/10 text-red-500 px-3 py-1.5 rounded-lg active:bg-red-100 dark:active:bg-red-500/20 transition"
+            className="text-[10px] font-black uppercase bg-red-50 dark:bg-red-500/10 text-red-500 px-3 py-1.5 rounded-lg active:bg-red-100 dark:active:bg-red-500/20 transition border border-red-100 dark:border-red-500/20"
           >
             Vider
           </button>
@@ -60,18 +67,24 @@ export default function CartPage() {
         </p>
 
         <div className="space-y-4">
-          {cart.map((item) => (
+          {cart.map((item, index) => (
             <div 
-              key={`${item.id}-${item.color || 'no-color'}`} 
+              key={`${item.id}-${item.color || index}`} 
               className="group flex flex-col bg-white dark:bg-zinc-900 p-4 rounded-[2.5rem] border border-black/5 dark:border-white/10 shadow-sm hover:shadow-md transition-all"
             >
               <div className="flex items-start gap-4">
-                {/* Image du produit */}
+                {/* Image du produit avec fallback */}
                 <div className="relative size-24 rounded-[1.5rem] overflow-hidden bg-gray-100 dark:bg-zinc-800 flex-shrink-0 border border-black/5 dark:border-white/5">
                   {item.image ? (
-                    <Image src={item.image} alt={item.name} fill className="object-cover" />
+                    <Image 
+                      src={item.image} 
+                      alt={item.name || "Produit"} 
+                      fill 
+                      className="object-cover"
+                      sizes="96px"
+                    />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-gray-200 dark:bg-zinc-700">
+                    <div className="w-full h-full flex items-center justify-center">
                       <ShoppingBag className="text-gray-400 dark:text-zinc-500 size-6" />
                     </div>
                   )}
@@ -80,30 +93,30 @@ export default function CartPage() {
                 {/* Infos du produit */}
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between items-start">
-                    <h3 className="font-bold text-sm text-foreground dark:text-white truncate uppercase tracking-tight w-full">
-                      {item.name}
+                    <h3 className="font-bold text-sm text-foreground dark:text-white truncate uppercase tracking-tight w-full pr-2">
+                      {item.name || "Article sans nom"}
                     </h3>
                     <button 
                       onClick={() => removeFromCart(item.id, item.color)}
-                      className="p-1 text-gray-300 dark:text-zinc-600 hover:text-red-500 transition-colors ml-2"
+                      className="p-1 text-gray-300 dark:text-zinc-600 hover:text-red-500 transition-colors"
                     >
                       <Trash2 className="size-4" />
                     </button>
                   </div>
 
-                  {/* SÉLECTEUR DE COULEUR */}
+                  {/* SÉLECTEUR DE COULEUR (Si disponible) */}
                   {item.availableColors && item.availableColors.length > 0 && (
                     <div className="flex flex-col gap-2 mt-2">
                       <p className="text-[9px] font-black text-gray-400 dark:text-zinc-500 uppercase tracking-widest">
-                        Couleur : <span className="text-black dark:text-white">{item.color}</span>
+                        Couleur : <span className="text-black dark:text-white">{item.color || 'Standard'}</span>
                       </p>
                       <div className="flex flex-wrap gap-2">
-                        {item.availableColors.map((c) => (
+                        {item.availableColors.map((c: string) => (
                           <button
                             key={c}
                             onClick={() => updateColor(item.id, item.color, c)}
                             className={cn(
-                              "size-6 rounded-full border-2 transition-all",
+                              "size-5 rounded-full border-2 transition-all",
                               item.color === c 
                                 ? 'border-black dark:border-white scale-110 shadow-md ring-2 ring-black/5 dark:ring-white/5' 
                                 : 'border-transparent opacity-40 hover:opacity-100'
@@ -117,11 +130,11 @@ export default function CartPage() {
                   )}
 
                   <p className="text-[#6ab344] font-black text-xl mt-3 leading-none">
-                    {item.price.toLocaleString()} <span className="text-[10px]">FCFA</span>
+                    {(item.price || 0).toLocaleString('fr-FR')} <span className="text-[10px]">FCFA</span>
                   </p>
 
                   {/* Sélecteur de Quantité */}
-                  <div className="flex items-center gap-3 mt-3 bg-gray-50 dark:bg-zinc-800 w-fit p-1 rounded-xl border border-black/5 dark:border-white/5">
+                  <div className="flex items-center gap-3 mt-4 bg-gray-50 dark:bg-zinc-800 w-fit p-1 rounded-xl border border-black/5 dark:border-white/5">
                     <button 
                       onClick={() => updateQuantity(item.id, (item.quantity || 1) - 1, item.color)}
                       className="size-8 flex items-center justify-center bg-white dark:bg-zinc-700 rounded-lg shadow-sm hover:bg-gray-100 dark:hover:bg-zinc-600 active:scale-90 transition disabled:opacity-30 text-foreground dark:text-white"
@@ -129,7 +142,9 @@ export default function CartPage() {
                     >
                       <Minus className="size-3" />
                     </button>
-                    <span className="font-black text-sm px-2 min-w-[20px] text-center dark:text-white">{item.quantity || 1}</span>
+                    <span className="font-black text-sm px-2 min-w-[20px] text-center dark:text-white">
+                      {item.quantity || 1}
+                    </span>
                     <button 
                       onClick={() => updateQuantity(item.id, (item.quantity || 1) + 1, item.color)}
                       className="size-8 flex items-center justify-center bg-white dark:bg-zinc-700 rounded-lg shadow-sm hover:bg-gray-100 dark:hover:bg-zinc-600 active:scale-90 transition text-foreground dark:text-white"
@@ -145,25 +160,25 @@ export default function CartPage() {
       </div>
 
       {/* Résumé de commande fixe en bas */}
-      <div className="fixed bottom-0 left-0 w-full bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl border-t border-black/5 dark:border-white/10 p-6 pb-10 shadow-[0_-10px_40px_rgba(0,0,0,0.05)] z-50 transition-colors">
+      <div className="fixed bottom-0 left-0 w-full bg-white/90 dark:bg-zinc-900/90 backdrop-blur-xl border-t border-black/5 dark:border-white/10 p-6 pb-10 shadow-[0_-10px_40px_rgba(0,0,0,0.05)] z-50 transition-colors">
         <div className="max-w-md mx-auto space-y-4">
           <div className="flex justify-between items-end">
             <div>
-              <p className="text-[10px] font-black text-muted-foreground dark:text-zinc-500 uppercase tracking-widest">Total panier</p>
+              <p className="text-[10px] font-black text-muted-foreground dark:text-zinc-500 uppercase tracking-widest mb-1">Total panier</p>
               <p className="text-4xl font-black text-black dark:text-white tracking-tighter leading-none">
-                {total.toLocaleString()} <span className="text-sm font-bold">FCFA</span>
+                {total.toLocaleString('fr-FR')} <span className="text-sm font-bold text-[#6ab344]">FCFA</span>
               </p>
             </div>
             <div className="text-right">
               <span className="text-[10px] font-black text-[#4a90e2] dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10 px-3 py-1.5 rounded-full uppercase italic border border-blue-100 dark:border-blue-500/20 flex items-center gap-1">
-                 <ShieldCheck className="size-3" /> Paiement Sécurisé
+                 <ShieldCheck className="size-3" /> Sécurisé
               </span>
             </div>
           </div>
           
           <button 
             onClick={() => router.push('/checkout')}
-            className="w-full bg-black dark:bg-white text-white dark:text-black py-6 rounded-[2.5rem] font-black text-sm uppercase italic tracking-widest shadow-xl active:scale-95 transition flex items-center justify-center gap-3"
+            className="w-full bg-black dark:bg-white text-white dark:text-black py-6 rounded-[2.5rem] font-black text-sm uppercase italic tracking-widest shadow-xl active:scale-95 transition-all flex items-center justify-center gap-3 hover:opacity-90"
           >
             Finaliser & Payer
             <ChevronRight className="size-5 text-orange-500" />

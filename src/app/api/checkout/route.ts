@@ -10,7 +10,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
     }
 
-    const { postId, price, name, phone, address } = await req.json();
+    // Récupération des données (incluant la note)
+    const { postId, price, name, phone, address, note } = await req.json();
 
     // 2. Vérification du produit
     const post = await prisma.post.findUnique({
@@ -23,11 +24,12 @@ export async function POST(req: Request) {
     }
 
     // 3. Calcul des montants et commissions
-    const totalAmount = parseInt(price);
+    const totalAmount = typeof price === 'string' ? parseInt(price) : price;
     const commission = Math.round(totalAmount * 0.05); // 5% de commission
     const sellerEarnings = totalAmount - commission;
 
     // 4. Création de la commande dans Prisma
+    // Note : Assure-toi que ton modèle "Order" dans schema.prisma possède un champ "notes" ou "customerNote" (String?)
     const order = await prisma.order.create({
       data: {
         userId: buyer.id,
@@ -40,6 +42,7 @@ export async function POST(req: Request) {
         customerName: name,
         customerPhone: phone,
         customerAddress: address,
+        notes: note || "", // On enregistre la note ici
         status: "PENDING",
       },
     });
@@ -50,7 +53,9 @@ export async function POST(req: Request) {
     formData.append("amount", totalAmount.toString());
     formData.append("phonenumber", phone);
     formData.append("item_ref", order.id);
-    formData.append("payment_phrase", `DealCity: ${post.content?.substring(0, 30)}`);
+    // On ajoute la note ou un extrait du contenu dans la phrase de paiement
+    const paymentDesc = note ? `Note: ${note.substring(0, 20)}...` : `DealCity: ${post.content?.substring(0, 25)}`;
+    formData.append("payment_phrase", paymentDesc);
     formData.append("currency", "XAF");
     formData.append("notify_url", `${process.env.NEXT_PUBLIC_BASE_URL}/api/webhooks/monetbil`);
     formData.append("return_url", `${process.env.NEXT_PUBLIC_BASE_URL}/users/${buyer.username}?tab=orders`);
@@ -66,39 +71,37 @@ export async function POST(req: Request) {
 
     const data = await response.json();
 
-    // 7. GESTION DE LA RÉPONSE (CORRIGÉE)
+    // 7. GESTION DE LA RÉPONSE
 
     // CAS A : Redirection externe (Lien de paiement)
     if (data.payment_url) {
       return NextResponse.json({ url: data.payment_url });
     } 
     
-    // CAS B : Succès - Le solde est suffisant et le "Push" est lancé
+    // CAS B : Succès - Le "Push" OTP est lancé
     if (data.status === "REQUEST_ACCEPTED" || data.message === "payment pending") {
       return NextResponse.json({ 
         success: true,
-        message: "Session ouverte ! Saisissez votre code PIN sur votre téléphone pour valider.",
+        message: "Session ouverte ! Validez l'opération sur votre téléphone.",
         ussd: data.channel_ussd || "#150*50#" 
       });
     }
 
     // CAS C : ÉCHEC SPÉCIFIQUE (Solde insuffisant)
-    // Monetbil renvoie souvent 402 ou un message contenant "balance"
     const isInsufficient = data.code === 402 || 
-                           data.status === "REQUEST_FAILED" && 
-                           data.message?.toLowerCase().includes("balance");
+                           (data.status === "REQUEST_FAILED" && 
+                            data.message?.toLowerCase().includes("balance"));
 
     if (isInsufficient) {
       return NextResponse.json({ 
-        error: "Solde insuffisant ! Rechargez votre compte Orange/MTN et réessayez.",
+        error: "Solde insuffisant ! Prévoyez les frais de retrait Orange/MTN.",
         step: "RECHARGE"
       }, { status: 402 });
     }
 
-    // CAS D : Autre erreur (Numéro invalide, etc.)
-    console.error("Détails Erreur Monetbil:", data);
+    // CAS D : Autre erreur
     return NextResponse.json({ 
-      error: data.message || "Impossible d'initier le paiement. Vérifiez votre numéro ou votre solde." 
+      error: data.message || "Erreur lors de l'initialisation du paiement." 
     }, { status: 400 });
 
   } catch (error) {

@@ -100,6 +100,7 @@ model Order {
   customerName     String
   customerPhone    String
   customerAddress  String
+  notes            String?
   
   // Relations
   userId           String      // L'acheteur
