@@ -49,7 +49,7 @@ export default function PostEditor() {
   const [audioArtist, setAudioArtist] = useState("");
   const [pioneers, setPioneers] = useState<{ id: string; displayName: string; username: string }[]>([]);
 
-  const isAdmin = !!user && (user.username === "Tene" || user.id === "4yq76ntw6lpduptd");
+  const isAdmin = !!user && (user.username === "dealcity" || user.id === "22lmc64bcqwsqybu");
 
   useEffect(() => {
     if (isAdmin) {
