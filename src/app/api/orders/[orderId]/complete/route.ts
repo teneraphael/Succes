@@ -2,7 +2,7 @@ import { validateRequest } from "@/auth";
 import prisma from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
-const MY_ADMIN_ID = "4yq76ntw6lpduptd";
+const MY_ADMIN_ID = "22lmc64bcqwsqybu";
 
 export async function POST(
   req: Request,

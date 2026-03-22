@@ -67,6 +67,7 @@ export async function requestWithdraw(amount: number) {
             userId: loggedInUser.id,
             amount: -amount,
             reason: `WITHDRAWAL_PENDING`,
+            type: "BOOST",
           },
         }),
       ]);
