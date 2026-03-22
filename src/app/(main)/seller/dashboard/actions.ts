@@ -4,57 +4,73 @@ import { validateRequest } from "@/auth";
 import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 
-const BOOST_COST = 500; // Le prix d'un boost
+const BOOST_COST = 500; // 500 FCFA le boost
 
 export async function boostPost(postId: string) {
-  const { user: loggedInUser } = await validateRequest();
+  try {
+    const { user: loggedInUser } = await validateRequest();
 
-  if (!loggedInUser) throw new Error("Unauthorized");
+    if (!loggedInUser) throw new Error("Vous devez être connecté.");
 
-  // 1. Récupérer le post et vérifier l'appartenance
-  const post = await prisma.post.findUnique({
-    where: { id: postId },
-    select: { userId: true },
-  });
+    // 1. On récupère le post et le solde de l'utilisateur en une seule fois (plus rapide)
+    const userAndPost = await prisma.$transaction(async (tx) => {
+      const post = await tx.post.findUnique({
+        where: { id: postId },
+        select: { userId: true, content: true },
+      });
 
-  if (!post || post.userId !== loggedInUser.id) {
-    throw new Error("Post non trouvé ou action non autorisée");
-  }
+      const seller = await tx.user.findUnique({
+        where: { id: loggedInUser.id },
+        select: { balance: true }, // Vérifie si ton champ est 'balance' ou 'walletBalance'
+      });
 
-  // 2. Vérifier le solde du vendeur
-  const seller = await prisma.user.findUnique({
-    where: { id: loggedInUser.id },
-    select: { balance: true },
-  });
+      if (!post) throw new Error("Annonce introuvable.");
+      if (post.userId !== loggedInUser.id) throw new Error("Action non autorisée sur cette annonce.");
 
-  if ((seller?.balance ?? 0) < BOOST_COST) {
-    throw new Error(`Solde insuffisant. Le boost coûte ${BOOST_COST} FCFA.`);
-  }
+      const currentBalance = seller?.balance || 0;
 
-  // 3. Transaction : Débit + Mise à jour du Post + Log
-  await prisma.$transaction([
-    // On débite le vendeur
-    prisma.user.update({
-      where: { id: loggedInUser.id },
-      data: { balance: { decrement: BOOST_COST } },
-    }),
-    // On "propulse" le post en changeant sa date (si ton feed trie par createdAt/updatedAt)
-    prisma.post.update({
-      where: { id: postId },
-      data: { createdAt: new Date() }, // Ou un champ 'boostedAt' si tu en as un
-    }),
-    // On crée la trace financière
-    prisma.transaction.create({
-      data: {
-        userId: loggedInUser.id,
-        amount: -BOOST_COST,
-        reason: `BOOST_POST_${postId}`,
-      },
-    }),
-  ]);
+      if (currentBalance < BOOST_COST) {
+        throw new Error(`Solde insuffisant. Le boost coûte ${BOOST_COST} FCFA. Votre solde actuel est de ${currentBalance} FCFA.`);
+      }
 
-  revalidatePath("/");
-  revalidatePath("/seller/dashboard");
-  
-  return { success: true };
+      // 2. EXÉCUTION DE LA TRANSACTION FINANCIÈRE
+      // A. Débit du solde
+      await tx.user.update({
+        where: { id: loggedInUser.id },
+        data: { balance: { decrement: BOOST_COST } },
+      });
+
+      // B. Propulsion de l'annonce
+      // On met à jour 'createdAt' pour que l'annonce remonte en haut du fil d'actualité
+      await tx.post.update({
+        where: { id: postId },
+        data: { createdAt: new Date() }, 
+      });
+
+      // C. Création de l'historique de transaction
+      // Note : Assure-toi que ton modèle 'Transaction' existe dans ton schema.prisma
+      await tx.transaction.create({
+        data: {
+          userId: loggedInUser.id,
+          amount: -BOOST_COST,
+          type: "DEBIT",
+          reason: `Boost de l'annonce : ${post.content?.substring(0, 30)}...`,
+          status: "SUCCESS"
+        },
+      });
+
+      return { success: true };
+    });
+
+    // 3. Rafraîchissement du cache pour que le boost soit visible partout
+    revalidatePath("/");
+    revalidatePath(`/posts/${postId}`);
+    revalidatePath("/seller/dashboard");
+    
+    return userAndPost;
+
+  } catch (error: any) {
+    console.error("[BOOST_POST_ERROR]:", error.message);
+    throw new Error(error.message || "Une erreur est survenue lors du boost.");
+  }
 }

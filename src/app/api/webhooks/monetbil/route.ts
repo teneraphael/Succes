@@ -1,13 +1,12 @@
 import prisma from "@/lib/prisma";
 import { NextResponse } from "next/server";
-import { OrderStatus } from "@prisma/client";
 
 export async function POST(req: Request) {
   try {
-    // Monetbil envoie souvent du x-www-form-urlencoded pour les notifications
     const contentType = req.headers.get("content-type");
     let data: any;
 
+    // Monetbil envoie du x-www-form-urlencoded
     if (contentType?.includes("application/x-www-form-urlencoded")) {
       const formData = await req.formData();
       data = Object.fromEntries(formData.entries());
@@ -15,33 +14,31 @@ export async function POST(req: Request) {
       data = await req.json();
     }
 
-    const { status, item_ref: orderId } = data;
+    const { status, item_ref: orderId, transaction_id: txId } = data;
 
-    if (!orderId) {
-      return NextResponse.json({ message: "ID commande manquant" }, { status: 400 });
-    }
+    if (!orderId) return new Response("Missing ID", { status: 200 });
 
     if (status === "success") {
+      // ON VALIDE LE PAIEMENT RÉEL ICI
       await prisma.order.update({
-        where: { id: orderId },
-        data: { status: OrderStatus.PAID },
+        where: { id: orderId as string },
+        data: { 
+          status: "PAID", 
+          // On peut stocker l'ID de transaction pour preuve en cas de litige
+        },
       });
-      console.log(`✅ Commande ${orderId} confirmée via Webhook`);
-    } else {
-      // Si c'est "failed" ou "cancelled", on marque l'échec
+      console.log(`✅ Commande ${orderId} validée (Argent encaissé)`);
+    } else if (status === "failed" || status === "cancelled") {
       await prisma.order.update({
-        where: { id: orderId },
-        data: { status: OrderStatus.FAILED },
+        where: { id: orderId as string },
+        data: { status: "FAILED" },
       });
-      console.log(`❌ Paiement échoué pour la commande ${orderId}`);
     }
 
-    // TOUJOURS répondre 200 à Monetbil pour qu'ils arrêtent d'envoyer la notification
-    return NextResponse.json({ message: "Notification reçue" }, { status: 200 });
-
+    // Toujours répondre 200 à Monetbil
+    return new Response("OK", { status: 200 });
   } catch (error) {
-    console.error("Erreur Webhook Monetbil:", error);
-    // On renvoie 200 même en cas d'erreur pour éviter que Monetbil ne boucle
-    return NextResponse.json({ message: "Erreur traitée" }, { status: 200 });
+    console.error("Webhook Error:", error);
+    return new Response("OK", { status: 200 });
   }
 }

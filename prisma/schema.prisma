@@ -142,6 +142,7 @@ model Transaction {
   id        String   @id @default(cuid())
   userId    String
   amount    Int
+  type        String
   reason    String
   status    String   @default("SUCCESS") // Ajoute cette ligne avec une valeur par défaut
   createdAt DateTime @default(now())
@@ -340,6 +341,7 @@ enum OrderStatus {
   PAID       // Argent encaissé par Monetbil (Bloqué sur la plateforme)
   SHIPPED    // Livreur a récupéré/livré le colis
   FAILED
+  INITIALIZED
   DELIVERED
   COMPLETED  // Client a confirmé la réception (L'argent peut être versé au vendeur)
   CANCELLED  // Annulé ou Échec de paiement

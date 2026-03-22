@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/sheet";
 import SidebarVendeur from "../SidebarVendeur";
 import { useToast } from "@/components/ui/use-toast";
-import { requestWithdraw, getSellerBalance } from "../actions"; // Import des fonctions serveurs
+import { requestWithdraw, getSellerBalance } from "../actions";
 
 interface DashboardHeaderProps {
   user: UserData;
@@ -23,22 +23,26 @@ export default function DashboardHeader({ user }: DashboardHeaderProps) {
   const [isWithdrawing, setIsWithdrawing] = useState(false);
   const [withdrawAmount, setWithdrawAmount] = useState("");
   const [openWithdraw, setOpenWithdraw] = useState(false);
-  
-  // ✅ État dynamique pour le solde
   const [soldeDisponible, setSoldeDisponible] = useState(0);
 
-  // Charger le vrai solde au montage du composant
-  useEffect(() => {
-    async function fetchBalance() {
-      try {
-        const balance = await getSellerBalance();
-        setSoldeDisponible(balance);
-      } catch (error) {
-        console.error("Erreur chargement solde:", error);
-      }
+  // Fonction pour charger le solde
+  const fetchBalance = async () => {
+    try {
+      const balance = await getSellerBalance();
+      setSoldeDisponible(balance);
+    } catch (error) {
+      console.error("Erreur chargement solde:", error);
     }
+  };
+
+  useEffect(() => {
     fetchBalance();
   }, []);
+
+  // On recharge le solde à chaque ouverture du tiroir de retrait
+  useEffect(() => {
+    if (openWithdraw) fetchBalance();
+  }, [openWithdraw]);
 
   const handleWithdrawRequest = async () => {
     const amount = parseInt(withdrawAmount);
@@ -53,10 +57,14 @@ export default function DashboardHeader({ user }: DashboardHeaderProps) {
       return;
     }
 
+    if (!user.phoneNumber) {
+      toast({ variant: "destructive", description: "Veuillez configurer votre numéro dans votre profil." });
+      return;
+    }
+
     setIsWithdrawing(true);
 
     try {
-      // ✅ Appel à la vraie API de retrait (Monetbil)
       const result = await requestWithdraw(amount);
 
       if (result.success) {
@@ -64,12 +72,12 @@ export default function DashboardHeader({ user }: DashboardHeaderProps) {
         setOpenWithdraw(false);
         setWithdrawAmount("");
         
-        // Mettre à jour le solde localement après le retrait
+        // Mise à jour immédiate du solde local
         setSoldeDisponible((prev) => prev - amount);
 
         toast({
-          description: "✅ Push USSD envoyé ! Validez sur votre téléphone.",
-          className: "bg-green-600 text-white border-none rounded-2xl"
+          description: "✅ Demande envoyée ! L'argent arrivera sur votre compte après vérification.",
+          className: "bg-green-600 text-white border-none rounded-2xl shadow-xl"
         });
       }
     } catch (error: any) {
@@ -128,59 +136,66 @@ export default function DashboardHeader({ user }: DashboardHeaderProps) {
             </div>
           </div>
 
-          {/* CARTE FINANCIÈRE AVEC TIROIR DE RETRAIT */}
+          {/* CARTE FINANCIÈRE */}
           <div className="lg:col-span-5 w-full">
             <div className="bg-white/10 backdrop-blur-md rounded-[2.5rem] border border-white/20 p-6 shadow-inner relative overflow-hidden">
               <div className="flex justify-between items-start relative z-10">
                 <div className="space-y-1">
-                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/60">Solde Retirable</p>
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/60">Solde Disponible</p>
                   <h2 className="text-4xl font-black text-white tracking-tighter">
-                    {soldeDisponible.toLocaleString()} <span className="text-sm font-bold opacity-80">FCFA</span>
+                    {soldeDisponible.toLocaleString('fr-FR')} <span className="text-sm font-bold opacity-80">FCFA</span>
                   </h2>
                 </div>
                 
-                {/* TIGGER DU RETRAIT */}
                 <Sheet open={openWithdraw} onOpenChange={setOpenWithdraw}>
                   <SheetTrigger asChild>
-                    <button className="bg-white text-blue-600 p-4 rounded-2xl shadow-xl active:scale-90 transition-all hover:bg-blue-50 flex flex-col items-center">
+                    <button className="bg-white text-blue-600 p-4 rounded-2xl shadow-xl active:scale-90 transition-all hover:bg-blue-50">
                       <ArrowUpRight className="size-6" />
                     </button>
                   </SheetTrigger>
-                  <SheetContent side="bottom" className="h-[500px] rounded-t-[3rem] border-none p-8 bg-zinc-50">
+                  <SheetContent side="bottom" className="h-[520px] rounded-t-[3rem] border-none p-8 bg-zinc-50 outline-none">
                     <SheetHeader className="items-center text-center space-y-4">
-                      <div className="size-16 bg-blue-100 rounded-full flex items-center justify-center text-blue-600">
+                      <div className="size-16 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 shadow-inner">
                         <Wallet className="size-8" />
                       </div>
-                      <SheetTitle className="text-2xl font-black uppercase tracking-tighter">Demander un retrait</SheetTitle>
+                      <SheetTitle className="text-2xl font-black uppercase tracking-tighter italic">Demander un retrait</SheetTitle>
                     </SheetHeader>
 
                     <div className="max-w-md mx-auto mt-8 space-y-6">
-                      <div className="bg-white p-6 rounded-[2rem] border shadow-sm">
+                      <div className="bg-white p-6 rounded-[2rem] border-2 border-zinc-100 shadow-sm focus-within:border-blue-500 transition-all">
                         <label className="text-[10px] font-black uppercase text-zinc-400 block mb-2">Montant à retirer (FCFA)</label>
                         <input 
                           type="number" 
                           placeholder="Ex: 5000"
                           value={withdrawAmount}
                           onChange={(e) => setWithdrawAmount(e.target.value)}
-                          className="w-full text-4xl font-black tracking-tighter border-none focus:ring-0 p-0 placeholder:text-zinc-200 bg-transparent"
+                          className="w-full text-4xl font-black tracking-tighter border-none focus:ring-0 p-0 placeholder:text-zinc-100 bg-transparent text-black"
                         />
                       </div>
 
                       <div className="flex items-center gap-4 bg-blue-50 p-4 rounded-2xl border border-blue-100">
                         <Smartphone className="size-6 text-blue-600" />
                         <div className="text-left">
-                          <p className="text-[10px] font-black uppercase text-blue-400">Vers votre numéro</p>
-                          <p className="text-sm font-black italic">{user.phoneNumber || "Veuillez configurer votre numéro"}</p>
+                          <p className="text-[10px] font-black uppercase text-blue-400">Envoi vers</p>
+                          <p className="text-sm font-black italic">{user.phoneNumber || "Numéro non configuré"}</p>
                         </div>
                       </div>
 
                       <button 
                         onClick={handleWithdrawRequest}
-                        disabled={isWithdrawing || !withdrawAmount}
-                        className="w-full py-5 bg-black text-white rounded-[1.8rem] font-black uppercase text-xs italic tracking-[0.2em] shadow-xl active:scale-95 transition flex items-center justify-center gap-3 disabled:opacity-50"
+                        disabled={isWithdrawing || !withdrawAmount || parseInt(withdrawAmount) < 500}
+                        className="w-full py-5 bg-black text-white rounded-[1.8rem] font-black uppercase text-xs italic tracking-[0.2em] shadow-xl active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:bg-zinc-400"
                       >
-                        {isWithdrawing ? <Loader2 className="animate-spin" /> : "Confirmer le retrait"}
+                        {isWithdrawing ? (
+                          <>
+                            <Loader2 className="animate-spin size-5" />
+                            Traitement...
+                          </>
+                        ) : (
+                          "Confirmer le retrait"
+                        )}
                       </button>
+                      <p className="text-center text-[9px] font-bold text-zinc-400 uppercase tracking-widest">Délai moyen : 15 min</p>
                     </div>
                   </SheetContent>
                 </Sheet>
@@ -188,7 +203,7 @@ export default function DashboardHeader({ user }: DashboardHeaderProps) {
 
               <div className="mt-6 flex items-center gap-2 text-white/50">
                 <CheckCircle2 className="size-3 text-green-400" />
-                <p className="text-[9px] font-black uppercase">Paiements via Mobile Money actifs</p>
+                <p className="text-[9px] font-black uppercase tracking-tighter">Sécurisé par Monetbil CM</p>
               </div>
             </div>
           </div>

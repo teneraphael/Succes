@@ -8,20 +8,21 @@ export async function GET() {
   try {
     const { user: loggedInUser } = await validateRequest();
 
+    // 1. Vérification de sécurité Admin/Livreur
     if (!loggedInUser || loggedInUser.id !== MY_ADMIN_ID) {
       return NextResponse.json({ error: "Accès refusé" }, { status: 403 });
     }
 
+    // 2. On récupère les commandes réellement PAYÉES (grâce au Webhook)
     const orders = await prisma.order.findMany({
       where: { 
-        status: "PENDING" 
+        // IMPORTANT: Seul le statut "PAID" garantit que l'argent est chez DealCity
+        status: "PAID" 
       },
       include: {
         post: {
           select: {
             content: true,
-            // Correction ici : On utilise 'attachments' au lieu de 'media'
-            // Si ton champ dans Prisma s'appelle autrement, remplace ce mot.
             attachments: true, 
           }
         }
@@ -29,11 +30,13 @@ export async function GET() {
       orderBy: { createdAt: "desc" },
     });
 
+    // 3. Formatage pour le Dashboard Livreur
     const formattedOrders = orders.map((order) => {
-      // On récupère l'image de façon sécurisée
-      // On cherche dans order.post.attachments
-      const postMedia = (order.post as any)?.attachments;
-      const firstImage = Array.isArray(postMedia) ? postMedia[0]?.url : null;
+      // Extraction sécurisée de la première image
+      const attachments = (order.post as any)?.attachments;
+      const firstImage = Array.isArray(attachments) && attachments.length > 0 
+        ? attachments[0]?.url 
+        : null;
 
       return {
         id: order.id,
@@ -42,8 +45,9 @@ export async function GET() {
         price: order.totalAmount,
         customerName: order.customerName,
         customerPhone: order.customerPhone,
+        // On mappe customerAddress vers deliveryAddress pour le Dashboard
         deliveryAddress: order.customerAddress,
-        notes: order.notes, 
+        notes: order.notes, // Affiche la taille/couleur/note
         status: order.status,
       };
     });
