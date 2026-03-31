@@ -5,8 +5,8 @@ import prisma from "@/lib/prisma";
 import { getPostDataInclude } from "@/lib/types";
 import { createPostSchema } from "@/lib/validation";
 
-const ADMIN_IDS = ["4yq76ntw6lpduptd"]; 
-const ADMIN_USERNAMES = ["Tene"];
+const ADMIN_IDS = ["22lmc64bcqwsqybu"]; 
+const ADMIN_USERNAMES = ["dealcity"];
 
 export async function submitPost(input: {
   content: string;
