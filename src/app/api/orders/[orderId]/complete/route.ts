@@ -2,6 +2,7 @@ import { validateRequest } from "@/auth";
 import prisma from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
+// Ton ID Admin (Livreur)
 const MY_ADMIN_ID = "22lmc64bcqwsqybu";
 
 export async function POST(
@@ -9,21 +10,21 @@ export async function POST(
   { params }: { params: Promise<{ orderId: string }> }
 ) {
   try {
-    // 1. Vérification de l'identité du livreur (Admin)
+    // 1. Vérification de l'identité du livreur
     const { user: loggedInUser } = await validateRequest();
     
     if (!loggedInUser || loggedInUser.id !== MY_ADMIN_ID) {
-      return NextResponse.json({ error: "Accès refusé : Réservé au livreur officiel" }, { status: 403 });
+      return NextResponse.json({ error: "Accès refusé" }, { status: 403 });
     }
 
-    // 2. Attendre l'ID de la commande (Next.js 15)
+    // 2. Récupération de l'ID de la commande
     const { orderId } = await params;
 
     if (!orderId) {
       return NextResponse.json({ error: "ID de commande manquant" }, { status: 400 });
     }
 
-    // 3. Vérifier que la commande existe et est bien payée avant de livrer
+    // 3. Vérifier que la commande existe
     const order = await prisma.order.findUnique({
       where: { id: orderId }
     });
@@ -32,28 +33,29 @@ export async function POST(
       return NextResponse.json({ error: "Commande introuvable" }, { status: 404 });
     }
 
-    // SÉCURITÉ : On ne peut pas livrer une commande qui n'est pas payée (INITIALIZED ou FAILED)
-    if (order.status !== "PAID") {
-      return NextResponse.json({ 
-        error: "Impossible de livrer : Le paiement n'a pas été validé par Monetbil." 
-      }, { status: 400 });
+    // 4. LOGIQUE PAIEMENT À LA LIVRAISON (COD)
+    // On vérifie que la commande n'est pas déjà livrée ou annulée
+    if (order.status === "DELIVERED") {
+      return NextResponse.json({ error: "Cette commande est déjà marquée comme livrée." }, { status: 400 });
     }
 
-    // 4. Mise à jour du statut vers DELIVERED
+    // 5. Mise à jour du statut
+    // Dans un système COD, marquer comme "DELIVERED" signifie 
+    // que le livreur a ENCAISSÉ l'argent et REMIS le colis.
     await prisma.order.update({
       where: { id: orderId },
       data: { 
         status: "DELIVERED",
-        // Optionnel : on peut enregistrer l'heure exacte de livraison
+        // On peut aussi imaginer un champ 'paidAt' si tu veux tracker l'encaissement
         updatedAt: new Date()
       },
     });
 
-    console.log(`📦 Colis ${orderId} marqué comme LIVRÉ par le livreur.`);
+    console.log(`✅ Commande ${orderId} : Argent encaissé et colis livré par l'admin.`);
 
     return NextResponse.json({ 
       success: true, 
-      message: "Statut mis à jour : Colis remis au client." 
+      message: "Livraison confirmée et paiement encaissé." 
     });
 
   } catch (error: any) {

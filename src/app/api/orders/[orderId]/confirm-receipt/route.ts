@@ -4,17 +4,16 @@ import { NextResponse } from "next/server";
 
 export async function POST(
   req: Request, 
-  { params }: { params: Promise<{ id: string }> } // Adapté à ton routage [id]
+  { params }: { params: Promise<{ id: string }> } 
 ) {
   try {
     const { user } = await validateRequest();
     if (!user) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
 
     // 1. ATTENDRE les params (Next.js 15)
-    const resolvedParams = await params;
-    const orderId = resolvedParams.id;
+    const { id: orderId } = await params;
 
-    // 2. Récupérer la commande avec les infos de paiement
+    // 2. Récupérer la commande
     const order = await prisma.order.findUnique({
       where: { id: orderId }
     });
@@ -23,45 +22,42 @@ export async function POST(
       return NextResponse.json({ error: "Commande non trouvée" }, { status: 404 });
     }
 
-    // 3. VÉRIFICATIONS DE SÉCURITÉ CRITIQUES
-    
-    // Sécurité A : Seul l'acheteur peut confirmer la réception
+    // 3. VÉRIFICATIONS DE SÉCURITÉ
+
+    // Sécurité A : Seul l'acheteur qui a passé la commande peut confirmer
     if (order.userId !== user.id) {
        return NextResponse.json({ error: "Accès refusé" }, { status: 403 });
     }
 
-    // Sécurité B : On vérifie que le livreur a BIEN marqué le colis comme livré
-    if (order.status !== "DELIVERED") {
-      return NextResponse.json({ 
-        error: "Le livreur n'a pas encore confirmé la remise du colis." 
-      }, { status: 400 });
-    }
-
-    // Sécurité C : On vérifie que l'argent est RÉELLEMENT chez DealCity (PAID)
-    // Cela empêche de créditer le vendeur si le Webhook Monetbil n'a pas validé
-    if (order.status === "INITIALIZED" || order.status === "FAILED") {
-        return NextResponse.json({ 
-          error: "Paiement non vérifié. Impossible de transférer les fonds." 
-        }, { status: 400 });
-    }
-
-    // Sécurité D : Éviter le double crédit
-    if (order.status === "COMPLETED") {
+    // Sécurité B : Éviter le double crédit (On vérifie COMPLETED d'abord)
+    // Cela "réduit" le type pour TypeScript et évite l'erreur d'overlap
+    if (order.status === ("COMPLETED" as any)) {
       return NextResponse.json({ error: "Cette transaction est déjà clôturée." }, { status: 400 });
     }
 
-    // 4. TRANSACTION ATOMIQUE (Virement réel)
+    // Sécurité C : On vérifie que le livreur a BIEN marqué "DELIVERED"
+    // En Cash on Delivery, cela signifie que le livreur a déjà encaissé l'argent.
+    if (order.status !== ("DELIVERED" as any)) {
+      return NextResponse.json({ 
+        error: "Le livreur n'a pas encore confirmé la remise du colis et l'encaissement." 
+      }, { status: 400 });
+    }
+
+    // 4. TRANSACTION ATOMIQUE (Libération des fonds)
     await prisma.$transaction([
-      // Marquer la commande comme COMPLETED (Fin du flux)
+      // A. Clôturer la commande
       prisma.order.update({
         where: { id: order.id },
-        data: { status: "COMPLETED" }
+        data: { 
+          status: "COMPLETED",
+          updatedAt: new Date()
+        }
       }),
-      // Créditer le solde du vendeur (Wallet)
+      // B. Créditer le portefeuille du vendeur
       prisma.user.update({
         where: { id: order.sellerId },
         data: { 
-          // Utilise 'balance' ou 'walletBalance' selon ton schéma prisma
+          // Note : Assure-toi que ton modèle User a bien un champ 'balance' (Int ou Float)
           balance: { increment: order.sellerEarnings || 0 } 
         }
       })
@@ -69,13 +65,13 @@ export async function POST(
 
     return NextResponse.json({ 
       success: true, 
-      message: "Réception confirmée et vendeur crédité !" 
+      message: "Réception confirmée ! Le vendeur a reçu ses fonds dans son portefeuille DealCity." 
     });
 
   } catch (error: any) {
-    console.error("ERREUR_CONFIRMATION_RECEPCION:", error);
+    console.error("ERREUR_CONFIRMATION_RECEPTION:", error);
     return NextResponse.json({ 
-      error: "Erreur lors du virement",
+      error: "Erreur technique lors de la clôture",
       details: error.message 
     }, { status: 500 });
   }

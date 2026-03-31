@@ -4,15 +4,14 @@ import { useCart } from '@/context/cart-context';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { ShoppingBag, Trash2, ArrowLeft, ChevronRight, Plus, Minus, ShieldCheck } from 'lucide-react';
+import { ShoppingBag, Trash2, ArrowLeft, ChevronRight, Plus, Minus, ShieldCheck, Truck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export default function CartPage() {
-  // Récupération sécurisée du contexte
   const { cart, removeFromCart, clearCart, updateQuantity, updateColor } = useCart();
   const router = useRouter();
 
-  // Correction : Vérification que cart existe avant le reduce pour éviter le crash
+  // Calcul du total sécurisé
   const total = cart?.reduce((acc, item) => {
     const price = item.price || 0;
     const qty = item.quantity || 1;
@@ -26,9 +25,9 @@ export default function CartPage() {
         <div className="size-24 bg-gray-100 dark:bg-zinc-900 rounded-full flex items-center justify-center mb-6">
           <ShoppingBag className="size-10 text-gray-400 dark:text-zinc-600" />
         </div>
-        <h2 className="text-2xl font-black uppercase tracking-tighter mb-2 dark:text-white">Ton panier est vide</h2>
-        <p className="text-muted-foreground dark:text-zinc-500 mb-8 max-w-[250px]">
-          Ajoute des articles pour profiter des meilleurs deals du moment.
+        <h2 className="text-2xl font-black uppercase tracking-tighter mb-2 dark:text-white italic">Ton panier est vide</h2>
+        <p className="text-muted-foreground dark:text-zinc-500 mb-8 max-w-[250px] text-sm">
+          Ajoute des articles pour profiter des meilleurs deals au Cameroun.
         </p>
         <Link 
           href="/" 
@@ -53,7 +52,9 @@ export default function CartPage() {
           </button>
           <h1 className="text-xl font-black uppercase tracking-tighter dark:text-white italic">Mon Panier</h1>
           <button 
-            onClick={clearCart} 
+            onClick={() => {
+              if(confirm("Vider tout le panier ?")) clearCart();
+            }} 
             className="text-[10px] font-black uppercase bg-red-50 dark:bg-red-500/10 text-red-500 px-3 py-1.5 rounded-lg active:bg-red-100 dark:active:bg-red-500/20 transition border border-red-100 dark:border-red-500/20"
           >
             Vider
@@ -62,7 +63,7 @@ export default function CartPage() {
       </div>
 
       <div className="max-w-md mx-auto p-4 space-y-4 mt-4">
-        <p className="text-[11px] font-black text-muted-foreground dark:text-zinc-500 uppercase tracking-widest px-1">
+        <p className="text-[11px] font-black text-muted-foreground dark:text-zinc-500 uppercase tracking-widest px-1 italic">
           {cart.length} {cart.length > 1 ? 'Articles' : 'Article'} au total
         </p>
 
@@ -73,7 +74,6 @@ export default function CartPage() {
               className="group flex flex-col bg-white dark:bg-zinc-900 p-4 rounded-[2.5rem] border border-black/5 dark:border-white/10 shadow-sm hover:shadow-md transition-all"
             >
               <div className="flex items-start gap-4">
-                {/* Image du produit avec fallback */}
                 <div className="relative size-24 rounded-[1.5rem] overflow-hidden bg-gray-100 dark:bg-zinc-800 flex-shrink-0 border border-black/5 dark:border-white/5">
                   {item.image ? (
                     <Image 
@@ -82,6 +82,7 @@ export default function CartPage() {
                       fill 
                       className="object-cover"
                       sizes="96px"
+                      unoptimized
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
@@ -90,10 +91,9 @@ export default function CartPage() {
                   )}
                 </div>
                 
-                {/* Infos du produit */}
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between items-start">
-                    <h3 className="font-bold text-sm text-foreground dark:text-white truncate uppercase tracking-tight w-full pr-2">
+                    <h3 className="font-bold text-sm text-foreground dark:text-white truncate uppercase tracking-tight w-full pr-2 italic">
                       {item.name || "Article sans nom"}
                     </h3>
                     <button 
@@ -104,11 +104,10 @@ export default function CartPage() {
                     </button>
                   </div>
 
-                  {/* SÉLECTEUR DE COULEUR (Si disponible) */}
                   {item.availableColors && item.availableColors.length > 0 && (
                     <div className="flex flex-col gap-2 mt-2">
                       <p className="text-[9px] font-black text-gray-400 dark:text-zinc-500 uppercase tracking-widest">
-                        Couleur : <span className="text-black dark:text-white">{item.color || 'Standard'}</span>
+                        Couleur : <span className="text-black dark:text-white italic">{item.color || 'Standard'}</span>
                       </p>
                       <div className="flex flex-wrap gap-2">
                         {item.availableColors.map((c: string) => (
@@ -129,11 +128,10 @@ export default function CartPage() {
                     </div>
                   )}
 
-                  <p className="text-[#6ab344] font-black text-xl mt-3 leading-none">
-                    {(item.price || 0).toLocaleString('fr-FR')} <span className="text-[10px]">FCFA</span>
+                  <p className="text-[#6ab344] font-black text-xl mt-3 leading-none italic">
+                    {(item.price || 0).toLocaleString('fr-FR')} <span className="text-[10px] not-italic">FCFA</span>
                   </p>
 
-                  {/* Sélecteur de Quantité */}
                   <div className="flex items-center gap-3 mt-4 bg-gray-50 dark:bg-zinc-800 w-fit p-1 rounded-xl border border-black/5 dark:border-white/5">
                     <button 
                       onClick={() => updateQuantity(item.id, (item.quantity || 1) - 1, item.color)}
@@ -160,19 +158,20 @@ export default function CartPage() {
       </div>
 
       {/* Résumé de commande fixe en bas */}
-      <div className="fixed bottom-0 left-0 w-full bg-white/90 dark:bg-zinc-900/90 backdrop-blur-xl border-t border-black/5 dark:border-white/10 p-6 pb-10 shadow-[0_-10px_40px_rgba(0,0,0,0.05)] z-50 transition-colors">
+      <div className="fixed bottom-0 left-0 w-full bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl border-t border-black/5 dark:border-white/10 p-6 pb-10 shadow-[0_-10px_40px_rgba(0,0,0,0.05)] z-50 transition-colors">
         <div className="max-w-md mx-auto space-y-4">
           <div className="flex justify-between items-end">
             <div>
-              <p className="text-[10px] font-black text-muted-foreground dark:text-zinc-500 uppercase tracking-widest mb-1">Total panier</p>
-              <p className="text-4xl font-black text-black dark:text-white tracking-tighter leading-none">
+              <p className="text-[10px] font-black text-muted-foreground dark:text-zinc-500 uppercase tracking-widest mb-1">Total à payer</p>
+              <p className="text-4xl font-black text-black dark:text-white tracking-tighter leading-none italic">
                 {total.toLocaleString('fr-FR')} <span className="text-sm font-bold text-[#6ab344]">FCFA</span>
               </p>
             </div>
-            <div className="text-right">
-              <span className="text-[10px] font-black text-[#4a90e2] dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10 px-3 py-1.5 rounded-full uppercase italic border border-blue-100 dark:border-blue-500/20 flex items-center gap-1">
-                 <ShieldCheck className="size-3" /> Sécurisé
+            <div className="flex flex-col items-end gap-1">
+              <span className="text-[10px] font-black text-orange-500 bg-orange-50 dark:bg-orange-500/10 px-3 py-1.5 rounded-full uppercase italic border border-orange-100 dark:border-orange-500/20 flex items-center gap-1">
+                 <Truck className="size-3" /> Cash On Delivery
               </span>
+              <span className="text-[9px] font-bold text-muted-foreground dark:text-zinc-500 italic pr-1">Paiement à la livraison</span>
             </div>
           </div>
           
@@ -180,7 +179,7 @@ export default function CartPage() {
             onClick={() => router.push('/checkout')}
             className="w-full bg-black dark:bg-white text-white dark:text-black py-6 rounded-[2.5rem] font-black text-sm uppercase italic tracking-widest shadow-xl active:scale-95 transition-all flex items-center justify-center gap-3 hover:opacity-90"
           >
-            Finaliser & Payer
+            Valider la commande
             <ChevronRight className="size-5 text-orange-500" />
           </button>
         </div>

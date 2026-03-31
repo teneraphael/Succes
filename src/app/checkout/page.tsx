@@ -3,7 +3,7 @@
 import { useCart } from '@/context/cart-context';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useState, Suspense } from 'react';
-import { ArrowLeft, MapPin, Phone, User, CheckCircle2, ShieldCheck, Palette, Plus, Minus, Loader2, MessageSquare } from 'lucide-react';
+import { ArrowLeft, MapPin, Phone, User, CheckCircle2, ShieldCheck, Palette, Plus, Minus, Loader2, MessageSquare, Truck } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import Image from 'next/image';
 
@@ -16,13 +16,13 @@ export default function CheckoutPage() {
 }
 
 function CheckoutContent() {
-  const { cart, updateQuantity } = useCart();
+  const { cart, updateQuantity, clearCart } = useCart();
   const searchParams = useSearchParams();
   const router = useRouter();
   const { toast } = useToast();
   
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [orderNote, setOrderNote] = useState(""); // État pour la personnalisation de l'article
+  const [orderNote, setOrderNote] = useState(""); 
 
   const directId = searchParams.get('directId');
   const [directQty, setDirectQty] = useState(Number(searchParams.get('qty')) || 1);
@@ -64,11 +64,12 @@ function CheckoutContent() {
 
     const orderData = {
       postId: displayItems[0].id,
-      price: totalAmount,
-      name: formData.get('name'),
-      phone: cleanPhone,
-      address: formData.get('address'),
-      note: orderNote, // Envoi de la note au serveur
+      items: displayItems, // On envoie les items pour la gestion du panier
+      total: totalAmount,
+      customerName: formData.get('name'),
+      customerPhone: cleanPhone,
+      customerAddress: formData.get('address'),
+      note: orderNote, 
     };
 
     try {
@@ -81,46 +82,28 @@ function CheckoutContent() {
       const result = await response.json();
 
       if (!response.ok) {
-        if (response.status === 402 || result.error?.toLowerCase().includes("solde")) {
-          toast({ 
-            variant: "destructive", 
-            title: "SOLDE INSUFFISANT ⚠️",
-            description: "Votre compte n'a pas assez de fonds (prévoyez les frais). Rechargez et réessayez.",
-            duration: 8000,
-          });
-        } else {
-          toast({ 
-            variant: "destructive", 
-            title: "ÉCHEC DU PAIEMENT",
-            description: result.error || "Une erreur est survenue lors de l'initialisation." 
-          });
-        }
-        return; 
+        throw new Error(result.error || "Erreur lors de la validation");
       }
 
-      if (result.url) {
-        window.location.href = result.url;
-      } else if (result.success) {
-        const isOrange = /^(69|655|656|657|658|659)/.test(cleanPhone);
-
+      if (result.success) {
         toast({ 
-          title: "ACTION REQUISE ✅",
-          description: isOrange 
-            ? `Validez sur votre écran ou composez le #150*50# pour payer ${totalAmount.toLocaleString()} FCFA.`
-            : `Saisissez votre code PIN sur le message push reçu pour payer ${totalAmount.toLocaleString()} FCFA.`,
-          duration: 15000,
+          title: "COMMANDE VALIDÉE 📦",
+          description: "Votre commande a été enregistrée. Préparez le montant exact pour la livraison.",
+          duration: 5000,
         });
         
-        setTimeout(() => {
-            router.push(`/users/me?tab=orders`);
-        }, 8000);
+        // On vide le panier si ce n'était pas un achat direct
+        if (!directId) clearCart();
+
+        // Redirection vers l'onglet des commandes
+        router.push(`/users/me?tab=orders`);
       }
 
     } catch (error: any) {
       toast({ 
         variant: "destructive", 
-        title: "ERREUR RÉSEAU",
-        description: "Impossible de joindre le service de paiement." 
+        title: "ERREUR",
+        description: error.message || "Impossible de valider la commande." 
       });
     } finally {
       setIsSubmitting(false);
@@ -134,7 +117,7 @@ function CheckoutContent() {
           <button onClick={() => router.back()} className="p-2 -ml-2 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-full transition">
             <ArrowLeft className="size-6 text-black dark:text-white" />
           </button>
-          <h1 className="text-xl font-black uppercase tracking-tighter text-black dark:text-white italic">Paiement Sécurisé</h1>
+          <h1 className="text-xl font-black uppercase tracking-tighter text-black dark:text-white italic">Finaliser la commande</h1>
         </div>
       </div>
 
@@ -142,13 +125,13 @@ function CheckoutContent() {
         {/* Section Articles */}
         <div className="space-y-3">
           <p className="text-[11px] font-black text-muted-foreground dark:text-zinc-500 uppercase tracking-widest px-1">
-            {directId ? "Achat immédiat" : "Votre Panier"}
+            {directId ? "Achat immédiat" : "Récapitulatif"}
           </p>
           <div className="bg-white dark:bg-zinc-900 rounded-[2.5rem] border border-black/5 dark:border-white/10 p-4 shadow-sm space-y-4">
             {displayItems.map((item, index) => (
               <div key={`${item.id}-${index}`} className="flex gap-4">
                 <div className="relative size-20 rounded-2xl overflow-hidden bg-gray-50 dark:bg-zinc-800 flex-shrink-0 border border-black/5 dark:border-white/5">
-                  {item.image && <Image src={item.image} alt={item.name} fill className="object-cover" />}
+                  {item.image && <Image src={item.image} alt={item.name} fill className="object-cover" unoptimized />}
                 </div>
                 <div className="flex-1 min-w-0 flex flex-col justify-center">
                   <h3 className="font-bold text-[11px] uppercase truncate leading-tight mb-1 text-black dark:text-white">{item.name}</h3>
@@ -191,64 +174,63 @@ function CheckoutContent() {
         {/* Résumé du montant */}
         <div className="bg-white dark:bg-zinc-900 p-6 rounded-[2.5rem] border border-black/5 dark:border-white/10 shadow-sm">
           <div className="flex justify-between items-center mb-2">
-            <span className="text-muted-foreground font-bold text-[10px] uppercase tracking-widest dark:text-zinc-500">Montant à régler</span>
-            <span className="bg-blue-100 dark:bg-blue-500/10 text-[#4a90e2] dark:text-blue-400 text-[10px] font-black px-2 py-1 rounded-md uppercase italic border border-blue-200 dark:border-blue-500/20 flex items-center gap-1">
-                <ShieldCheck className="size-3" /> Mobile Money
+            <span className="text-muted-foreground font-bold text-[10px] uppercase tracking-widest dark:text-zinc-500 italic">Total à payer</span>
+            <span className="bg-orange-100 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400 text-[10px] font-black px-2 py-1 rounded-md uppercase italic border border-orange-200 dark:border-orange-500/20 flex items-center gap-1">
+                <Truck className="size-3" /> Cash on Delivery
             </span>
           </div>
-          <p className="text-4xl font-black tracking-tighter text-black dark:text-white">{totalAmount.toLocaleString()} <span className="text-sm text-[#6ab344]">FCFA</span></p>
+          <p className="text-4xl font-black tracking-tighter text-black dark:text-white italic">{totalAmount.toLocaleString()} <span className="text-sm text-[#6ab344]">FCFA</span></p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <p className="text-[11px] font-black text-muted-foreground dark:text-zinc-500 uppercase tracking-widest px-1">Coordonnées de livraison</p>
+          <p className="text-[11px] font-black text-muted-foreground dark:text-zinc-500 uppercase tracking-widest px-1">Infos de livraison</p>
           <div className="space-y-3">
             <div className="relative">
               <User className="absolute left-4 top-1/2 -translate-y-1/2 size-5 text-gray-400 dark:text-zinc-600" />
-              <input required name="name" placeholder="Ton nom complet" className="w-full bg-white dark:bg-zinc-900 border-none ring-1 ring-black/5 dark:ring-white/10 rounded-2xl py-5 pl-12 pr-4 font-bold focus:ring-2 focus:ring-[#4a90e2] outline-none transition-all shadow-sm text-black dark:text-white placeholder:text-gray-400 dark:placeholder:text-zinc-600" />
+              <input required name="name" placeholder="Ton nom complet" className="w-full bg-white dark:bg-zinc-900 border-none ring-1 ring-black/5 dark:ring-white/10 rounded-2xl py-5 pl-12 pr-4 font-bold focus:ring-2 focus:ring-orange-500 outline-none transition-all shadow-sm text-black dark:text-white placeholder:text-gray-400 dark:placeholder:text-zinc-600" />
             </div>
             
             <div className="relative">
               <Phone className="absolute left-4 top-1/2 -translate-y-1/2 size-5 text-gray-400 dark:text-zinc-600" />
-              <input required type="tel" name="phone" placeholder="Numéro Mobile Money (6xxxx...)" className="w-full bg-white dark:bg-zinc-900 border-none ring-1 ring-black/5 dark:ring-white/10 rounded-2xl py-5 pl-12 pr-4 font-bold focus:ring-2 focus:ring-[#4a90e2] outline-none transition-all shadow-sm text-black dark:text-white placeholder:text-gray-400 dark:placeholder:text-zinc-600" />
+              <input required type="tel" name="phone" placeholder="Téléphone de contact" className="w-full bg-white dark:bg-zinc-900 border-none ring-1 ring-black/5 dark:ring-white/10 rounded-2xl py-5 pl-12 pr-4 font-bold focus:ring-2 focus:ring-orange-500 outline-none transition-all shadow-sm text-black dark:text-white placeholder:text-gray-400 dark:placeholder:text-zinc-600" />
             </div>
 
-            {/* LA CASE QUE TU VOULAIS AJOUTER */}
             <div className="relative">
               <MessageSquare className="absolute left-4 top-5 size-5 text-gray-400 dark:text-zinc-600" />
               <textarea 
                 value={orderNote}
                 onChange={(e) => setOrderNote(e.target.value)}
-                placeholder="Comment voulez-vous votre article ? (Taille, couleur, préférence de livraison...)" 
+                placeholder="Notes (Taille, couleur, préférences...)" 
                 rows={2} 
-                className="w-full bg-white dark:bg-zinc-900 border-none ring-1 ring-black/5 dark:ring-white/10 rounded-2xl py-5 pl-12 pr-4 font-bold focus:ring-2 focus:ring-[#4a90e2] outline-none transition-all shadow-sm resize-none text-black dark:text-white placeholder:text-gray-400 dark:placeholder:text-zinc-600 italic text-sm" 
+                className="w-full bg-white dark:bg-zinc-900 border-none ring-1 ring-black/5 dark:ring-white/10 rounded-2xl py-5 pl-12 pr-4 font-bold focus:ring-2 focus:ring-orange-500 outline-none transition-all shadow-sm resize-none text-black dark:text-white placeholder:text-gray-400 dark:placeholder:text-zinc-600 italic text-sm" 
               />
             </div>
 
             <div className="relative">
               <MapPin className="absolute left-4 top-5 size-5 text-gray-400 dark:text-zinc-600" />
-              <textarea required name="address" placeholder="Ville, Quartier et indications précises..." rows={3} className="w-full bg-white dark:bg-zinc-900 border-none ring-1 ring-black/5 dark:ring-white/10 rounded-2xl py-5 pl-12 pr-4 font-bold focus:ring-2 focus:ring-[#4a90e2] outline-none transition-all shadow-sm resize-none text-black dark:text-white placeholder:text-gray-400 dark:placeholder:text-zinc-600" />
+              <textarea required name="address" placeholder="Ville, Quartier et indications précises..." rows={3} className="w-full bg-white dark:bg-zinc-900 border-none ring-1 ring-black/5 dark:ring-white/10 rounded-2xl py-5 pl-12 pr-4 font-bold focus:ring-2 focus:ring-orange-500 outline-none transition-all shadow-sm resize-none text-black dark:text-white placeholder:text-gray-400 dark:placeholder:text-zinc-600" />
             </div>
           </div>
 
-          <div className="p-5 bg-green-50 dark:bg-green-500/5 rounded-2xl border border-green-100 dark:border-green-500/10 flex gap-4 items-start">
-            <CheckCircle2 className="size-6 text-[#6ab344] flex-shrink-0" />
-            <p className="text-[12px] text-green-700 dark:text-green-500 font-bold leading-snug italic">
-              Paiement sécurisé : Votre argent est conservé par DealCity jusqu&apos;à confirmation de la livraison.
+          <div className="p-5 bg-orange-50 dark:bg-orange-500/5 rounded-2xl border border-orange-100 dark:border-orange-500/10 flex gap-4 items-start">
+            <Truck className="size-6 text-orange-600 flex-shrink-0" />
+            <p className="text-[12px] text-orange-700 dark:text-orange-400 font-bold leading-snug italic">
+              Mode Cash on Delivery : Vous remettrez l&apos;argent au livreur DealCity uniquement à la réception de votre colis.
             </p>
           </div>
 
           <button 
             type="submit"
             disabled={isSubmitting || displayItems.length === 0}
-            className="w-full bg-black dark:bg-white text-white dark:text-black py-6 rounded-[2.5rem] font-black text-base uppercase italic tracking-widest shadow-xl active:scale-95 transition flex items-center justify-center gap-3 disabled:opacity-50 dark:disabled:bg-zinc-800 dark:disabled:text-zinc-500"
+            className="w-full bg-black dark:bg-white text-white dark:text-black py-6 rounded-[2.5rem] font-black text-base uppercase italic tracking-widest shadow-xl active:scale-95 transition flex items-center justify-center gap-3 disabled:opacity-50"
           >
             {isSubmitting ? (
               <>
                 <Loader2 className="animate-spin size-5" />
-                Lancement...
+                Validation...
               </>
             ) : (
-              "Confirmer & Payer"
+              "Commander maintenant"
             )}
           </button>
         </form>

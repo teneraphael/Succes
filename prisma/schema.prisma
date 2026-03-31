@@ -102,6 +102,7 @@ model Order {
   customerPhone     String
   customerAddress   String
   notes             String?
+  paymentMethod   String      @default("CASH_ON_DELIVERY")
   deliveryCode      String?     // <--- AJOUTÉ : Le code secret à 4 chiffres pour la validation
   
   // Relations

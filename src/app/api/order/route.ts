@@ -4,10 +4,17 @@ import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
   try {
-    // 1. Identification de l'acheteur (Optionnel si achat invité, mais recommandé)
+    // 1. Identification de l'acheteur (OBLIGATOIRE pour éviter l'erreur TypeScript sur userId)
     const { user: buyer } = await validateRequest();
-    const body = await req.json();
     
+    if (!buyer) {
+      return NextResponse.json(
+        { error: "Vous devez être connecté pour passer une commande." }, 
+        { status: 401 }
+      );
+    }
+
+    const body = await req.json();
     const { 
       customerName, 
       customerPhone, 
@@ -15,14 +22,15 @@ export async function POST(req: Request) {
       items, 
       total, 
       postId, 
-      note // Récupération de la note de personnalisation
+      note 
     } = body;
 
+    // 2. Validation du panier
     if (!items || items.length === 0) {
-        return NextResponse.json({ error: "Votre panier est vide" }, { status: 400 });
+      return NextResponse.json({ error: "Votre panier est vide" }, { status: 400 });
     }
 
-    // 2. RÉCUPÉRATION DU VENDEUR (Via le premier produit du panier ou postId)
+    // 3. RÉCUPÉRATION DU VENDEUR (Via le produit)
     const targetPostId = postId || items[0].id;
     const post = await prisma.post.findUnique({
       where: { id: targetPostId },
@@ -33,62 +41,53 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Le produit n'existe plus." }, { status: 404 });
     }
 
-    // 3. CALCULS FINANCIERS SÉCURISÉS
+    // 4. CALCULS FINANCIERS (Commission 5%)
     const amount = Number(total);
-    const commission = Math.round(amount * 0.05); // Commission DealCity 5%
+    const commission = Math.round(amount * 0.05); 
     const sellerEarnings = amount - commission;
 
-    // 4. CONSTRUCTION DE L'OBJET DE COMMANDE
-    // Note : On utilise le statut "INITIALIZED" pour que le livreur ne voie pas la commande
-    // tant que le Webhook Monetbil n'a pas confirmé le paiement.
-    const orderData: any = {
-      customerName: customerName || "Anonyme",
-      customerPhone: customerPhone || "",
-      customerAddress: customerAddress ?? "",
-      notes: note || "", // Stockage de la taille/couleur/préférence
-      totalAmount: amount,
-      total: amount,
-      commission: commission,
-      sellerEarnings: sellerEarnings,
-      status: "INITIALIZED", // <--- Verrou de sécurité
-      
-      // Relations obligatoires
-      sellerId: post.userId, 
-      postId: targetPostId,
-
-      // Création des items liés (si ta table OrderItem existe)
-      items: {
-        create: items.map((item: any) => ({
-          productId: item.id,
-          price: Number(item.price || 0), 
-          quantity: item.quantity || 1,
-        })),
-      },
-    };
-
-    // Si l'utilisateur est connecté, on lie la commande à son compte
-    if (buyer?.id) {
-      orderData.userId = buyer.id;
-    }
-
-    // 5. CRÉATION DANS LA BASE DE DONNÉES
+    // 5. CRÉATION DE LA COMMANDE (Paiement à la livraison)
     const order = await prisma.order.create({
-      data: orderData,
+      data: {
+        customerName: customerName || "Anonyme",
+        customerPhone: customerPhone || "",
+        // Utilise ?? undefined pour les champs optionnels en DB
+        customerAddress: customerAddress ?? undefined,
+        notes: note || "",
+        totalAmount: amount,
+        total: amount,
+        commission: commission,
+        sellerEarnings: sellerEarnings,
+        status: "PENDING", // Statut par défaut pour le Cash on Delivery
+        
+        // Relations
+        sellerId: post.userId, 
+        postId: targetPostId,
+        userId: buyer.id, // Garanti par le check du début
+        
+        /* Décommente si tu as une table OrderItem
+        items: {
+          create: items.map((item: any) => ({
+            productId: item.id,
+            price: Number(item.price || 0), 
+            quantity: item.quantity || 1,
+          })),
+        },
+        */
+      },
     });
 
-    // 6. RÉPONSE POUR LE FRONTEND
-    // Ces infos seront utilisées pour appeler l'API Monetbil juste après
+    // 6. RÉPONSE FINALE
     return NextResponse.json({ 
       success: true, 
-      orderId: order.id,
-      amount: amount,
-      customerPhone: customerPhone
+      message: "Commande enregistrée ! Le vendeur va vous contacter pour la livraison.",
+      orderId: order.id 
     });
 
   } catch (error: any) {
-    console.error("[ORDER_CREATE_ERROR]:", error);
+    console.error("[ORDER_COD_ERROR]:", error);
     return NextResponse.json({ 
-      error: "Impossible de générer la commande",
+      error: "Impossible de valider la commande",
       details: error.message 
     }, { status: 500 });
   }

@@ -2,7 +2,6 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
-// 1. Interface mise à jour avec availableColors
 export interface CartItem {
   id: string;
   name: string;
@@ -10,7 +9,7 @@ export interface CartItem {
   image: string;
   quantity: number; 
   color?: string;   
-  availableColors?: string[]; // Ajouté pour pouvoir choisir dans le panier
+  availableColors?: string[]; 
 }
 
 interface CartContextType {
@@ -18,7 +17,7 @@ interface CartContextType {
   addToCart: (item: CartItem) => void;
   removeFromCart: (id: string, color?: string) => void; 
   updateQuantity: (id: string, newQuantity: number, color?: string) => void;
-  updateColor: (id: string, oldColor: string | undefined, newColor: string) => void; // Ajouté
+  updateColor: (id: string, oldColor: string | undefined, newColor: string) => void;
   clearCart: () => void;
 }
 
@@ -26,8 +25,9 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export const CartProvider = ({ children }: { children: React.ReactNode }) => {
   const [cart, setCart] = useState<CartItem[]>([]);
+  const [isInitialized, setIsInitialized] = useState(false);
 
-  // Charger le panier au démarrage
+  // 1. Charger le panier au démarrage (Sécurité SSR)
   useEffect(() => {
     const savedCart = localStorage.getItem('dealcity-cart');
     if (savedCart) {
@@ -37,14 +37,16 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
         console.error("Erreur de parsing du panier", e);
       }
     }
+    setIsInitialized(true);
   }, []);
 
-  // Sauvegarder à chaque changement
+  // 2. Sauvegarder à chaque changement (Uniquement après l'initialisation)
   useEffect(() => {
-    localStorage.setItem('dealcity-cart', JSON.stringify(cart));
-  }, [cart]);
+    if (isInitialized) {
+      localStorage.setItem('dealcity-cart', JSON.stringify(cart));
+    }
+  }, [cart, isInitialized]);
 
-  // Ajouter au panier
   const addToCart = (item: CartItem) => {
     setCart((prev) => {
       const existingItem = prev.find(
@@ -62,26 +64,24 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
     });
   };
 
-  // ✅ Nouvelle fonction : Modifier la couleur directement
   const updateColor = (id: string, oldColor: string | undefined, newColor: string) => {
     setCart((prev) => {
-      // On vérifie si le produit existe déjà avec la nouvelle couleur pour fusionner
-      const targetItem = prev.find(i => i.id === id && i.color === newColor);
       const currentItem = prev.find(i => i.id === id && i.color === oldColor);
+      if (!currentItem) return prev;
 
-      if (targetItem && currentItem) {
-        // Fusion des deux lignes (ex: 1 Rouge + 1 Bleu -> devient 2 Bleu)
+      const targetItem = prev.find(i => i.id === id && i.color === newColor);
+
+      if (targetItem) {
+        // Fusion : on ajoute la quantité de l'ancien au nouveau, puis on supprime l'ancien
         return prev
-          .map(i => {
-            if (i.id === id && i.color === newColor) {
-              return { ...i, quantity: i.quantity + currentItem.quantity };
-            }
-            return i;
-          })
+          .map(i => (i.id === id && i.color === newColor) 
+            ? { ...i, quantity: i.quantity + currentItem.quantity } 
+            : i
+          )
           .filter(i => !(i.id === id && i.color === oldColor));
       }
 
-      // Simple changement de couleur sur la ligne actuelle
+      // Simple mise à jour si la couleur n'existe pas encore dans le panier
       return prev.map((item) =>
         (item.id === id && item.color === oldColor)
           ? { ...item, color: newColor }
@@ -90,7 +90,6 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
     });
   };
 
-  // Mise à jour quantité
   const updateQuantity = (id: string, newQuantity: number, color?: string) => {
     if (newQuantity < 1) return;
     setCart((prev) =>
@@ -102,7 +101,6 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
     );
   };
 
-  // Suppression
   const removeFromCart = (id: string, color?: string) => {
     setCart((prev) => prev.filter((item) => !(item.id === id && item.color === color)));
   };

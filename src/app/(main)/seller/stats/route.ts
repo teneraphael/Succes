@@ -10,45 +10,40 @@ export async function GET() {
       return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
     }
 
-    // RÉCUPÉRATION MULTIPLE EN UNE SEULE TRANSACTION
-    const [userData, transactions, salesStats] = await prisma.$transaction([
-      // 1. Le solde actuel
+    // On ne récupère que le strict nécessaire pour le système de Boost
+    const [userData, postStats] = await prisma.$transaction([
+      // 1. Uniquement le solde (utilisé pour les Boosts)
       prisma.user.findUnique({
         where: { id: user.id },
-        select: { balance: true },
+        select: { balance: true }, // Ici "balance" représente tes crédits Boost
       }),
-      // 2. Les 15 dernières transactions (on en prend un peu plus pour le feed)
-      prisma.transaction.findMany({
+      
+      // 2. Statistiques d'activité pour le dashboard
+      prisma.post.aggregate({
         where: { userId: user.id },
-        orderBy: { createdAt: "desc" },
-        take: 15,
-      }),
-      // 3. Statistiques de ventes globales (Optionnel mais recommandé)
-      prisma.order.aggregate({
-        where: { 
-          sellerId: user.id,
-          status: "DELIVERED" // On ne compte que ce qui est payé et livré
-        },
-        _sum: {
-          sellerEarnings: true
-        },
         _count: {
-          id: true
+          id: true, // Nombre d'articles en ligne
         }
       })
     ]);
 
+    // On récupère aussi le total des likes pour la carte "Intérêt"
+    const totalLikes = await prisma.like.count({
+      where: {
+        post: { userId: user.id }
+      }
+    });
+
     return NextResponse.json({
-      balance: userData?.balance || 0,
-      transactions: transactions,
+      soldeBoost: userData?.balance || 0,
       stats: {
-        totalEarnings: salesStats._sum.sellerEarnings || 0,
-        totalSales: salesStats._count.id || 0
+        totalArticles: postStats._count.id || 0,
+        totalLikes: totalLikes || 0
       }
     });
 
   } catch (error) {
-    console.error("API_SELLER_STATS_ERROR", error);
-    return NextResponse.json({ error: "Erreur lors du chargement des données financières" }, { status: 500 });
+    console.error("API_BOOST_STATS_ERROR", error);
+    return NextResponse.json({ error: "Erreur lors du chargement du solde Boost" }, { status: 500 });
   }
 }

@@ -10,7 +10,7 @@ import DashboardHeader from "./DashboardHeader";
 import { useTransition } from "react";
 import { boostPost } from "./actions";
 import { cn, formatRelativeDate } from "@/lib/utils";
-import { useToast } from "@/components/ui/use-toast"; // Ajouté pour les notifications pro
+import { useToast } from "@/components/ui/use-toast";
 
 export default function SellerDashboard({ posts, user }: { posts: PostData[], user: UserData }) {
   const [isPending, startTransition] = useTransition();
@@ -19,6 +19,7 @@ export default function SellerDashboard({ posts, user }: { posts: PostData[], us
   const totalLikes = posts.reduce((acc, p) => acc + (p._count?.likes || 0), 0);
   const totalComments = posts.reduce((acc, p) => acc + (p._count?.comments || 0), 0);
   
+  // Extraction des interactions récentes (commentaires)
   const recentInteractions = posts
     .flatMap(post => 
       ((post as any).comments || []).map((comment: any) => ({
@@ -50,7 +51,7 @@ export default function SellerDashboard({ posts, user }: { posts: PostData[], us
       } catch (error) {
         toast({
           variant: "destructive",
-          description: "Une erreur est survenue. Vérifiez votre solde."
+          description: "Une erreur est survenue. Vérifiez votre solde Boost."
         });
       }
     });
@@ -58,23 +59,24 @@ export default function SellerDashboard({ posts, user }: { posts: PostData[], us
   
   return (
     <div className="w-full space-y-6 pb-10">
+      {/* Header avec la gestion du solde Boost (OM/MTN) */}
       <DashboardHeader user={user} />
 
       {/* 1. STATS QUICK VIEW */}
       <div className="grid gap-4 grid-cols-2 lg:grid-cols-4 px-4 md:px-0 items-start">
         <QuickStat 
           title="Intérêt" 
-          value={totalLikes.toString()} 
+          value={totalLikes.toLocaleString()} 
           icon={<Heart className="size-5" />} 
           color="rose"
-          description="Total likes"
+          description="Total likes cumulés"
         />
         <QuickStat 
           title="Avis" 
-          value={totalComments.toString()} 
+          value={totalComments.toLocaleString()} 
           icon={<MessageCircle className="size-5" />} 
           color="primary"
-          description="Commentaires"
+          description="Commentaires clients"
         />
         <QuickStat 
           title="Stock" 
@@ -135,8 +137,8 @@ export default function SellerDashboard({ posts, user }: { posts: PostData[], us
           </CardHeader>
           <CardContent className="space-y-3 px-6 pb-8">
             {posts.length > 0 ? (
-              posts.slice(0, 4).map((post) => (
-                <div key={post.id} className="group flex items-center justify-between gap-4 p-4 rounded-[1.8rem] bg-background/40 border border-muted/30 hover:border-primary/30 transition-all hover:bg-background/80">
+              posts.slice(0, 5).map((post) => (
+                <div key={post.id} className="group flex items-center justify-between gap-4 p-4 rounded-[1.8rem] bg-background/40 border border-muted/30 hover:border-primary/30 transition-all hover:bg-background/80 shadow-sm">
                   <div className="flex flex-col min-w-0 flex-1">
                     <span className="text-sm font-bold truncate text-foreground group-hover:text-primary transition-colors">
                       {post.content}
@@ -168,7 +170,8 @@ export default function SellerDashboard({ posts, user }: { posts: PostData[], us
   );
 }
 
-// COMPOSANTS INTERNES (Gardés tels quels car ils sont parfaits)
+/** * Composant pour afficher un prospect (client ayant interagi)
+ */
 function ProspectItem({ name, article, time }: { name: string, article: string, time: string }) {
   return (
     <div className="flex items-center gap-4 p-4 rounded-[1.8rem] bg-muted/5 border border-transparent hover:border-primary/10 transition-all group">
@@ -177,13 +180,19 @@ function ProspectItem({ name, article, time }: { name: string, article: string, 
       </div>
       <div className="min-w-0 flex-1">
         <p className="text-sm font-black text-foreground leading-none">{name}</p>
-        <p className="text-[11px] text-muted-foreground truncate italic mt-1.5">&quot;{article}&quot;</p>
+        <p className="text-[11px] text-muted-foreground truncate italic mt-1.5">
+          &quot;{article}&quot;
+        </p>
       </div>
-      <div className="text-[9px] font-black text-muted-foreground/60 uppercase bg-muted/20 px-2 py-1.5 rounded-xl shrink-0">{time}</div>
+      <div className="text-[9px] font-black text-muted-foreground/60 uppercase bg-muted/20 px-2 py-1.5 rounded-xl shrink-0">
+        {time}
+      </div>
     </div>
   );
 }
 
+/** * Composant pour les petites cartes de statistiques en haut
+ */
 function QuickStat({ title, value, icon, color, description }: { title: string, value: string, icon: React.ReactNode, color: string, description: string }) {
   const colorMap: any = {
     rose: "bg-rose-500/10 text-rose-500",

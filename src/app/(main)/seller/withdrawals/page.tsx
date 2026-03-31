@@ -2,38 +2,39 @@
 
 import { useState, useEffect } from "react";
 import { 
-  ArrowLeft, Wallet, Clock, CheckCircle2, 
-  XCircle, ArrowDownLeft, Search, Loader2 
+  ArrowLeft, Zap, Clock, CheckCircle2, 
+  XCircle, ArrowUpRight, Search, Loader2 
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { format, isValid } from "date-fns";
 import { fr } from "date-fns/locale";
 
-// Structure exacte de ta base de données
-interface Withdrawal {
+// Structure adaptée pour les recharges de Boost
+interface BoostTransaction {
   id: string;
-  amount: number;
+  amount: number; // Montant en FCFA
   status: "PENDING" | "COMPLETED" | "FAILED";
-  method: string;
+  type: "RECHARGE" | "USAGE"; // Recharge de compte ou utilisation pour un article
   createdAt: string;
   reference: string;
 }
 
-export default function WithdrawalHistory() {
+export default function BoostHistory() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
-  const [withdrawals, setWithdrawals] = useState<Withdrawal[]>([]);
+  const [transactions, setTransactions] = useState<BoostTransaction[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
 
-  // --- RÉCUPÉRATION DES VRAIS DONNÉES ---
+  // --- RÉCUPÉRATION DES DONNÉES DE BOOST ---
   useEffect(() => {
-    const fetchWithdrawals = async () => {
+    const fetchBoostHistory = async () => {
       try {
         setLoading(true);
-        const response = await fetch("/api/withdrawals"); 
+        // On appelle ta nouvelle route API dédiée au boost
+        const response = await fetch("/api/boost/history"); 
         if (!response.ok) throw new Error("Erreur lors du chargement");
         const data = await response.json();
-        setWithdrawals(Array.isArray(data) ? data : []);
+        setTransactions(Array.isArray(data) ? data : []);
       } catch (error) {
         console.error("Erreur:", error);
       } finally {
@@ -41,12 +42,11 @@ export default function WithdrawalHistory() {
       }
     };
 
-    fetchWithdrawals();
+    fetchBoostHistory();
   }, []);
 
-  // Filtrage par référence sécurisé
-  const filteredWithdrawals = withdrawals.filter(w => 
-    w.reference?.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredTransactions = transactions.filter(t => 
+    t.reference?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const getStatusStyle = (status: string) => {
@@ -67,7 +67,6 @@ export default function WithdrawalHistory() {
     }
   };
 
-  // Helper pour formater la date sans crash si la date est invalide
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     if (!isValid(date)) return "Date inconnue";
@@ -77,14 +76,14 @@ export default function WithdrawalHistory() {
   return (
     <main className="min-h-screen bg-[#F8F9FA] dark:bg-zinc-950 pb-20 transition-colors">
       {/* HEADER FIXE */}
-      <div className="bg-white dark:bg-zinc-900 border-b dark:border-white/10 sticky top-0 z-20 px-6 py-6 transition-colors">
+      <div className="bg-white dark:bg-zinc-900 border-b dark:border-white/10 sticky top-0 z-20 px-6 py-6">
         <div className="max-w-2xl mx-auto flex items-center justify-between">
-          <button onClick={() => router.back()} className="p-2 -ml-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-colors active:scale-90">
+          <button onClick={() => router.back()} className="p-2 -ml-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-all active:scale-90">
             <ArrowLeft className="size-6 text-black dark:text-white" />
           </button>
-          <h1 className="text-xl font-black uppercase tracking-tighter italic text-black dark:text-white">Mes Retraits</h1>
-          <div className="size-10 bg-zinc-100 dark:bg-zinc-800 rounded-2xl flex items-center justify-center">
-            <Wallet className="size-5 text-zinc-500 dark:text-zinc-400" />
+          <h1 className="text-xl font-black uppercase tracking-tighter italic text-black dark:text-white">Historique Boost</h1>
+          <div className="size-10 bg-orange-100 dark:bg-orange-500/20 rounded-2xl flex items-center justify-center">
+            <Zap className="size-5 text-orange-600 dark:text-orange-400 fill-current" />
           </div>
         </div>
       </div>
@@ -93,77 +92,78 @@ export default function WithdrawalHistory() {
         
         {/* BARRE DE RECHERCHE */}
         <div className="relative group">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-zinc-400 group-focus-within:text-blue-600 transition-colors" />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-zinc-400 group-focus-within:text-orange-600 transition-colors" />
           <input 
             type="text" 
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Rechercher par référence..." 
-            className="w-full bg-white dark:bg-zinc-900 border border-transparent rounded-2xl py-4 pl-12 pr-4 shadow-sm focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600/20 font-bold text-sm text-black dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-600 outline-none transition-all"
+            className="w-full bg-white dark:bg-zinc-900 border border-transparent rounded-2xl py-4 pl-12 pr-4 shadow-sm focus:ring-2 focus:ring-orange-600/20 focus:border-orange-600/20 font-bold text-sm text-black dark:text-white outline-none transition-all"
           />
         </div>
 
         {/* LISTE DES TRANSACTIONS */}
         <div className="space-y-3">
-          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 dark:text-zinc-500 px-2 italic">Dernières opérations</p>
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 dark:text-zinc-500 px-2 italic">Activités récentes</p>
           
           {loading ? (
              <div className="flex flex-col items-center justify-center py-20 space-y-4">
-                <Loader2 className="animate-spin size-8 text-blue-600" />
-                <p className="text-[10px] font-black uppercase text-zinc-400 dark:text-zinc-600 tracking-widest">Chargement sécurisé...</p>
+                <Loader2 className="animate-spin size-8 text-orange-600" />
+                <p className="text-[10px] font-black uppercase text-zinc-400 tracking-widest">Mise à jour du solde...</p>
              </div>
-          ) : filteredWithdrawals.length === 0 ? (
+          ) : filteredTransactions.length === 0 ? (
             <div className="text-center py-20 bg-white dark:bg-zinc-900 rounded-[2.5rem] border-2 border-dashed border-zinc-200 dark:border-white/5 transition-colors">
-              <div className="mb-4 flex justify-center">
-                <XCircle className="size-10 text-zinc-200 dark:text-zinc-800" />
+              <div className="mb-4 flex justify-center text-zinc-200 dark:text-zinc-800">
+                <Zap className="size-10" />
               </div>
-              <p className="text-zinc-400 dark:text-zinc-600 font-bold uppercase text-xs italic tracking-tighter">
-                {searchTerm ? "Aucun retrait ne correspond à cette référence" : "Vous n'avez pas encore effectué de retrait"}
+              <p className="text-zinc-400 dark:text-zinc-600 font-bold uppercase text-xs italic tracking-tighter px-6">
+                {searchTerm ? "Aucun résultat trouvé" : "Aucune recharge ou utilisation de boost pour le moment"}
               </p>
             </div>
           ) : (
-            filteredWithdrawals.map((w) => (
-              <div key={w.id} className="bg-white dark:bg-zinc-900 p-5 rounded-[2rem] border border-black/5 dark:border-white/10 shadow-sm hover:shadow-md transition-all group">
+            filteredTransactions.map((t) => (
+              <div key={t.id} className="bg-white dark:bg-zinc-900 p-5 rounded-[2rem] border border-black/5 dark:border-white/10 shadow-sm hover:shadow-md transition-all group">
                 <div className="flex justify-between items-center">
                   <div className="flex items-center gap-4">
                     <div className={cn(
                       "size-12 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110",
-                      w.status === "COMPLETED" 
+                      t.type === "RECHARGE" 
                         ? "bg-green-100 dark:bg-green-500/20 text-green-600 dark:text-green-400" 
-                        : w.status === "FAILED"
-                        ? "bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-400"
-                        : "bg-zinc-100 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-500"
+                        : "bg-orange-100 dark:bg-orange-500/20 text-orange-600 dark:text-orange-400"
                     )}>
-                      <ArrowDownLeft className="size-6" />
+                      {t.type === "RECHARGE" ? <PlusCircleIcon className="size-6" /> : <ArrowUpRight className="size-6" />}
                     </div>
                     <div className="min-w-0">
                       <h3 className="font-black text-sm uppercase tracking-tight text-black dark:text-white truncate">
-                        {w.method || "Retrait Mobile Money"}
+                        {t.type === "RECHARGE" ? "Recharge de Crédits" : "Utilisation Boost"}
                       </h3>
-                      <p className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 truncate">Réf: {w.reference}</p>
+                      <p className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 truncate">Réf: {t.reference}</p>
                     </div>
                   </div>
 
                   <div className="text-right shrink-0">
-                    <p className="text-lg font-black italic text-black dark:text-white">
-                      -{w.amount.toLocaleString('fr-FR')} <span className="text-[10px] not-italic">FCFA</span>
+                    <p className={cn(
+                      "text-lg font-black italic",
+                      t.type === "RECHARGE" ? "text-green-600" : "text-black dark:text-white"
+                    )}>
+                      {t.type === "RECHARGE" ? "+" : "-"}{t.amount.toLocaleString('fr-FR')} <span className="text-[10px] not-italic">FCFA</span>
                     </p>
                     <div className={cn(
                       "flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[9px] font-black uppercase mt-1 w-fit ml-auto",
-                      getStatusStyle(w.status)
+                      getStatusStyle(t.status)
                     )}>
-                      {getStatusIcon(w.status)}
-                      {w.status === "COMPLETED" ? "Effectué" : w.status === "PENDING" ? "En cours" : "Échoué"}
+                      {getStatusIcon(t.status)}
+                      {t.status === "COMPLETED" ? "Validé" : t.status === "PENDING" ? "En attente" : "Échoué"}
                     </div>
                   </div>
                 </div>
                 
                 <div className="mt-4 pt-4 border-t border-dashed border-zinc-100 dark:border-white/10 flex justify-between items-center">
                     <p className="text-[10px] font-black text-zinc-300 dark:text-zinc-600 uppercase italic">
-                      {formatDate(w.createdAt)}
+                      {formatDate(t.createdAt)}
                     </p>
-                    {w.status === "FAILED" && (
-                      <button className="text-[10px] font-black text-red-600 dark:text-red-400 uppercase border-b-2 border-red-600/30 dark:border-red-400/30 hover:border-red-600 transition-all">Support technique</button>
+                    {t.status === "PENDING" && t.type === "RECHARGE" && (
+                      <p className="text-[9px] font-bold text-orange-500 animate-pulse uppercase">Validation manuelle (15 min)</p>
                     )}
                 </div>
               </div>
@@ -175,7 +175,15 @@ export default function WithdrawalHistory() {
   );
 }
 
-// Fonction utilitaire pour fusionner les classes Tailwind
+// Icone simple pour la recharge
+function PlusCircleIcon({ className }: { className?: string }) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className={className}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+    </svg>
+  );
+}
+
 function cn(...classes: (string | undefined | false | null)[]) {
   return classes.filter(Boolean).join(' ');
 }

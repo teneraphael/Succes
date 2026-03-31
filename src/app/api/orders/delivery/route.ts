@@ -2,6 +2,7 @@ import { validateRequest } from "@/auth";
 import prisma from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
+// Ton ID Admin/Livreur unique
 const MY_ADMIN_ID = "22lmc64bcqwsqybu";
 
 export async function GET() {
@@ -13,11 +14,12 @@ export async function GET() {
       return NextResponse.json({ error: "Accès refusé" }, { status: 403 });
     }
 
-    // 2. On récupère les commandes réellement PAYÉES (grâce au Webhook)
+    // 2. RÉCUPÉRATION DES COMMANDES À LIVRER
+    // On récupère les commandes au statut "PENDING" (celles qui attendent le livreur)
     const orders = await prisma.order.findMany({
       where: { 
-        // IMPORTANT: Seul le statut "PAID" garantit que l'argent est chez DealCity
-        status: "PAID" 
+        // En mode Cash on Delivery, on affiche ce qui est en attente
+        status: "PENDING" 
       },
       include: {
         post: {
@@ -32,7 +34,7 @@ export async function GET() {
 
     // 3. Formatage pour le Dashboard Livreur
     const formattedOrders = orders.map((order) => {
-      // Extraction sécurisée de la première image
+      // Extraction sécurisée de la première image (si présente)
       const attachments = (order.post as any)?.attachments;
       const firstImage = Array.isArray(attachments) && attachments.length > 0 
         ? attachments[0]?.url 
@@ -45,14 +47,15 @@ export async function GET() {
         price: order.totalAmount,
         customerName: order.customerName,
         customerPhone: order.customerPhone,
-        // On mappe customerAddress vers deliveryAddress pour le Dashboard
         deliveryAddress: order.customerAddress,
-        notes: order.notes, // Affiche la taille/couleur/note
+        notes: order.notes, // Important pour voir la taille/couleur choisie
         status: order.status,
+        createdAt: order.createdAt,
       };
     });
 
     return NextResponse.json(formattedOrders);
+
   } catch (error) {
     console.error("DEBUG_DELIVERY_API_ERROR:", error);
     return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });
