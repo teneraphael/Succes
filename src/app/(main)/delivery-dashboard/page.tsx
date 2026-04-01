@@ -5,10 +5,18 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { 
   Truck, MapPin, Phone, PackageCheck, 
-  Loader2, User, Banknote, XCircle, Palette
+  Loader2, User, Banknote, XCircle, Palette,
+  MoreVertical, Trash2, Edit3, CheckCircle
 } from "lucide-react";
 import Image from "next/image";
 import { useToast } from "@/components/ui/use-toast";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 
 const MY_ADMIN_ID = "22lmc64bcqwsqybu"; 
 
@@ -40,48 +48,33 @@ export default function DeliveryDashboard() {
     }
   }
 
-  async function handleConfirmDelivery(orderId: string) {
-    if (!confirm("Confirmes-tu avoir encaissé l'argent liquide auprès du client ?")) return;
+  // Fonction générique pour gérer les actions (Livraison / Suppression)
+  async function handleAction(orderId: string, action: 'deliver' | 'cancel') {
+    const isDelete = action === 'cancel';
+    const confirmMsg = isDelete 
+      ? "Voulez-vous vraiment SUPPRIMER définitivement cette commande ?" 
+      : "Confirmes-tu avoir encaissé l'argent liquide auprès du client ?";
+
+    if (!confirm(confirmMsg)) return;
 
     setIsUpdating(orderId);
     try {
-      const res = await fetch(`/api/orders/${orderId}/deliver`, { 
+      const res = await fetch(`/api/orders/${orderId}/${action}`, { 
         method: "POST" 
       });
 
       if (res.ok) {
         setOrders((prev) => prev.filter((o) => o.id !== orderId));
-        toast({ description: "✅ Livraison validée et encaissée !" });
+        toast({ description: isDelete ? "Commande supprimée." : "✅ Livraison validée !" });
       } else {
         const errorData = await res.json();
-        throw new Error(errorData.error || "Erreur lors de la validation");
+        throw new Error(errorData.error || "Erreur lors de l'opération");
       }
     } catch (error: any) {
       toast({ 
         variant: "destructive", 
-        description: error.message || "Échec de validation." 
+        description: error.message || "Échec de l'opération." 
       });
-    } finally {
-      setIsUpdating(null);
-    }
-  }
-
-  async function handleCancelOrder(orderId: string) {
-    if (!confirm("Voulez-vous vraiment annuler cette commande ? (Client absent ou refus)")) return;
-
-    setIsUpdating(orderId);
-    try {
-      const res = await fetch(`/api/orders/${orderId}/cancel`, { 
-        method: "POST" 
-      });
-
-      if (res.ok) {
-        // Cette ligne retire immédiatement l'élément de la liste affichée
-        setOrders((prev) => prev.filter((o) => o.id !== orderId));
-        toast({ description: "Commande supprimée et retirée de la liste." });
-      }
-    } catch (error: any) {
-      toast({ variant: "destructive", description: "Erreur lors de la suppression." });
     } finally {
       setIsUpdating(null);
     }
@@ -122,8 +115,41 @@ export default function DeliveryDashboard() {
             </div>
         ) : (
             orders.map((order: any) => (
-            <div key={order.id} className="bg-white dark:bg-zinc-900 border border-black/5 rounded-[2.5rem] p-6 space-y-6 shadow-sm">
+            <div key={order.id} className="bg-white dark:bg-zinc-900 border border-black/5 rounded-[2.5rem] p-6 space-y-6 shadow-sm relative">
                 
+                {/* BOUTON OPTIONS (TROIS POINTS) */}
+                <div className="absolute top-6 right-6 z-20">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full outline-none transition">
+                      <MoreVertical className="size-6 text-zinc-400" />
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="rounded-2xl p-2 min-w-[180px] shadow-2xl border-black/5 dark:bg-zinc-900">
+                      <DropdownMenuItem 
+                        onClick={() => handleAction(order.id, 'deliver')}
+                        className="flex items-center gap-3 p-3 font-bold text-xs uppercase cursor-pointer text-green-600 focus:text-green-600 focus:bg-green-50 dark:focus:bg-green-900/20 rounded-xl"
+                      >
+                        <CheckCircle className="size-4" /> Livrer le colis
+                      </DropdownMenuItem>
+                      
+                      <DropdownMenuItem 
+                        onClick={() => router.push(`/orders/edit/${order.id}`)}
+                        className="flex items-center gap-3 p-3 font-bold text-xs uppercase cursor-pointer rounded-xl dark:text-white"
+                      >
+                        <Edit3 className="size-4" /> Modifier l&apos;ordre
+                      </DropdownMenuItem>
+
+                      <DropdownMenuSeparator className="bg-black/5 dark:bg-white/5" />
+
+                      <DropdownMenuItem 
+                        onClick={() => handleAction(order.id, 'cancel')}
+                        className="flex items-center gap-3 p-3 font-bold text-xs uppercase cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-900/20 rounded-xl"
+                      >
+                        <Trash2 className="size-4" /> Supprimer la commande
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+
                 {/* PRODUIT & PRIX */}
                 <div className="flex gap-4">
                     <div className="relative size-24 rounded-2xl overflow-hidden bg-zinc-100 flex-shrink-0 border border-black/5">
@@ -134,17 +160,15 @@ export default function DeliveryDashboard() {
                             className="object-cover" 
                             unoptimized 
                         />
-                        {/* BADGE QUANTITÉ VISIBLE */}
                         <div className="absolute top-1 right-1 bg-black text-white text-[10px] font-black px-2 py-1 rounded-lg shadow-lg z-10">
                             x{order.quantity || 1}
                         </div>
                     </div>
-                    <div className="flex-1 flex flex-col justify-center">
+                    <div className="flex-1 flex flex-col justify-center pr-8">
                         <h2 className="font-black text-base uppercase dark:text-white text-black leading-tight mb-1">
                             {order.productName}
                         </h2>
                         
-                        {/* COULEUR / CHOIX CLIENT */}
                         <div className="flex flex-wrap items-center gap-2 mb-2">
                           <p className="text-[9px] font-black text-blue-600 uppercase italic tracking-tighter">Choix :</p>
                           <span className="text-[10px] font-black text-blue-700 bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 rounded-md border border-blue-100 dark:border-blue-800 flex items-center gap-1">
@@ -199,26 +223,15 @@ export default function DeliveryDashboard() {
                     </p>
                 </div>
 
-                {/* ACTIONS */}
-                <div className="space-y-3">
-                    <button 
-                        onClick={() => handleConfirmDelivery(order.id)}
-                        disabled={isUpdating === order.id}
-                        className="w-full py-5 bg-black dark:bg-white text-white dark:text-black rounded-[1.8rem] font-black uppercase text-[11px] italic flex items-center justify-center gap-3 active:scale-95 transition-all disabled:opacity-50 shadow-xl"
-                    >
-                        {isUpdating === order.id ? <Loader2 className="animate-spin size-5" /> : <PackageCheck className="size-5 text-green-500" />}
-                        Valider l&apos;encaissement et la remise
-                    </button>
-
-                    <button 
-                        onClick={() => handleCancelOrder(order.id)}
-                        disabled={isUpdating === order.id}
-                        className="w-full py-3 text-red-500 font-black uppercase text-[9px] italic border border-red-100 rounded-2xl hover:bg-red-50 transition-all flex items-center justify-center gap-2"
-                    >
-                        <XCircle className="size-4" />
-                        Supprimer la commande
-                    </button>
-                </div>
+                {/* BOUTON DE VALIDATION PRINCIPAL */}
+                <button 
+                    onClick={() => handleAction(order.id, 'deliver')}
+                    disabled={isUpdating === order.id}
+                    className="w-full py-5 bg-black dark:bg-white text-white dark:text-black rounded-[1.8rem] font-black uppercase text-[11px] italic flex items-center justify-center gap-3 active:scale-95 transition-all disabled:opacity-50 shadow-xl"
+                >
+                    {isUpdating === order.id ? <Loader2 className="animate-spin size-5" /> : <PackageCheck className="size-5 text-green-500" />}
+                    Valider la livraison
+                </button>
             </div>
             ))
         )}
