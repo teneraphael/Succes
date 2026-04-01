@@ -34,30 +34,34 @@ export async function GET() {
         ? attachments[0]?.url 
         : null;
 
-      // 2. NETTOYAGE DU NOM DU PRODUIT
-      // On retire les émojis et on s'arrête au premier signe de prix ou de description
+      // 2. Nettoyage du nom du produit
       const fullContent = order.post?.content || "";
       const productName = fullContent
-        .replace(/🛍️\s*PRODUIT\s*:\s*/i, "") // Retire le préfixe
-        .split(/[💰🎨📝\n]/)[0]             // Coupe avant le prix, les couleurs ou la description
+        .replace(/🛍️\s*PRODUIT\s*:\s*/i, "")
+        .split(/[💰🎨📝\n]/)[0]
         .trim();
 
-      // 3. DÉCOUPAGE COULEUR ET NOTE (Format : "COULEUR : ... | NOTE : ...")
-      const notesParts = order.notes?.split(" | ") || [];
-      const color = notesParts.find((p: string) => p.includes("COULEUR :"))?.replace("COULEUR : ", "") || "Standard";
-      const note = notesParts.find((p: string) => p.includes("NOTE :"))?.replace("NOTE : ", "") || "";
+      // 3. DÉCOUPAGE ROBUSTE (REGEX)
+      // On utilise des expressions régulières pour trouver la couleur même si la casse change
+      const notesStr = order.notes || "";
+      
+      // Cherche tout ce qui est après "COULEUR :" jusqu'au prochain "|" ou la fin
+      const colorMatch = notesStr.match(/COULEUR\s*:\s*([^|]+)/i);
+      // Cherche tout ce qui est après "NOTE :" jusqu'à la fin
+      const noteMatch = notesStr.match(/NOTE\s*:\s*(.+)/i);
+
+      const color = colorMatch ? colorMatch[1].trim() : "Standard";
+      const note = noteMatch ? noteMatch[1].trim() : "";
 
       return {
         id: order.id,
         productName: productName || "Article DealCity",
         productImage: firstImage || "/placeholder.png", 
-        // 4. GESTION DE LA QUANTITÉ
-        // Si tu as un champ quantity dans ta DB, utilise order.quantity
-        // Sinon, on peut la déduire si nécessaire, ici par défaut 1 ou via ta DB : 
-        price: order.totalAmount, // Le prix total à payer par le client
-        clientColor: color,
-        clientNote: note,
-        quantity: order.quantity,
+        // 4. DONNÉES CRITIQUES
+        quantity: order.quantity || 1, // Si c'est null en DB, on force 1
+        clientChoice: color,           // Envoyé au Dashboard
+        clientNote: note,              // Envoyé au Dashboard
+        price: order.totalAmount, 
         customerName: order.customerName,
         customerPhone: order.customerPhone,
         deliveryAddress: order.customerAddress,
