@@ -76,11 +76,12 @@ export default function DeliveryDashboard() {
       });
 
       if (res.ok) {
+        // Cette ligne retire immédiatement l'élément de la liste affichée
         setOrders((prev) => prev.filter((o) => o.id !== orderId));
-        toast({ description: "Commande annulée et retirée de la liste." });
+        toast({ description: "Commande supprimée et retirée de la liste." });
       }
     } catch (error: any) {
-      toast({ variant: "destructive", description: "Erreur lors de l'annulation." });
+      toast({ variant: "destructive", description: "Erreur lors de la suppression." });
     } finally {
       setIsUpdating(null);
     }
@@ -180,7 +181,7 @@ export default function DeliveryDashboard() {
                     </div>
                 </div>
 
-                {/* INDICATIONS / NOTES CLIENT (Si présentes) */}
+                {/* INDICATIONS / NOTES CLIENT */}
                 {order.clientNote && (
                     <div className="bg-zinc-100 dark:bg-zinc-800/50 p-4 rounded-2xl border-l-4 border-orange-400 shadow-inner">
                         <p className="text-[10px] font-black text-zinc-400 uppercase mb-1">Indications client :</p>
@@ -215,7 +216,7 @@ export default function DeliveryDashboard() {
                         className="w-full py-3 text-red-500 font-black uppercase text-[9px] italic border border-red-100 rounded-2xl hover:bg-red-50 transition-all flex items-center justify-center gap-2"
                     >
                         <XCircle className="size-4" />
-                        Annuler / Client Absent
+                        Supprimer la commande
                     </button>
                 </div>
             </div>
