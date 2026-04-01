@@ -31,7 +31,7 @@ export default function DeliveryDashboard() {
     try {
       setLoading(true);
       // Correction de l'URL vers ton API de récupération des commandes PENDING
-      const res = await fetch("/api/delivery"); 
+      const res = await fetch("/api/orders/delivery"); 
       const data = await res.json();
       setOrders(Array.isArray(data) ? data : []);
     } catch (error: any) {
