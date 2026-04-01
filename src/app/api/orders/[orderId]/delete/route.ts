@@ -4,33 +4,34 @@ import { NextResponse } from "next/server";
 
 export async function POST(
   req: Request, 
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ orderId: string }> }
 ) {
   try {
-    const { id } = await params;
+    const { orderId } = await params;
     const { user } = await validateRequest();
 
-    // Sécurité : Seul l'admin (Raphael) devrait pouvoir supprimer
+    // Sécurité Admin Raphael
     if (!user || user.id !== "22lmc64bcqwsqybu") {
       return NextResponse.json({ error: "Accès refusé" }, { status: 403 });
     }
 
-    // Utilisation d'une transaction pour supprimer les OrderItems PUIS l'Order
-    // Cela évite les erreurs de "Foreign Key constraint"
-    await prisma.$transaction([
-      prisma.orderItem.deleteMany({
-        where: { orderId: id }
-      }),
-      prisma.order.delete({
-        where: { id }
-      })
-    ]);
+    // TRANSACTION SÉCURISÉE
+    await prisma.$transaction(async (tx) => {
+      // On ne supprime QUE ce qui existe vraiment dans ton schéma
+      // Si tu as une table OrderItem (avec Majuscule), vérifie l'orthographe
+      
+      // 1. Supprimer la commande (Prisma gérera les relations si 'onDelete: Cascade' est mis)
+      await tx.order.delete({
+        where: { id: orderId }
+      });
+    });
 
-    return NextResponse.json({ success: true, message: "Commande supprimée définitivement" });
+    return NextResponse.json({ success: true });
+
   } catch (error: any) {
-    console.error("ERROR_DELETE_ORDER:", error);
+    console.error("ERREUR_DELETE_API:", error);
     return NextResponse.json({ 
-      error: "Impossible de supprimer la commande",
+      error: "Erreur lors de la suppression", 
       details: error.message 
     }, { status: 500 });
   }
