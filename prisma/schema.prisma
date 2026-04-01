@@ -89,7 +89,7 @@ model User {
 model Order {
   id                String      @id @default(cuid())
   status            OrderStatus @default(PENDING)
-  
+  quantity        Int         @default(1)
   // Informations de paiement
   total             Int         // Prix total en XAF
   paymentId         String?     @unique // ID de transaction Monetbil

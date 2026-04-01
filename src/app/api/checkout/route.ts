@@ -15,6 +15,7 @@ export async function POST(req: Request) {
     const { 
         postId, 
         total, 
+        quantity,
         customerName, 
         customerPhone, 
         customerAddress, 
@@ -46,6 +47,7 @@ export async function POST(req: Request) {
         sellerId: post.userId,
         postId: postId,
         totalAmount: totalAmount,
+        quantity: Number(quantity || 1),
         total: totalAmount, // Compatibilité selon ton schéma
         commission: commission,
         sellerEarnings: sellerEarnings,

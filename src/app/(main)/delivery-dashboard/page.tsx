@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { 
   Truck, MapPin, Phone, PackageCheck, 
-  Loader2, User, Banknote, XCircle 
+  Loader2, User, Banknote, XCircle, Palette
 } from "lucide-react";
 import Image from "next/image";
 import { useToast } from "@/components/ui/use-toast";
@@ -117,7 +117,7 @@ export default function DeliveryDashboard() {
       <div className="space-y-6">
         {orders.length === 0 ? (
             <div className="text-center py-20 opacity-40">
-                <p className="text-sm font-bold italic uppercase tracking-widest">Aucun colis à livrer pour le moment.</p>
+                <p className="text-sm font-bold italic uppercase tracking-widest text-black dark:text-white">Aucun colis à livrer pour le moment.</p>
             </div>
         ) : (
             orders.map((order: any) => (
@@ -133,8 +133,8 @@ export default function DeliveryDashboard() {
                             className="object-cover" 
                             unoptimized 
                         />
-                        {/* BADGE QUANTITÉ */}
-                        <div className="absolute top-1 right-1 bg-black text-white text-[10px] font-black px-2 py-1 rounded-lg shadow-lg">
+                        {/* BADGE QUANTITÉ VISIBLE */}
+                        <div className="absolute top-1 right-1 bg-black text-white text-[10px] font-black px-2 py-1 rounded-lg shadow-lg z-10">
                             x{order.quantity || 1}
                         </div>
                     </div>
@@ -143,10 +143,12 @@ export default function DeliveryDashboard() {
                             {order.productName}
                         </h2>
                         
+                        {/* COULEUR / CHOIX CLIENT */}
                         <div className="flex flex-wrap items-center gap-2 mb-2">
                           <p className="text-[9px] font-black text-blue-600 uppercase italic tracking-tighter">Choix :</p>
-                          <span className="text-[10px] font-black text-blue-700 bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 rounded-md border border-blue-100 dark:border-blue-800">
-                              {order.clientChoice}
+                          <span className="text-[10px] font-black text-blue-700 bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 rounded-md border border-blue-100 dark:border-blue-800 flex items-center gap-1">
+                              <Palette className="size-3" />
+                              {order.clientChoice || "Standard"}
                           </span>
                         </div>
 
@@ -178,9 +180,9 @@ export default function DeliveryDashboard() {
                     </div>
                 </div>
 
-                {/* NOTES SUPPLÉMENTAIRES (Si présentes) */}
+                {/* INDICATIONS / NOTES CLIENT (Si présentes) */}
                 {order.clientNote && (
-                    <div className="bg-zinc-100 dark:bg-zinc-800/50 p-4 rounded-2xl border-l-4 border-orange-400">
+                    <div className="bg-zinc-100 dark:bg-zinc-800/50 p-4 rounded-2xl border-l-4 border-orange-400 shadow-inner">
                         <p className="text-[10px] font-black text-zinc-400 uppercase mb-1">Indications client :</p>
                         <p className="text-xs font-medium italic text-zinc-600 dark:text-zinc-400 leading-snug">
                             &quot;{order.clientNote}&quot;

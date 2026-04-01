@@ -71,6 +71,7 @@ function CheckoutContent() {
       total: totalAmount,
       customerName: formData.get('name'),
       customerPhone: cleanPhone,
+      quantity: displayItems[0].quantity,
       customerAddress: formData.get('address'),
       // On envoie la couleur et la note séparément
       selectedColor: displayItems[0].color || "Standard", 

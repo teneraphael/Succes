@@ -53,11 +53,11 @@ export async function GET() {
         productImage: firstImage || "/placeholder.png", 
         // 4. GESTION DE LA QUANTITÉ
         // Si tu as un champ quantity dans ta DB, utilise order.quantity
-        // Sinon, on peut la déduire si nécessaire, ici par défaut 1 ou via ta DB :
-        quantity: order.quantity || 1, 
+        // Sinon, on peut la déduire si nécessaire, ici par défaut 1 ou via ta DB : 
         price: order.totalAmount, // Le prix total à payer par le client
         clientColor: color,
         clientNote: note,
+        quantity: order.quantity,
         customerName: order.customerName,
         customerPhone: order.customerPhone,
         deliveryAddress: order.customerAddress,
