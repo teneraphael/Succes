@@ -30,7 +30,6 @@ export default function DeliveryDashboard() {
   async function fetchOrders() {
     try {
       setLoading(true);
-      // Correction de l'URL vers ton API de récupération des commandes PENDING
       const res = await fetch("/api/orders/delivery"); 
       const data = await res.json();
       setOrders(Array.isArray(data) ? data : []);
@@ -41,7 +40,6 @@ export default function DeliveryDashboard() {
     }
   }
 
-  // VALIDATION DE LIVRAISON (ENCAISSEMENT CASH)
   async function handleConfirmDelivery(orderId: string) {
     if (!confirm("Confirmes-tu avoir encaissé l'argent liquide auprès du client ?")) return;
 
@@ -68,7 +66,6 @@ export default function DeliveryDashboard() {
     }
   }
 
-  // ANNULATION DE COMMANDE (SI CLIENT ABSENT OU REFUS)
   async function handleCancelOrder(orderId: string) {
     if (!confirm("Voulez-vous vraiment annuler cette commande ? (Client absent ou refus)")) return;
 
@@ -103,16 +100,16 @@ export default function DeliveryDashboard() {
       {/* HEADER */}
       <div className="flex items-center justify-between bg-white dark:bg-zinc-900 p-6 rounded-[2rem] border border-black/5 shadow-sm">
         <div className="flex items-center gap-4">
-          <div className="bg-orange-500 p-3 rounded-2xl text-white shadow-lg shadow-orange-200 dark:shadow-none">
+          <div className="bg-orange-500 p-3 rounded-2xl text-white shadow-lg shadow-orange-200">
             <Truck className="size-6" />
           </div>
           <div>
-            <h1 className="text-xl font-black uppercase italic leading-none dark:text-white">Livreur DealCity</h1>
+            <h1 className="text-xl font-black uppercase italic leading-none dark:text-white text-black">Livreur DealCity</h1>
             <p className="text-[10px] text-orange-600 font-black uppercase tracking-widest mt-1">Mode Cash on Delivery</p>
           </div>
         </div>
         <div className="bg-zinc-100 dark:bg-zinc-800 px-4 py-2 rounded-2xl">
-          <span className="text-xl font-black block leading-none dark:text-white">{orders.length}</span>
+          <span className="text-xl font-black block leading-none dark:text-white text-black">{orders.length}</span>
         </div>
       </div>
 
@@ -128,23 +125,40 @@ export default function DeliveryDashboard() {
                 
                 {/* PRODUIT & PRIX */}
                 <div className="flex gap-4">
-                    <div className="relative size-20 rounded-2xl overflow-hidden bg-zinc-100 flex-shrink-0 border border-black/5">
-                        <Image src={order.productImage || "/placeholder.png"} fill alt="Produit" className="object-cover" unoptimized />
+                    <div className="relative size-24 rounded-2xl overflow-hidden bg-zinc-100 flex-shrink-0 border border-black/5">
+                        <Image 
+                            src={order.productImage || "/placeholder.png"} 
+                            fill 
+                            alt="Produit" 
+                            className="object-cover" 
+                            unoptimized 
+                        />
+                        {/* BADGE QUANTITÉ */}
+                        <div className="absolute top-1 right-1 bg-black text-white text-[10px] font-black px-2 py-1 rounded-lg shadow-lg">
+                            x{order.quantity || 1}
+                        </div>
                     </div>
                     <div className="flex-1 flex flex-col justify-center">
-                        <p className="text-[9px] font-black text-blue-600 uppercase italic mb-1 tracking-tighter">Choix du client :</p>
-                        <h2 className="font-black text-sm uppercase italic dark:text-white leading-tight mb-2">
-                            {order.clientChoice}
+                        <h2 className="font-black text-base uppercase dark:text-white text-black leading-tight mb-1">
+                            {order.productName}
                         </h2>
-                        <div className="text-2xl font-black text-green-600 italic">
+                        
+                        <div className="flex flex-wrap items-center gap-2 mb-2">
+                          <p className="text-[9px] font-black text-blue-600 uppercase italic tracking-tighter">Choix :</p>
+                          <span className="text-[10px] font-black text-blue-700 bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 rounded-md border border-blue-100 dark:border-blue-800">
+                              {order.clientChoice}
+                          </span>
+                        </div>
+
+                        <div className="text-2xl font-black text-[#6ab344] italic">
                             {Number(order.price || 0).toLocaleString()} <span className="text-xs not-italic">FCFA</span>
                         </div>
                     </div>
                 </div>
 
-                {/* ADRESSE & TEL */}
+                {/* ADRESSE & CONTACT */}
                 <div className="space-y-3">
-                    <div className="flex items-center justify-between bg-zinc-50 dark:bg-zinc-800 p-4 rounded-2xl border border-black/5">
+                    <div className="bg-zinc-50 dark:bg-zinc-800 p-4 rounded-2xl border border-black/5">
                         <div className="flex items-start gap-3">
                             <MapPin className="size-5 text-blue-600 mt-1" />
                             <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200 leading-tight">
@@ -164,7 +178,17 @@ export default function DeliveryDashboard() {
                     </div>
                 </div>
 
-                {/* CONSIGNE DE PAIEMENT */}
+                {/* NOTES SUPPLÉMENTAIRES (Si présentes) */}
+                {order.clientNote && (
+                    <div className="bg-zinc-100 dark:bg-zinc-800/50 p-4 rounded-2xl border-l-4 border-orange-400">
+                        <p className="text-[10px] font-black text-zinc-400 uppercase mb-1">Indications client :</p>
+                        <p className="text-xs font-medium italic text-zinc-600 dark:text-zinc-400 leading-snug">
+                            &quot;{order.clientNote}&quot;
+                        </p>
+                    </div>
+                )}
+
+                {/* CONSIGNES DE PAIEMENT */}
                 <div className="bg-blue-50 dark:bg-blue-900/10 p-5 rounded-2xl border border-blue-100 flex items-center gap-4">
                     <Banknote className="size-6 text-blue-600" />
                     <p className="text-[11px] font-bold text-blue-800 dark:text-blue-300">
@@ -172,12 +196,12 @@ export default function DeliveryDashboard() {
                     </p>
                 </div>
 
-                {/* ACTIONS BOUTONS */}
+                {/* ACTIONS */}
                 <div className="space-y-3">
                     <button 
                         onClick={() => handleConfirmDelivery(order.id)}
                         disabled={isUpdating === order.id}
-                        className="w-full py-5 bg-black dark:bg-white text-white dark:text-black rounded-[1.8rem] font-black uppercase text-[11px] italic flex items-center justify-center gap-3 active:scale-95 transition-all disabled:opacity-50"
+                        className="w-full py-5 bg-black dark:bg-white text-white dark:text-black rounded-[1.8rem] font-black uppercase text-[11px] italic flex items-center justify-center gap-3 active:scale-95 transition-all disabled:opacity-50 shadow-xl"
                     >
                         {isUpdating === order.id ? <Loader2 className="animate-spin size-5" /> : <PackageCheck className="size-5 text-green-500" />}
                         Valider l&apos;encaissement et la remise
