@@ -197,7 +197,7 @@ function CheckoutContent() {
               <textarea 
                 value={orderNote}
                 onChange={(e) => setOrderNote(e.target.value)}
-                placeholder="Précisions pour le livreur (ex: Sonner au portail noir...)" 
+                placeholder="Comment voulez vous votre commande?" 
                 rows={2} 
                 className="w-full bg-white dark:bg-zinc-900 border-none ring-1 ring-black/5 dark:ring-white/10 rounded-2xl py-5 pl-12 pr-4 font-bold focus:ring-2 focus:ring-orange-500 outline-none resize-none text-black dark:text-white italic text-sm" 
               />

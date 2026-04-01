@@ -12,9 +12,10 @@ export async function GET() {
       return NextResponse.json({ error: "Accès refusé" }, { status: 403 });
     }
 
+    // RÉCUPÉRATION : On s'assure de ne prendre que les commandes en attente
     const orders = await prisma.order.findMany({
       where: { 
-        status: "PENDING" 
+        status: "PENDING" // <--- C'est ici que se joue la disparition après annulation
       },
       include: {
         post: {
@@ -42,12 +43,8 @@ export async function GET() {
         .trim();
 
       // 3. DÉCOUPAGE ROBUSTE (REGEX)
-      // On utilise des expressions régulières pour trouver la couleur même si la casse change
       const notesStr = order.notes || "";
-      
-      // Cherche tout ce qui est après "COULEUR :" jusqu'au prochain "|" ou la fin
       const colorMatch = notesStr.match(/COULEUR\s*:\s*([^|]+)/i);
-      // Cherche tout ce qui est après "NOTE :" jusqu'à la fin
       const noteMatch = notesStr.match(/NOTE\s*:\s*(.+)/i);
 
       const color = colorMatch ? colorMatch[1].trim() : "Standard";
@@ -58,9 +55,9 @@ export async function GET() {
         productName: productName || "Article DealCity",
         productImage: firstImage || "/placeholder.png", 
         // 4. DONNÉES CRITIQUES
-        quantity: order.quantity || 1, // Si c'est null en DB, on force 1
-        clientChoice: color,           // Envoyé au Dashboard
-        clientNote: note,              // Envoyé au Dashboard
+        quantity: order.quantity || 1, 
+        clientChoice: color,           
+        clientNote: note,              
         price: order.totalAmount, 
         customerName: order.customerName,
         customerPhone: order.customerPhone,
