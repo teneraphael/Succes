@@ -56,33 +56,34 @@ export default function OrderConfirmationList({ userId }: OrderConfirmationListP
         {orders.map((order: any) => {
           const displayPrice = order.price || order.totalAmount || 0;
           
-          // Définition des statuts
-          const isPending = order.status === "PENDING"; // En attente de traitement
-          const isShipped = order.status === "SHIPPED"; // Expédié / En cours de livraison
-          const isCompleted = order.status === "COMPLETED"; // Reçu et confirmé
+          // --- LOGIQUE DES STATUTS CORRIGÉE POUR DEALCITY ---
+          const isPending = order.status === "PENDING";      // Juste commandé
+          const isDelivered = order.status === "DELIVERED";  // Encaissé par le livreur
+          const isCompleted = order.status === "COMPLETED";  // Clôturé
           
-          // On peut confirmer si le colis est marqué comme expédié (ou tout autre état sauf PENDING et COMPLETED)
-          const canConfirm = isShipped; 
+          // Le bouton de confirmation s'affiche quand le livreur a marqué "DELIVERED"
+          const canConfirm = isDelivered; 
 
           return (
             <div 
               key={order.id} 
               className={cn(
                 "group relative bg-card border rounded-[2.2rem] overflow-hidden transition-all duration-300",
-                canConfirm ? "border-blue-500/30 bg-blue-50/10 shadow-md shadow-blue-500/5" : "border-border shadow-sm"
+                canConfirm ? "border-blue-500/30 bg-blue-50/10 shadow-md shadow-blue-500/5" : "border-border shadow-sm",
+                isPending && "opacity-90"
               )}
             >
               {/* INDICATEUR LATÉRAL ÉPAIS */}
               <div className={cn(
                 "absolute left-0 top-0 bottom-0 w-2",
-                isPending && "bg-zinc-200",
+                isPending && "bg-orange-400",
                 canConfirm && "bg-blue-500 animate-pulse",
                 isCompleted && "bg-[#6ab344]"
               )} />
 
               <div className="p-5 pl-7">
                 <div className="flex gap-5">
-                  {/* IMAGE PRODUIT AVEC BADGE */}
+                  {/* IMAGE PRODUIT */}
                   <div className="relative size-20 rounded-[1.4rem] overflow-hidden border bg-muted shrink-0 shadow-inner">
                     <Image 
                       src={order.post?.attachments?.[0]?.url || "/placeholder.png"} 
@@ -108,7 +109,7 @@ export default function OrderConfirmationList({ userId }: OrderConfirmationListP
                       <div className="flex items-center gap-2">
                          <div className={cn(
                            "p-1 rounded-md",
-                           isPending && "bg-zinc-100 text-zinc-400",
+                           isPending && "bg-orange-100 text-orange-500",
                            canConfirm && "bg-blue-100 text-blue-500",
                            isCompleted && "bg-green-100 text-green-500"
                          )}>
@@ -119,23 +120,23 @@ export default function OrderConfirmationList({ userId }: OrderConfirmationListP
                          
                          <span className={cn(
                            "text-[10px] font-black uppercase tracking-widest italic",
-                           isPending && "text-zinc-400",
+                           isPending && "text-orange-600",
                            canConfirm && "text-blue-600",
                            isCompleted && "text-green-600"
                          )}>
-                           {isPending && "Préparation en cours"}
-                           {canConfirm && "Colis expédié / Arrivé"}
-                           {isCompleted && "Commande reçue"}
+                           {isPending && "Préparation / En route"}
+                           {canConfirm && "Colis livré ! À confirmer"}
+                           {isCompleted && "Commande terminée"}
                          </span>
                       </div>
                     </div>
 
-                    {/* ACTION DE CONFIRMATION */}
+                    {/* ACTION DE CONFIRMATION (Uniquement si DELIVERED) */}
                     {canConfirm && (
                       <div className="mt-4 pt-4 border-t border-blue-500/10">
                         <div className="flex flex-col gap-3">
                           <p className="text-[9px] font-black text-blue-500/70 uppercase tracking-tighter">
-                            Veuillez confirmer la réception après vérification :
+                            Cliquez ci-dessous pour confirmer que vous avez bien reçu votre colis :
                           </p>
                           <OrderConfirmButton orderId={order.id} status={order.status} />
                         </div>
@@ -145,7 +146,7 @@ export default function OrderConfirmationList({ userId }: OrderConfirmationListP
                     {isCompleted && (
                       <div className="mt-3 pt-3 border-t border-dashed border-green-200/50">
                         <p className="text-[10px] font-black text-[#6ab344] uppercase tracking-widest italic">
-                          Transaction terminée avec succès
+                          Merci de votre confiance !
                         </p>
                       </div>
                     )}

@@ -15,11 +15,9 @@ export async function GET() {
     }
 
     // 2. RÉCUPÉRATION DES COMMANDES À LIVRER
-    // On récupère les commandes au statut "PENDING" (celles qui attendent le livreur)
     const orders = await prisma.order.findMany({
       where: { 
-        // En mode Cash on Delivery, on affiche ce qui est en attente
-        status: "PENDING" 
+        status: "PENDING" // On ne montre que ce qui est prêt à être livré
       },
       include: {
         post: {
@@ -34,7 +32,7 @@ export async function GET() {
 
     // 3. Formatage pour le Dashboard Livreur
     const formattedOrders = orders.map((order) => {
-      // Extraction sécurisée de la première image (si présente)
+      // Extraction de l'image
       const attachments = (order.post as any)?.attachments;
       const firstImage = Array.isArray(attachments) && attachments.length > 0 
         ? attachments[0]?.url 
@@ -42,13 +40,17 @@ export async function GET() {
 
       return {
         id: order.id,
-        productName: order.post?.content || "Produit DealCity",
+        // On garde le contenu original au cas où
+        fullContent: order.post?.content || "",
+        // On utilise 'notes' pour le choix spécifique (couleur/taille) du client
+        clientChoice: order.notes && order.notes.trim() !== "" 
+          ? order.notes 
+          : "Aucune précision client", 
         productImage: firstImage || "/placeholder.png", 
         price: order.totalAmount,
         customerName: order.customerName,
         customerPhone: order.customerPhone,
         deliveryAddress: order.customerAddress,
-        notes: order.notes, // Important pour voir la taille/couleur choisie
         status: order.status,
         createdAt: order.createdAt,
       };

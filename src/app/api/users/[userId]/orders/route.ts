@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 
 export async function GET(
   req: Request,
-  { params }: { params: Promise<{ userId: string }> } // Type correct pour Next.js 15
+  { params }: { params: Promise<{ userId: string }> } 
 ) {
   try {
     const { user: loggedInUser } = await validateRequest();
@@ -13,7 +13,7 @@ export async function GET(
       return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
     }
 
-    // 1. Attendre les params (Obligatoire sur Next.js 15)
+    // 1. Attendre les params (Next.js 15)
     const { userId } = await params;
 
     // Sécurité : Un utilisateur ne peut voir que ses propres commandes
@@ -21,13 +21,13 @@ export async function GET(
         return NextResponse.json({ error: "Accès refusé" }, { status: 403 });
     }
 
-    // 2. Récupérer les commandes valides
+    // 2. RÉCUPÉRER LES COMMANDES (AJOUT DU STATUT PENDING)
     const orders = await prisma.order.findMany({
       where: { 
         userId: userId,
-        // SÉCURITÉ : On masque les commandes non payées (INITIALIZED / FAILED)
+        // CORRECTION : On inclut PENDING pour que l'achat s'affiche dès la validation
         status: {
-          in: ["PAID", "DELIVERED", "COMPLETED"]
+          in: ["PENDING", "DELIVERED", "COMPLETED"]
         }
       },
       include: {
@@ -48,18 +48,17 @@ export async function GET(
     const formattedOrders = orders.map(order => {
       const orderAny = order as any;
       
-      // Extraction de l'image
+      // Extraction sécurisée de l'image
       const firstImage = order.post?.attachments?.[0]?.url || null;
 
       return {
         id: order.id,
         status: order.status,
         createdAt: order.createdAt,
-        // On s'assure d'envoyer le bon prix (totalAmount dans ta DB)
-        price: orderAny.totalAmount || orderAny.price || 0,
+        // Priorité au champ totalAmount utilisé dans ton API Checkout
+        price: orderAny.totalAmount || orderAny.total || 0,
         productName: order.post?.content || "Article DealCity",
         productImage: firstImage,
-        // On inclut les notes pour que le client se rappelle ce qu'il a demandé
         notes: orderAny.notes || "",
         customerAddress: orderAny.customerAddress,
       };

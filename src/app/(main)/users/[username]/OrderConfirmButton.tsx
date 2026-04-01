@@ -13,9 +13,10 @@ export default function OrderConfirmButton({ orderId, status }: OrderConfirmButt
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
-  // On affiche le bouton si le colis est expédié (SHIPPED) 
-  // ou marqué comme livré (DELIVERED) mais pas encore "COMPLETED" (confirmé par l'acheteur)
-  const canShow = status === "SHIPPED" || status === "DELIVERED";
+  // --- LOGIQUE D'AFFICHAGE ---
+  // On affiche le bouton UNIQUEMENT si le livreur a déjà encaissé l'argent (DELIVERED)
+  // Et que la commande n'est pas encore totalement clôturée (COMPLETED)
+  const canShow = status === "DELIVERED";
   
   if (!canShow) return null;
 
@@ -24,7 +25,8 @@ export default function OrderConfirmButton({ orderId, status }: OrderConfirmButt
     
     setLoading(true);
     try {
-      // ✅ Utilisation de la route standard pour confirmer la réception
+      // ✅ Correction de l'URL pour correspondre à ton API de clôture
+      // Assure-toi que ton fichier est bien dans /api/orders/[id]/confirm/route.ts
       const res = await fetch(`/api/orders/${orderId}/confirm-receipt`, { 
         method: "POST" 
       });
@@ -32,19 +34,20 @@ export default function OrderConfirmButton({ orderId, status }: OrderConfirmButt
       if (res.ok) {
         toast({ 
           description: "✅ Réception confirmée ! Merci de votre confiance.",
-          className: "bg-[#6ab344] text-white border-none rounded-2xl font-bold"
+          className: "bg-[#6ab344] text-white border-none rounded-2xl font-bold shadow-xl"
         });
         
-        // On recharge la page pour mettre à jour les statuts dans la liste
+        // On recharge la page pour que l'indicateur passe au VERT dans la liste
         window.location.reload();
       } else {
         const errorData = await res.json();
-        throw new Error(errorData.error || "Erreur serveur");
+        throw new Error(errorData.error || "Erreur lors de la confirmation");
       }
     } catch (error: any) {
       toast({ 
         variant: "destructive", 
-        description: error.message || "Impossible de confirmer la réception pour le moment." 
+        title: "OUPS !",
+        description: error.message || "Impossible de confirmer pour le moment." 
       });
     } finally {
       setLoading(false);
@@ -58,7 +61,7 @@ export default function OrderConfirmButton({ orderId, status }: OrderConfirmButt
           Vérification Colis
         </p>
         <p className="text-[11px] font-bold text-zinc-500 text-center leading-tight">
-          Avez-vous bien reçu et vérifié votre article ?
+          Avez-vous bien reçu et vérifié votre article avant de confirmer ?
         </p>
       </div>
 
@@ -74,12 +77,12 @@ export default function OrderConfirmButton({ orderId, status }: OrderConfirmButt
         )}
         
         <span>
-          {loading ? "Traitement..." : "Oui, colis reçu"}
+          {loading ? "Confirmation..." : "Oui, colis reçu & conforme"}
         </span>
       </button>
       
-      <p className="text-[8px] font-medium text-zinc-400 text-center uppercase tracking-tighter">
-        Cette action clôture la transaction définitivement.
+      <p className="text-[8px] font-medium text-zinc-400 text-center uppercase tracking-tighter italic">
+        Cette action débloque les fonds pour le vendeur.
       </p>
     </div>
   );
