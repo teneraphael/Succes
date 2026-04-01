@@ -48,14 +48,15 @@ export default function DeliveryDashboard() {
     }
   }
 
-  // Fonction générique pour gérer les actions (Livraison / Suppression)
-  async function handleAction(orderId: string, action: 'deliver' | 'cancel') {
-    const isDelete = action === 'cancel';
-    const confirmMsg = isDelete 
-      ? "Voulez-vous vraiment SUPPRIMER définitivement cette commande ?" 
-      : "Confirmes-tu avoir encaissé l'argent liquide auprès du client ?";
+  // Fonction pour gérer les actions (Livraison / Annulation / Suppression)
+  async function handleAction(orderId: string, action: 'deliver' | 'cancel' | 'delete') {
+    const confirmMessages = {
+      deliver: "Confirmes-tu avoir encaissé l'argent liquide auprès du client ?",
+      cancel: "Voulez-vous marquer cette commande comme ANNULÉE ?",
+      delete: "Voulez-vous SUPPRIMER définitivement cette commande de la base de données ?"
+    };
 
-    if (!confirm(confirmMsg)) return;
+    if (!confirm(confirmMessages[action])) return;
 
     setIsUpdating(orderId);
     try {
@@ -65,7 +66,12 @@ export default function DeliveryDashboard() {
 
       if (res.ok) {
         setOrders((prev) => prev.filter((o) => o.id !== orderId));
-        toast({ description: isDelete ? "Commande supprimée." : "✅ Livraison validée !" });
+        const successMsgs = {
+            deliver: "✅ Livraison validée !",
+            cancel: "Commande marquée comme annulée.",
+            delete: "Commande supprimée définitivement."
+        };
+        toast({ description: successMsgs[action] });
       } else {
         const errorData = await res.json();
         throw new Error(errorData.error || "Erreur lors de l'opération");
@@ -117,34 +123,34 @@ export default function DeliveryDashboard() {
             orders.map((order: any) => (
             <div key={order.id} className="bg-white dark:bg-zinc-900 border border-black/5 rounded-[2.5rem] p-6 space-y-6 shadow-sm relative">
                 
-                {/* BOUTON OPTIONS (TROIS POINTS) */}
+                {/* MENU OPTIONS (TROIS POINTS) */}
                 <div className="absolute top-6 right-6 z-20">
                   <DropdownMenu>
                     <DropdownMenuTrigger className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full outline-none transition">
                       <MoreVertical className="size-6 text-zinc-400" />
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="rounded-2xl p-2 min-w-[180px] shadow-2xl border-black/5 dark:bg-zinc-900">
+                    <DropdownMenuContent align="end" className="rounded-2xl p-2 min-w-[200px] shadow-2xl border-black/5 dark:bg-zinc-900">
                       <DropdownMenuItem 
                         onClick={() => handleAction(order.id, 'deliver')}
                         className="flex items-center gap-3 p-3 font-bold text-xs uppercase cursor-pointer text-green-600 focus:text-green-600 focus:bg-green-50 dark:focus:bg-green-900/20 rounded-xl"
                       >
                         <CheckCircle className="size-4" /> Livrer le colis
                       </DropdownMenuItem>
-                      
-                      <DropdownMenuItem 
-                        onClick={() => router.push(`/orders/edit/${order.id}`)}
-                        className="flex items-center gap-3 p-3 font-bold text-xs uppercase cursor-pointer rounded-xl dark:text-white"
-                      >
-                        <Edit3 className="size-4" /> Modifier l&apos;ordre
-                      </DropdownMenuItem>
 
                       <DropdownMenuSeparator className="bg-black/5 dark:bg-white/5" />
 
                       <DropdownMenuItem 
                         onClick={() => handleAction(order.id, 'cancel')}
+                        className="flex items-center gap-3 p-3 font-bold text-xs uppercase cursor-pointer text-orange-600 focus:text-orange-600 focus:bg-orange-50 dark:focus:bg-orange-900/20 rounded-xl"
+                      >
+                        <XCircle className="size-4" /> Annuler (Marquer annulé)
+                      </DropdownMenuItem>
+
+                      <DropdownMenuItem 
+                        onClick={() => handleAction(order.id, 'delete')}
                         className="flex items-center gap-3 p-3 font-bold text-xs uppercase cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-900/20 rounded-xl"
                       >
-                        <Trash2 className="size-4" /> Supprimer la commande
+                        <Trash2 className="size-4" /> Supprimer de la base
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -205,7 +211,7 @@ export default function DeliveryDashboard() {
                     </div>
                 </div>
 
-                {/* INDICATIONS / NOTES CLIENT */}
+                {/* INDICATIONS CLIENT */}
                 {order.clientNote && (
                     <div className="bg-zinc-100 dark:bg-zinc-800/50 p-4 rounded-2xl border-l-4 border-orange-400 shadow-inner">
                         <p className="text-[10px] font-black text-zinc-400 uppercase mb-1">Indications client :</p>
