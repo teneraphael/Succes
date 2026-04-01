@@ -6,20 +6,29 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const { id } = await params;
   const { user } = await validateRequest();
   
-  if (!user) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+  // 1. Vérification de l'authentification
+  if (!user) {
+    return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+  }
 
   try {
-    // AU LIEU DE UPDATE, ON UTILISE DELETE
+    // 2. SUPPRESSION DÉFINITIVE
+    // On utilise .delete au lieu de .update
     await prisma.order.delete({
       where: { id },
     });
 
-    return NextResponse.json({ success: true, message: "Commande supprimée" });
-  } catch (error: any) {
-    console.error("ERREUR_SUPPRESSION:", error);
     return NextResponse.json({ 
-        error: "Impossible de supprimer la commande", 
-        details: error.message 
+      success: true, 
+      message: "La commande a été supprimée de la base de données." 
+    });
+
+  } catch (error: any) {
+    console.error("ERREUR_SUPPRESSION_COMMANDE:", error);
+    
+    // Gestion d'erreur si la commande n'existe déjà plus
+    return NextResponse.json({ 
+      error: "Impossible de supprimer la commande. Elle a peut-être déjà été traitée." 
     }, { status: 500 });
   }
 }
