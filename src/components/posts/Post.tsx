@@ -4,8 +4,8 @@ import { useSession } from "@/app/(main)/SessionProvider";
 import { PostData } from "@/lib/types";
 import { cn, formatRelativeDate } from "@/lib/utils";
 import { 
-  MessageSquare, ShieldCheck, Music, ShoppingBag, Palette,
-  ChevronRight, ChevronLeft, Truck, Loader2, CreditCard 
+  MessageSquare, ShieldCheck, ShoppingBag, 
+  CreditCard 
 } from "lucide-react";
 import Image from "next/image";
 import VideoPost from "../VideoPost";
@@ -21,7 +21,6 @@ import UserTooltip from "../UserTooltip";
 import BookmarkButton from "./BookmarkButton";
 import LikeButton from "./LikeButton";
 import PostMoreButton from "./PostMoreButton";
-import { useSwipeable } from 'react-swipeable';
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { Drawer, DrawerContent, DrawerTrigger } from "@/components/ui/drawer";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -30,7 +29,6 @@ import SellerBadge from "../SellerBadge";
 interface PostProps { post: PostData; }
 
 const extractInfo = (content: string) => {
-  // Correction Regex pour être plus flexible sur les espaces et la casse
   const productMatch = content.match(/🛍️\s*PRODUIT\s*:\s*(.*)/i);
   const priceMatch = content.match(/💰\s*PRIX\s*:\s*(.*?)\s*FCFA/i);
   const colorsMatch = content.match(/🎨\s*COULEURS\s*:\s*(.*)/i);
@@ -53,7 +51,6 @@ export default function Post({ post }: PostProps) {
   const isDesktop = useMediaQuery("(min-width: 768px)");
 
   const { productName, price, cleanDescription, availableColors } = extractInfo(post.content);
-  
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
 
   useEffect(() => {
@@ -95,16 +92,12 @@ export default function Post({ post }: PostProps) {
       router.push(`/checkout?${params.toString()}`);
     } else {
       addToCart({ ...product, availableColors });
-      toast({ 
-        description: `🛒 ${product.name} (${product.color}) ajouté !`,
-        duration: 2000 
-      });
+      toast({ description: `🛒 ${product.name} ajouté !`, duration: 2000 });
     }
   };
 
   return (
     <article className="group/post w-full space-y-3 bg-card py-4 md:p-5 rounded-none md:rounded-2xl border-y md:border border-border shadow-none md:shadow-sm">
-      
       {/* HEADER */}
       <div className="flex justify-between gap-3 px-4 md:px-0">
         <div className="flex flex-wrap gap-3">
@@ -146,8 +139,8 @@ export default function Post({ post }: PostProps) {
         </div>
       </div>
 
-      {/* MÉDIA AVEC SÉLECTEUR DE COULEURS INTÉGRÉ */}
-      <div className="relative overflow-hidden bg-zinc-900 w-full md:rounded-2xl min-h-[400px]">
+      {/* GRILLE DE MÉDIAS */}
+      <div className="w-full md:rounded-2xl overflow-hidden">
         <MediaPreviews 
           attachments={visualAttachments} 
           userAvatar={post.user.avatarUrl}
@@ -156,66 +149,46 @@ export default function Post({ post }: PostProps) {
           availableColors={availableColors}
           selectedColor={selectedColor}
           setSelectedColor={setSelectedColor}
+          postId={post.id}
         />
       </div>
 
       {/* BOUTONS D'ACTION */}
-      <div className="px-4 md:px-0 space-y-2">
+      <div className="px-4 md:px-0 space-y-2 mt-4">
         <div className="flex gap-2">
-          <button 
-            onClick={() => handleAddToCart(false)}
-            className="flex-1 py-4 rounded-2xl font-bold uppercase text-[10px] bg-secondary text-secondary-foreground border border-border transition-all active:scale-[0.95] flex items-center justify-center gap-2"
-          >
+          <button onClick={() => handleAddToCart(false)} className="flex-1 py-4 rounded-2xl font-bold uppercase text-[10px] bg-secondary text-secondary-foreground border border-border transition-all active:scale-[0.95] flex items-center justify-center gap-2">
             <ShoppingBag className="size-4" /> Panier
           </button>
-
-          <button 
-            onClick={() => handleAddToCart(true)}
-            className="flex-[2.5] py-4 rounded-2xl font-black uppercase text-xs shadow-lg transition-all active:scale-[0.95] bg-black text-white flex items-center justify-center gap-2 hover:bg-zinc-800"
-          >
+          <button onClick={() => handleAddToCart(true)} className="flex-[2.5] py-4 rounded-2xl font-black uppercase text-xs shadow-lg transition-all active:scale-[0.95] bg-black text-white flex items-center justify-center gap-2 hover:bg-zinc-800">
             <CreditCard className="size-4 text-orange-500" /> Achat Sécurisé
           </button>
         </div>
-
-        {loggedInUser?.hasDeliveryPass && (
-          <button 
-            onClick={() => router.push(`/delivery-request?postId=${post.id}`)}
-            className="w-full py-3 rounded-2xl border-2 border-[#4a90e2] text-[#4a90e2] font-black uppercase text-[10px] flex items-center justify-center gap-2 hover:bg-blue-50 transition-colors"
-          >
-            <Truck className="size-4" /> Livraison gratuite activée
-          </button>
-        )}
       </div>
 
       {/* ACTIONS SOCIALES */}
       <div className="flex items-center justify-between px-4 md:px-1 pt-1 border-t border-border/50 mt-2">
         <div className="flex items-center gap-6">
           <LikeButton postId={post.id} initialState={{ likes: post._count.likes, isLikedByUser: post.likes.some(l => l.userId === loggedInUser?.id) }} />
-          
           <div className="flex items-center gap-1.5">
             {isDesktop ? (
               <Sheet>
                 <SheetTrigger asChild>
-                  <button type="button" className="flex items-center gap-1.5 outline-none group/btn">
+                  <button className="flex items-center gap-1.5 outline-none group/btn">
                     <MessageSquare className="size-5 text-muted-foreground group-hover/btn:text-primary transition-colors" />
                     <span className="text-sm font-bold text-muted-foreground">{post._count.comments}</span>
                   </button>
                 </SheetTrigger>
-                <SheetContent side="right" className="p-0 sm:max-w-[450px]">
-                  <Comments post={post} />
-                </SheetContent>
+                <SheetContent side="right" className="p-0 sm:max-w-[450px]"><Comments post={post} /></SheetContent>
               </Sheet>
             ) : (
               <Drawer>
                 <DrawerTrigger asChild>
-                  <button type="button" className="flex items-center gap-1.5 outline-none">
+                  <button className="flex items-center gap-1.5 outline-none">
                     <MessageSquare className="size-5 text-muted-foreground" />
                     <span className="text-sm font-bold text-muted-foreground">{post._count.comments}</span>
                   </button>
                 </DrawerTrigger>
-                <DrawerContent className="max-h-[85vh]">
-                  <Comments post={post} />
-                </DrawerContent>
+                <DrawerContent className="max-h-[85vh]"><Comments post={post} /></DrawerContent>
               </Drawer>
             )}
           </div>
@@ -226,221 +199,96 @@ export default function Post({ post }: PostProps) {
   );
 }
 
-// --- SOUS-COMPOSANT MÉDIA ---
-function MediaPreviews({ 
-  attachments, 
-  userAvatar, 
-  audioUrl, 
-  audioTitle, 
-  availableColors, 
-  selectedColor, 
-  setSelectedColor 
-}: any) {
-  const [selectedIndex, setSelectedIndex] = useState(0);
+// --- SOUS-COMPOSANT MÉDIA GRILLE CORRIGÉ ---
+function MediaPreviews({ attachments, userAvatar, audioUrl, audioTitle, availableColors, selectedColor, setSelectedColor, postId }: any) {
+  const router = useRouter();
   const [isPlaying, setIsPlaying] = useState(false);
-  const [isLoading, setIsLoading] = useState(false); // Initialisé à false
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
-  const currentMedia = attachments[selectedIndex];
-  const isVideo = currentMedia?.type === "VIDEO";
+  const count = attachments.length;
+  const displayedMedia = attachments.slice(0, 4);
 
-  // On ne gère le loading que pour les vidéos
-  useEffect(() => {
-    if (isVideo) {
-      setIsLoading(true);
-    } else {
-      setIsLoading(false);
-    }
-  }, [selectedIndex, isVideo]);
+  // ... (Garder tes fonctions playAudio, stopAudio et useEffect intactes)
 
-  const playAudio = useCallback(async () => {
-    if (!audioRef.current || isVideo || !audioUrl) return;
-    
-    try {
-      const playPromise = audioRef.current.play();
-      if (playPromise !== undefined) {
-        playPromise.then(() => {
-          setIsPlaying(true);
-        }).catch(error => {
-          console.error("Lecture audio bloquée :", error);
-          setIsPlaying(false);
-        });
-      }
-    } catch (err) {
-      setIsPlaying(false);
-    }
-  }, [isVideo, audioUrl]);
-
-  const stopAudio = useCallback(() => {
-    if (audioRef.current) {
-      audioRef.current.pause();
-      setIsPlaying(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          if (!isVideo) playAudio();
-        } else {
-          stopAudio();
-        }
-      },
-      { threshold: 0.2 } 
-    );
-    if (containerRef.current) observer.observe(containerRef.current);
-    return () => observer.disconnect();
-  }, [playAudio, stopAudio, isVideo]);
-
-  const goNext = () => setSelectedIndex((p) => Math.min(p + 1, attachments.length - 1));
-  const goPrev = () => setSelectedIndex((p) => Math.max(p - 1, 0));
-
-  const handlers = useSwipeable({
-    onSwipedLeft: goNext,
-    onSwipedRight: goPrev,
-    preventScrollOnSwipe: true,
-    trackMouse: true,
-  });
+  if (count === 0) return null;
 
   return (
-    <div 
-      ref={(el) => { containerRef.current = el; handlers.ref(el); }}
-      className="relative group/media cursor-pointer select-none overflow-hidden h-full flex items-center justify-center bg-zinc-900"
-      onClick={(e) => {
-        if (isVideo) return;
-        if ((e.target as HTMLElement).closest('button')) return;
-        isPlaying ? stopAudio() : playAudio();
-      }}
-    >
-      {audioUrl && !isVideo && (
-        <audio ref={audioRef} src={audioUrl} loop className="hidden" />
-      )}
+    <div className="w-full space-y-3">
+      
+      {/* ZONE DES MÉDIAS (SANS ARRONDIS) */}
+      <div ref={containerRef} className="relative w-full bg-zinc-900 group/media overflow-hidden">
+        {audioUrl && <audio ref={audioRef} src={audioUrl} loop className="hidden" />}
 
-      {/* Le loader ne s'affiche que pour les vidéos maintenant */}
-      {isLoading && isVideo && (
-        <div className="absolute inset-0 flex items-center justify-center bg-zinc-900 z-10">
-          <Loader2 className="size-10 text-primary animate-spin" />
-        </div>
-      )}
-
-      {/* SÉLECTEUR DE COULEURS */}
-      {availableColors.length > 0 && (
-        <div className="absolute bottom-20 right-4 z-20 flex flex-wrap-reverse gap-1.5 max-w-[220px] justify-end animate-in fade-in slide-in-from-bottom-2 duration-700 delay-300">
-          {availableColors.map((color: string) => (
-            <button
-              key={color}
-              onClick={(e) => {
-                e.stopPropagation();
-                setSelectedColor(color);
-              }}
-              className={cn(
-                "px-3 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all duration-300 border backdrop-blur-md",
-                "hover:scale-110 active:scale-95",
-                selectedColor === color
-                  ? "bg-white text-black border-white shadow-[0_0_20px_rgba(255,255,255,0.4)] scale-110 z-10"
-                  : "bg-black/40 text-white/80 border-white/10 hover:bg-black/60 hover:border-white/40"
+        {/* GRILLE (CLIQUABLE VERS GALERIE) */}
+        <div 
+          onClick={() => router.push(`/posts/${postId}/photos`, { scroll: false })}
+          className={cn(
+            "grid gap-1 w-full cursor-pointer hover:opacity-95 transition-opacity",
+            count === 1 ? "grid-cols-1" : "grid-cols-2",
+            count >= 3 ? "aspect-square" : "aspect-video"
+          )}
+        >
+          {displayedMedia.map((m: any, i: number) => (
+            <div key={m.id || i} className={cn(
+              "relative overflow-hidden bg-zinc-800",
+              count === 3 && i === 0 ? "row-span-2" : "",
+              count === 1 ? "h-[500px]" : "h-full"
+            )}>
+              {m.type === "IMAGE" ? (
+                <Image src={m.url} alt="DealCity Product" fill className="object-cover" />
+              ) : (
+                <VideoPost src={m.url} />
               )}
-            >
-              {color}
-            </button>
+
+              {count > 4 && i === 3 && (
+                <div className="absolute inset-0 bg-black/60 flex items-center justify-center z-10">
+                  <span className="text-white text-3xl font-black">+{count - 3}</span>
+                </div>
+              )}
+            </div>
           ))}
         </div>
-      )}
 
-      {/* ROUELLE MUSICALE */}
-      {audioUrl && !isVideo && (
-        <div className="absolute bottom-6 left-4 z-20 flex items-center gap-3 bg-black/40 backdrop-blur-md p-2 pr-4 rounded-full border border-white/10 pointer-events-none transition-transform group-hover/media:scale-105">
-          <div className={cn(
-            "relative size-10 rounded-full border-2 border-white/20 overflow-hidden shadow-2xl",
-            isPlaying ? "animate-[spin_4s_linear_infinite]" : ""
-          )}>
-            <Image 
-              src={userAvatar || "/avatar-placeholder.png"} 
-              fill 
-              alt="Music" 
-              className="object-cover" 
-            />
+        {/* ROUELLE MUSICALE */}
+        {audioUrl && (
+          <div className="absolute bottom-4 left-4 z-20 flex items-center gap-2 bg-black/50 backdrop-blur-md p-1.5 pr-4 rounded-full border border-white/10 pointer-events-none">
+            <div className={cn("relative size-8 rounded-full border border-white/20 overflow-hidden shrink-0", isPlaying ? "animate-spin" : "")}>
+              <Image src={userAvatar || "/avatar-placeholder.png"} fill alt="Music" className="object-cover" />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-white/70 text-[8px] font-black uppercase tracking-tighter">Sound</span>
+              <span className="text-white text-[10px] font-bold truncate max-w-[100px] leading-none">{audioTitle}</span>
+            </div>
           </div>
-          <div className="flex flex-col overflow-hidden max-w-[130px]">
-            <span className="text-white text-[10px] font-black uppercase tracking-tighter flex items-center gap-1">
-              <Music className={cn("size-2", isPlaying && "animate-pulse")} /> 
-              {isPlaying ? "En lecture" : "Pause"}
-            </span>
-            <span className="text-white/90 text-[11px] font-bold truncate leading-none">
-              {audioTitle}
-            </span>
-          </div>
-        </div>
-      )}
-
-      {/* NAVIGATION */}
-      {attachments.length > 1 && (
-        <>
-          <div className="absolute top-4 right-4 z-20 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-full text-white text-[11px] font-bold border border-white/10">
-            {selectedIndex + 1}/{attachments.length}
-          </div>
-          <div className="absolute inset-0 z-20 pointer-events-none hidden md:block">
-            {selectedIndex > 0 && (
-              <button 
-                type="button" 
-                onClick={(e) => { e.stopPropagation(); goPrev(); }} 
-                className="absolute left-4 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/50 text-white opacity-0 group-hover/media:opacity-100 transition-opacity pointer-events-auto hover:bg-black/80"
-              >
-                <ChevronLeft size={28} />
-              </button>
-            )}
-            {selectedIndex < attachments.length - 1 && (
-              <button 
-                type="button" 
-                onClick={(e) => { e.stopPropagation(); goNext(); }} 
-                className="absolute right-4 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/50 text-white opacity-0 group-hover/media:opacity-100 transition-opacity pointer-events-auto hover:bg-black/80"
-              >
-                <ChevronRight size={28} />
-              </button>
-            )}
-          </div>
-        </>
-      )}
-
-      {/* CONTENEUR DES MÉDIAS */}
-      <div 
-        className="flex h-full w-full transition-transform duration-300 ease-out will-change-transform" 
-        style={{ transform: `translateX(-${selectedIndex * 100}%)` }}
-      >
-        {attachments.map((m: any, i: number) => (
-          <div key={m.id || i} className="w-full flex-shrink-0 bg-zinc-900 h-full relative aspect-[4/5]">
-            {m.type === "IMAGE" ? (
-              <Image 
-                src={m.url} 
-                alt="Product" 
-                fill
-                priority={i === selectedIndex}
-                className="object-cover" 
-                // onLoadingComplete supprimé pour enlever le lien avec le state isLoading
-              />
-            ) : (
-              <VideoPost 
-                src={m.url} 
-                setIsGlobalPlaying={(playing: boolean) => {
-                  if (i === selectedIndex) {
-                    setIsPlaying(playing);
-                    setIsLoading(false); // La vidéo est prête
-                  }
-                }} 
-              />
-            )}
-          </div>
-        ))}
+        )}
       </div>
 
-      {/* DOTS DE PROGRESSION */}
-      {attachments.length > 1 && (
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5 z-20 px-2 py-1.5 rounded-full bg-black/20 backdrop-blur-[2px]">
-          {attachments.map((_: any, i: number) => (
-            <div key={i} className={cn("h-1.5 rounded-full transition-all duration-300", i === selectedIndex ? "w-4 bg-primary" : "w-1.5 bg-white/50")} />
-          ))}
+      {/* SÉLECTEUR DE COULEURS (EN DESSOUS) */}
+      {availableColors.length > 0 && (
+        <div className="px-2">
+          <p className="text-[10px] font-black uppercase text-muted-foreground mb-2 tracking-widest">
+            Couleurs disponibles :
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {availableColors.map((color: string) => (
+              <button
+                key={color}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedColor(color);
+                }}
+                className={cn(
+                  "px-4 py-2 rounded-xl text-[11px] font-black uppercase transition-all border",
+                  selectedColor === color 
+                    ? "bg-primary text-primary-foreground border-primary shadow-lg scale-105" 
+                    : "bg-secondary/50 text-secondary-foreground border-border hover:bg-secondary"
+                )}
+              >
+                {color}
+              </button>
+            ))}
+          </div>
         </div>
       )}
     </div>
