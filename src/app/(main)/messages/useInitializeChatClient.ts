@@ -8,34 +8,45 @@ export default function useInitializeChatClient() {
   const { user } = useSession();
   const [chatClient, setChatClient] = useState<StreamChat | null>(null);
   
-  // ✅ On utilise une ref pour suivre l'état de connexion de manière persistante
+  // On utilise une ref pour suivre la promesse de connexion en cours
   const connectionPromise = useRef<Promise<any> | null>(null);
 
   useEffect(() => {
+    // Si pas d'utilisateur ou si on est côté serveur, on stoppe
     if (!user?.id) return;
 
     const client = StreamChat.getInstance(process.env.NEXT_PUBLIC_STREAM_KEY!);
 
     const connect = async () => {
-      // 1️⃣ Si l'utilisateur est déjà connecté avec cet ID, on s'arrête
+      // 1. Si déjà connecté avec le BON utilisateur, on met juste à jour l'état
       if (client.userID === user.id) {
         setChatClient(client);
         return;
       }
 
-      // 2️⃣ Si une tentative de connexion est DÉJÀ en cours, on attend celle-là
-      // C'est ce bloc qui empêche l'erreur "Consecutive calls"
+      // 2. Si une tentative est déjà en cours, on l'attend pour éviter le "Consecutive calls"
       if (connectionPromise.current) {
-        await connectionPromise.current;
-        setChatClient(client);
+        try {
+          await connectionPromise.current;
+          setChatClient(client);
+        } catch (err) {
+          console.error("Erreur durant l'attente de la connexion existante", err);
+        }
         return;
       }
 
+      // 3. Nouvelle tentative de connexion
       try {
-        // 3️⃣ On crée la promesse de connexion
         connectionPromise.current = (async () => {
           const response = await fetch("/api/get-token");
+          if (!response.ok) throw new Error("Impossible de récupérer le token");
+          
           const { token } = await response.json();
+
+          // Avant de connecter, on vérifie si un ancien utilisateur traîne
+          if (client.userID && client.userID !== user.id) {
+            await client.disconnectUser();
+          }
 
           await client.connectUser(
             {
@@ -52,16 +63,23 @@ export default function useInitializeChatClient() {
         setChatClient(client);
       } catch (error) {
         console.error("❌ Stream Connection Error:", error);
-        connectionPromise.current = null; // Reset en cas d'échec pour permettre de réessayer
+        connectionPromise.current = null; 
       }
     };
 
     connect();
 
-    // ⚠️ On ne déconnecte PAS dans le cleanup ici, car en Strict Mode 
-    // cela déconnecterait l'utilisateur immédiatement après l'avoir connecté.
+    // LE CLEANUP : Indispensable pour éviter les erreurs "connectUser was called twice"
+    return () => {
+        setChatClient(null);
+        connectionPromise.current = null;
+        
+        // On déconnecte proprement pour que le prochain useEffect reparte à zéro
+        client.disconnectUser().catch(err => console.error("Erreur lors de la déconnexion", err));
+    };
+
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id]);
+  }, [user?.id, user?.username]); // On surveille l'ID et le username
 
   return chatClient;
 }

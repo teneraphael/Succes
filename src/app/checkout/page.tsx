@@ -65,17 +65,26 @@ function CheckoutContent() {
     const rawPhone = formData.get('phone') as string;
     const cleanPhone = rawPhone.replace(/\s+/g, '').replace(/^\+237/, '');
 
-    // --- CONSTRUCTION DES DONNÉES ENVOYÉES À L'API ---
+    // --- CONSTRUCTION DES DONNÉES ENVOYÉES À L'API CORRIGÉE ---
     const orderData = {
-      postId: displayItems[0].id,
-      total: totalAmount,
       customerName: formData.get('name'),
       customerPhone: cleanPhone,
-      quantity: displayItems[0].quantity,
       customerAddress: formData.get('address'),
-      // On envoie la couleur et la note séparément
-      selectedColor: displayItems[0].color || "Standard", 
       note: orderNote, 
+      total: totalAmount,
+      // On envoie maintenant la liste complète des articles au lieu du premier uniquement
+      items: displayItems.map(item => ({
+        postId: item.id,
+        name: item.name,
+        price: item.price,
+        quantity: item.quantity,
+        color: item.color || "Standard",
+        image: item.image
+      })),
+      // On conserve postId pour la compatibilité avec tes anciennes routes
+      postId: displayItems[0].id,
+      quantity: displayItems[0].quantity,
+      selectedColor: displayItems[0].color || "Standard",
     };
 
     try {
@@ -107,7 +116,7 @@ function CheckoutContent() {
     } catch (error: any) {
       toast({ 
         variant: "destructive", 
-        title: "ERREUR",
+        title: "ERREUR", 
         description: error.message || "Impossible de valider la commande." 
       });
     } finally {

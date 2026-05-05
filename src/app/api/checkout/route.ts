@@ -11,58 +11,68 @@ export async function POST(req: Request) {
 
     const body = await req.json();
     
-    // On récupère les variables envoyées par ton nouveau formulaire Checkout
     const { 
-        postId, 
-        total, 
-        quantity,
+        items, // On récupère le tableau complet envoyé par le front-end
         customerName, 
         customerPhone, 
         customerAddress, 
-        selectedColor, // Reçu depuis displayItems[0].color
-        note           // Reçu depuis orderNote
+        note 
     } = body;
 
-    const post = await prisma.post.findUnique({
-      where: { id: postId },
-      select: { userId: true } 
-    });
-
-    if (!post) {
-      return NextResponse.json({ error: "Produit introuvable" }, { status: 404 });
+    if (!items || items.length === 0) {
+      return NextResponse.json({ error: "Le panier est vide" }, { status: 400 });
     }
 
-    // Conversion sécurisée du montant
-    const totalAmount = Number(total || 0);
-    const commission = Math.round(totalAmount * 0.05); 
-    const sellerEarnings = totalAmount - commission;
+    // --- TRAITEMENT DE CHAQUE PRODUIT ---
+    // On utilise Promise.all pour créer toutes les lignes de commande en parallèle
+    const orders = await Promise.all(items.map(async (item: any) => {
+      // 1. Trouver le vendeur pour chaque produit
+      const post = await prisma.post.findUnique({
+        where: { id: item.postId },
+        select: { userId: true } 
+      });
 
-    // --- FORMATION DE LA NOTE FINALE ---
-    // On utilise le séparateur " | " pour que l'API Delivery puisse découper les infos
-    const finalNote = `COULEUR : ${selectedColor || "Standard"}${note ? ` | NOTE : ${note}` : ""}`;
+      if (!post) return null;
 
-    const order = await prisma.order.create({
-      data: {
-        userId: buyer.id,
-        sellerId: post.userId,
-        postId: postId,
-        totalAmount: totalAmount,
-        quantity: Number(quantity || 1),
-        total: totalAmount, // Compatibilité selon ton schéma
-        commission: commission,
-        sellerEarnings: sellerEarnings,
-        customerName: customerName || "Anonyme",
-        customerPhone: customerPhone || "",
-        customerAddress: customerAddress || "",
-        notes: finalNote, // Contient maintenant "COULEUR : ... | NOTE : ..."
-        status: "PENDING", 
-      },
+      // 2. Calculs financiers pour cet article précis
+      const itemTotal = Number(item.price) * Number(item.quantity);
+      const commission = Math.round(itemTotal * 0.05); 
+      const sellerEarnings = itemTotal - commission;
+
+      // 3. Formatage de la note (Couleur de l'item + Note globale du client)
+      const finalNote = `COULEUR : ${item.color || "Standard"}${note ? ` | NOTE : ${note}` : ""}`;
+
+      // 4. Création de la commande dans la DB
+      return prisma.order.create({
+        data: {
+          userId: buyer.id,
+          sellerId: post.userId,
+          postId: item.postId,
+          totalAmount: itemTotal,
+          quantity: Number(item.quantity || 1),
+          total: itemTotal,
+          commission: commission,
+          sellerEarnings: sellerEarnings,
+          customerName: customerName || "Anonyme",
+          customerPhone: customerPhone || "",
+          customerAddress: customerAddress || "",
+          notes: finalNote,
+          status: "PENDING", 
+        },
+      });
+    }));
+
+    // Filtrer les éventuels produits introuvables (null)
+    const successfulOrders = orders.filter(o => o !== null);
+
+    return NextResponse.json({ 
+      success: true, 
+      count: successfulOrders.length,
+      message: "Commandes enregistrées avec succès" 
     });
 
-    return NextResponse.json({ success: true, orderId: order.id });
-
   } catch (error: any) {
-    console.error("ERREUR_CRITIQUE_PRISMA:", error);
+    console.error("ERREUR_CRITIQUE_CHECKOUT:", error);
     return NextResponse.json({ 
         error: "Erreur lors de la commande", 
         details: error.message 
