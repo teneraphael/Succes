@@ -10,10 +10,11 @@ import {
 import Image from "next/image";
 import VideoPost from "../VideoPost";
 import Link from "next/link";
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/use-toast";
 import { useCart } from "@/context/cart-context";
+import { motion } from "framer-motion"; // Ajouté pour le layoutId
 import Comments from "../comments/Comments";
 import Linkify from "../Linkify";
 import UserAvatar from "../UserAvatar";
@@ -199,28 +200,22 @@ export default function Post({ post }: PostProps) {
   );
 }
 
-// --- SOUS-COMPOSANT MÉDIA GRILLE CORRIGÉ ---
-function MediaPreviews({ attachments, userAvatar, audioUrl, audioTitle, availableColors, selectedColor, setSelectedColor, postId }: any) {
+function MediaPreviews({ attachments, audioUrl, availableColors, selectedColor, setSelectedColor, postId }: any) {
   const router = useRouter();
-  const [isPlaying, setIsPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   const count = attachments.length;
   const displayedMedia = attachments.slice(0, 4);
 
-  // ... (Garder tes fonctions playAudio, stopAudio et useEffect intactes)
-
   if (count === 0) return null;
 
   return (
     <div className="w-full space-y-3">
-      
-      {/* ZONE DES MÉDIAS (SANS ARRONDIS) */}
       <div ref={containerRef} className="relative w-full bg-zinc-900 group/media overflow-hidden">
         {audioUrl && <audio ref={audioRef} src={audioUrl} loop className="hidden" />}
 
-        {/* GRILLE (CLIQUABLE VERS GALERIE) */}
+        {/* GRILLE CLIQUABLE */}
         <div 
           onClick={() => router.push(`/posts/${postId}/photos`, { scroll: false })}
           className={cn(
@@ -230,11 +225,15 @@ function MediaPreviews({ attachments, userAvatar, audioUrl, audioTitle, availabl
           )}
         >
           {displayedMedia.map((m: any, i: number) => (
-            <div key={m.id || i} className={cn(
-              "relative overflow-hidden bg-zinc-800",
-              count === 3 && i === 0 ? "row-span-2" : "",
-              count === 1 ? "h-[500px]" : "h-full"
-            )}>
+            <motion.div 
+              key={m.id || i} 
+              layoutId={`post-image-${m.id}`} // Lien direct avec la galerie pour l'animation
+              className={cn(
+                "relative overflow-hidden bg-zinc-800",
+                count === 3 && i === 0 ? "row-span-2" : "",
+                count === 1 ? "h-[500px]" : "h-full"
+              )}
+            >
               {m.type === "IMAGE" ? (
                 <Image src={m.url} alt="DealCity Product" fill className="object-cover" />
               ) : (
@@ -246,14 +245,12 @@ function MediaPreviews({ attachments, userAvatar, audioUrl, audioTitle, availabl
                   <span className="text-white text-3xl font-black">+{count - 3}</span>
                 </div>
               )}
-            </div>
+            </motion.div>
           ))}
         </div>
-
-      
       </div>
 
-      {/* SÉLECTEUR DE COULEURS (EN DESSOUS) */}
+      {/* SÉLECTEUR DE COULEURS */}
       {availableColors.length > 0 && (
         <div className="px-2">
           <p className="text-[10px] font-black uppercase text-muted-foreground mb-2 tracking-widest">

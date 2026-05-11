@@ -1,12 +1,13 @@
 "use client";
 
 import { usePost } from "@/hooks/use-post";
-import { X, Loader2, ShoppingBag } from "lucide-react";
+import { X, ShoppingBag } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useCart } from "@/context/cart-context";
 import { useToast } from "@/components/ui/use-toast";
 import { use, useEffect } from "react";
+import { motion } from "framer-motion"; // Important : npm install framer-motion
 
 interface PageProps {
   params: Promise<{ postId: string }>;
@@ -17,11 +18,10 @@ export default function InterceptedPostPhotosPage({ params }: PageProps) {
   const { toast } = useToast();
   const { addToCart } = useCart();
   
-  // ✅ Déballage sécurisé pour Next.js 15
   const { postId } = use(params);
   const { data: post, isLoading, error } = usePost(postId);
 
-  // ✅ COMPORTEMENT MOBILE : Empêche le défilement du flux en arrière-plan
+  // Bloque le scroll du fond
   useEffect(() => {
     document.body.style.overflow = "hidden";
     return () => {
@@ -29,15 +29,8 @@ export default function InterceptedPostPhotosPage({ params }: PageProps) {
     };
   }, []);
 
-  if (isLoading) {
-    return (
-      <div className="fixed inset-0 z-[110] bg-black/90 backdrop-blur-sm flex items-center justify-center">
-        <Loader2 className="animate-spin text-white size-10" />
-      </div>
-    );
-  }
-
-  if (error || !post) {
+  // ✅ OPTIMISATION : Si on a une erreur ou pas de post après chargement
+  if (error || (!isLoading && !post)) {
     return (
       <div className="fixed inset-0 z-[110] bg-black flex flex-col items-center justify-center text-white p-4">
         <p>Erreur de chargement.</p>
@@ -48,12 +41,21 @@ export default function InterceptedPostPhotosPage({ params }: PageProps) {
     );
   }
 
+  // ✅ "GHOST LOADING" : On n'affiche pas de spinner si on peut éviter.
+  // Si le post n'est pas encore là, on affiche juste le fond noir.
+  if (!post) return <div className="fixed inset-0 z-[100] bg-black" />;
+
   const visualAttachments = post.attachments.filter((a: any) => a.type !== "AUDIO");
 
   return (
-    <div className="fixed inset-0 z-[100] bg-black flex flex-col md:flex-row overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[100] bg-black flex flex-col md:flex-row overflow-hidden"
+    >
       
-      {/* BOUTON FERMER - Ferme l'interception sans recharger le flux */}
+      {/* BOUTON FERMER */}
       <button
         onClick={() => router.back()}
         className="absolute top-6 left-6 z-[120] p-3 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-full text-white transition-all active:scale-90 border border-white/20"
@@ -61,27 +63,37 @@ export default function InterceptedPostPhotosPage({ params }: PageProps) {
         <X className="size-6" />
       </button>
 
-      {/* GALERIE MÉDIAS - Plein écran mobile (Bord à bord) */}
+      {/* GALERIE MÉDIAS - Effet Shared Element */}
       <div className="flex-1 overflow-y-auto bg-black scrollbar-hide flex flex-col items-center snap-y snap-mandatory">
         <div className="w-full max-w-5xl">
           {visualAttachments.map((m: any, index: number) => (
-            <div key={m.id} className="relative w-full h-[85vh] md:h-screen snap-center">
+            <motion.div 
+              key={m.id} 
+              // ✅ layoutId doit correspondre à celui utilisé dans ton PostCard/Flux
+              layoutId={`post-image-${m.id}`}
+              transition={{ type: "spring", stiffness: 300, damping: 30 }}
+              className="relative w-full h-[85vh] md:h-screen snap-center"
+            >
               <Image
                 src={m.url}
                 alt="Produit DealCity"
                 fill
                 priority={index === 0}
-                // ✅ object-cover sur mobile pour supprimer les bandes noires
                 className="object-cover md:object-contain"
                 sizes="(max-width: 768px) 100vw, 80vw"
               />
-            </div>
+            </motion.div>
           ))}
         </div>
       </div>
 
-      {/* PANNEAU INFOS - Uniquement visible sur Desktop */}
-      <div className="hidden md:flex w-[450px] bg-zinc-950 border-l border-white/10 flex-col p-8 overflow-y-auto text-white">
+      {/* PANNEAU INFOS - Apparition fluide après l'image */}
+      <motion.div 
+        initial={{ x: 100, opacity: 0 }}
+        animate={{ x: 0, opacity: 1 }}
+        transition={{ delay: 0.15 }}
+        className="hidden md:flex w-[450px] bg-zinc-950 border-l border-white/10 flex-col p-8 overflow-y-auto text-white"
+      >
         <div className="mb-10">
           <div className="flex items-center gap-4 p-4 bg-white/5 rounded-3xl border border-white/10">
             <Image
@@ -129,7 +141,7 @@ export default function InterceptedPostPhotosPage({ params }: PageProps) {
             Ajouter au panier
           </button>
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }
