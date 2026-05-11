@@ -250,18 +250,7 @@ function MediaPreviews({ attachments, userAvatar, audioUrl, audioTitle, availabl
           ))}
         </div>
 
-        {/* ROUELLE MUSICALE */}
-        {audioUrl && (
-          <div className="absolute bottom-4 left-4 z-20 flex items-center gap-2 bg-black/50 backdrop-blur-md p-1.5 pr-4 rounded-full border border-white/10 pointer-events-none">
-            <div className={cn("relative size-8 rounded-full border border-white/20 overflow-hidden shrink-0", isPlaying ? "animate-spin" : "")}>
-              <Image src={userAvatar || "/avatar-placeholder.png"} fill alt="Music" className="object-cover" />
-            </div>
-            <div className="flex flex-col">
-              <span className="text-white/70 text-[8px] font-black uppercase tracking-tighter">Sound</span>
-              <span className="text-white text-[10px] font-bold truncate max-w-[100px] leading-none">{audioTitle}</span>
-            </div>
-          </div>
-        )}
+      
       </div>
 
       {/* SÉLECTEUR DE COULEURS (EN DESSOUS) */}
