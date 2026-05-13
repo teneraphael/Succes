@@ -45,7 +45,10 @@ export default function InterceptedPostPhotosPage({ params }: PageProps) {
   // Si le post n'est pas encore là, on affiche juste le fond noir.
   if (!post) return <div className="fixed inset-0 z-[100] bg-black" />;
 
-  const visualAttachments = post.attachments.filter((a: any) => a.type !== "AUDIO");
+  // ✅ Cast local pour éviter l'erreur de propriété inexistante sur le type PostData
+  const postData = post as any;
+
+  const visualAttachments = postData.attachments.filter((a: any) => a.type !== "AUDIO");
 
   return (
     <motion.div 
@@ -97,14 +100,14 @@ export default function InterceptedPostPhotosPage({ params }: PageProps) {
         <div className="mb-10">
           <div className="flex items-center gap-4 p-4 bg-white/5 rounded-3xl border border-white/10">
             <Image
-              src={post.user.avatarUrl || "/avatar-placeholder.png"}
+              src={postData.user.avatarUrl || "/avatar-placeholder.png"}
               width={50}
               height={50}
               className="rounded-full aspect-square object-cover"
-              alt={post.user.displayName}
+              alt={postData.user.displayName}
             />
             <div>
-              <p className="font-bold text-lg leading-none">{post.user.displayName}</p>
+              <p className="font-bold text-lg leading-none">{postData.user.displayName}</p>
               <p className="text-[11px] text-green-400 mt-1 uppercase font-black tracking-widest">
                 Vendeur Certifié
               </p>
@@ -115,16 +118,16 @@ export default function InterceptedPostPhotosPage({ params }: PageProps) {
         <div className="space-y-6 mb-auto">
           <div>
             <h1 className="text-3xl font-black uppercase tracking-tighter leading-none mb-2">
-              {post.productName || "Article Sans Nom"}
+              {postData.productName || "Article Sans Nom"}
             </h1>
             <div className="text-4xl font-mono font-black text-green-500">
-              {post.price?.toLocaleString()} <span className="text-lg">FCFA</span>
+              {postData.price?.toLocaleString()} <span className="text-lg">FCFA</span>
             </div>
           </div>
 
           <div className="p-5 bg-white/5 rounded-3xl border border-white/5">
             <p className="text-sm leading-relaxed text-zinc-400">
-              {post.content.includes("📝") ? post.content.split("📝")[1] : post.content}
+              {postData.content.includes("📝") ? postData.content.split("📝")[1] : postData.content}
             </p>
           </div>
         </div>
@@ -132,7 +135,14 @@ export default function InterceptedPostPhotosPage({ params }: PageProps) {
         <div className="mt-10">
           <button
             onClick={() => {
-              addToCart(post);
+              // On passe les données nécessaires au panier
+              addToCart({
+                id: postData.id,
+                name: postData.productName || "Article DealCity",
+                price: postData.price || 0,
+                image: visualAttachments[0]?.url || "",
+                quantity: 1
+              });
               toast({ description: "Ajouté au panier DealCity" });
             }}
             className="w-full py-6 bg-white text-black rounded-3xl font-black uppercase text-sm shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:scale-[1.02] transition-all active:scale-95 flex items-center justify-center gap-3"

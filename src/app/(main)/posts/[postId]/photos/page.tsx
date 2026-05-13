@@ -1,12 +1,12 @@
 "use client";
 
 import { usePost } from "@/hooks/use-post";
-import { X, ShoppingBag, Loader2 } from "lucide-react";
+import { X, ShoppingBag } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useCart } from "@/context/cart-context";
 import { use, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion"; // Nécessite : npm install framer-motion
+import { motion } from "framer-motion"; // Nécessite : npm install framer-motion
 
 interface PageProps {
   params: Promise<{ postId: string }>;
@@ -44,13 +44,16 @@ export default function PostPhotosPage({ params }: PageProps) {
     );
   }
 
-  const visualAttachments = post.attachments.filter((a: any) => a.type !== "AUDIO");
+  // ✅ Cast local en any pour éviter l'erreur TS2339 sur productName et price
+  const postData = post as any;
+
+  const visualAttachments = postData.attachments.filter((a: any) => a.type !== "AUDIO");
 
   const handleQuickBuy = () => {
     const urlParams = new URLSearchParams({
-      directId: post.id,
-      name: post.productName || "Article DealCity",
-      price: post.price?.toString() || "0",
+      directId: postData.id,
+      name: postData.productName || "Article DealCity",
+      price: postData.price?.toString() || "0",
       image: visualAttachments[0]?.url || "",
       qty: "1",
     });
@@ -110,14 +113,14 @@ export default function PostPhotosPage({ params }: PageProps) {
           </h2>
           <div className="flex items-center gap-3 p-3 bg-secondary/30 rounded-2xl border border-border/50">
             <Image
-              src={post.user.avatarUrl || "/avatar-placeholder.png"}
+              src={postData.user.avatarUrl || "/avatar-placeholder.png"}
               width={45}
               height={45}
               className="rounded-full aspect-square object-cover"
-              alt={post.user.displayName}
+              alt={postData.user.displayName}
             />
             <div>
-              <p className="font-bold text-sm leading-none">{post.user.displayName}</p>
+              <p className="font-bold text-sm leading-none">{postData.user.displayName}</p>
               <p className="text-[10px] text-muted-foreground mt-1 uppercase font-bold tracking-tighter">
                 Vendeur Certifié
               </p>
@@ -127,14 +130,14 @@ export default function PostPhotosPage({ params }: PageProps) {
 
         <div className="space-y-4 mb-auto">
           <h1 className="text-2xl font-black uppercase leading-tight">
-            {post.productName || "Produit DealCity"}
+            {postData.productName || "Produit DealCity"}
           </h1>
           <div className="text-3xl font-mono font-black text-green-500">
-            {post.price?.toLocaleString()} <span className="text-sm">FCFA</span>
+            {postData.price?.toLocaleString()} <span className="text-sm">FCFA</span>
           </div>
           <div className="p-4 bg-zinc-100 dark:bg-zinc-900 rounded-2xl border border-border">
             <p className="text-sm leading-relaxed text-muted-foreground">
-              {post.content.includes("📝") ? post.content.split("📝")[1] : post.content}
+              {postData.content.includes("📝") ? postData.content.split("📝")[1] : postData.content}
             </p>
           </div>
         </div>
