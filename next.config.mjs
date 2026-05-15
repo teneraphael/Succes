@@ -1,4 +1,12 @@
-import withPWA from 'next-pwa';
+import withPWAInit from 'next-pwa';
+
+const withPWA = withPWAInit({
+  dest: "public",         // Dossier où sera généré le Service Worker (sw.js)
+  register: true,         // Enregistre automatiquement le worker
+  skipWaiting: true,      // Force la mise à jour immédiate
+  // ✅ CORRECTION : Désactivé uniquement en développement pour permettre le build PWA
+  disable: process.env.NODE_ENV === 'development', 
+});
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -26,6 +34,7 @@ const nextConfig = {
   },
 
   typescript: {
+    // Utile pour passer le build si des erreurs de types persistent
     ignoreBuildErrors: true,
   },
 
@@ -39,10 +48,4 @@ const nextConfig = {
   },
 };
 
-// On enveloppe la configuration avec le plugin PWA
-export default withPWA({
-  dest: "public",         // Dossier où sera généré le Service Worker (sw.js)
-  register: true,       // Enregistre automatiquement le worker
-  skipWaiting: true,    // Force la mise à jour immédiate
-  disable: true, // Désactivé en dev pour ne pas bloquer le cache
-})(nextConfig);
+export default withPWA(nextConfig);
