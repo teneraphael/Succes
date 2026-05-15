@@ -1,5 +1,6 @@
 import { type ClassValue, clsx } from "clsx";
 import { format, formatDistanceToNowStrict } from "date-fns";
+import { fr } from "date-fns/locale"; // Import de la locale française pour DealCity
 import { twMerge } from "tailwind-merge";
 
 /**
@@ -14,25 +15,39 @@ export function cn(...inputs: ClassValue[]) {
  * ou absolue si plus de 24h (ex: "15 mai")
  */
 export function formatRelativeDate(from: Date | string | number) {
-  const currentDate = new Date();
-  
-  // ✅ CORRECTION : Convertit l'entrée en Date au cas où Prisma envoie un String
+  // ✅ SÉCURITÉ : Conversion immédiate en Date
   const dateFrom = new Date(from);
+  const currentDate = new Date();
 
-  // Sécurité : si la date est invalide, on ne fait pas planter l'app
+  // ✅ SÉCURITÉ : Si la date est invalide (null, undefined, mauvaise string)
   if (isNaN(dateFrom.getTime())) {
     return "Date inconnue";
   }
 
-  if (currentDate.getTime() - dateFrom.getTime() < 24 * 60 * 60 * 1000) {
-    return formatDistanceToNowStrict(dateFrom, { addSuffix: true });
-  } else {
-    // ✅ CORRECTION : Utilisation de 'format' (nom correct dans date-fns)
-    if (currentDate.getFullYear() === dateFrom.getFullYear()) {
-      return format(dateFrom, "MMM d");
+  const diffInMs = currentDate.getTime() - dateFrom.getTime();
+  const oneDayInMs = 24 * 60 * 60 * 1000;
+
+  // Option pour date-fns : français et suffixe "il y a"
+  const options = { addSuffix: true, locale: fr };
+
+  try {
+    if (diffInMs < oneDayInMs) {
+      // Moins de 24h : "il y a 2h", "il y a 5 min"
+      return formatDistanceToNowStrict(dateFrom, options);
     } else {
-      return format(dateFrom, "MMM d, yyyy");
+      // Plus de 24h
+      if (currentDate.getFullYear() === dateFrom.getFullYear()) {
+        // Cette année : "15 mai"
+        return format(dateFrom, "d MMM", { locale: fr });
+      } else {
+        // Années précédentes : "15 mai 2023"
+        return format(dateFrom, "d MMM yyyy", { locale: fr });
+      }
     }
+  } catch (error) {
+    // En cas d'erreur de formatage imprévue sur Android
+    console.error("Erreur formatage date:", error);
+    return "Récemment";
   }
 }
 
@@ -40,7 +55,7 @@ export function formatRelativeDate(from: Date | string | number) {
  * Formate les nombres de manière compacte (ex: 1.5k, 2M)
  */
 export function formatNumber(n: number): string {
-  return Intl.NumberFormat("en-US", {
+  return Intl.NumberFormat("fr-FR", {
     notation: "compact",
     maximumFractionDigits: 1,
   }).format(n);
@@ -52,6 +67,10 @@ export function formatNumber(n: number): string {
 export function slugify(input: string): string {
   return input
     .toLowerCase()
-    .replace(/ /g, "-")
-    .replace(/[^a-z0-9-]/g, "");
+    .trim()
+    .replace(/\s+/g, "-")           // Remplace les espaces par des tirets
+    .replace(/[^\w\-]+/g, "")       // Supprime les caractères non-alphanumériques
+    .replace(/\-\-+/g, "-")         // Remplace les doubles tirets par un seul
+    .replace(/^-+/, "")             // Supprime les tirets au début
+    .replace(/-+$/, "");            // Supprime les tirets à la fin
 }
