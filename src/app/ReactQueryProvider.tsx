@@ -1,8 +1,6 @@
 "use client";
 
-import { createSyncStoragePersister } from "@tanstack/query-sync-storage-persister";
-import { QueryClient } from "@tanstack/react-query";
-import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { useState } from "react";
 
@@ -11,38 +9,34 @@ export default function ReactQueryProvider({
 }: {
   children: React.ReactNode;
 }) {
-  const [client] = useState(
+  // On utilise un useState pour garantir que le QueryClient n'est créé qu'une fois côté client
+  const [queryClient] = useState(
     () =>
       new QueryClient({
         defaultOptions: {
           queries: {
-            // Indispensable pour la persistance
-            gcTime: 1000 * 60 * 60 * 24, // Garde les données en cache 24h
-            staleTime: 1000 * 60 * 5,    // Considère les données fraîches pendant 5 min
-            retry: 3,                   // Réessaye 3 fois si le réseau dérange
+            // ✅ On réduit le gcTime pour éviter de garder des données corrompues trop longtemps
+            gcTime: 1000 * 60 * 60 * 2, // 2 heures au lieu de 24h
+            staleTime: 1000 * 60 * 5,    // 5 minutes
+            retry: 1,                   // 1 seul retry pour ne pas bloquer le navigateur mobile
+            refetchOnWindowFocus: false, // Très important sur mobile pour éviter les lags
           },
         },
       })
   );
 
-  // Configuration du stockage local (localStorage)
-  // On vérifie "typeof window" pour éviter les erreurs lors du rendu côté serveur (SSR)
-  const persister = typeof window !== "undefined"
-    ? createSyncStoragePersister({
-        storage: window.localStorage,
-      })
-    : undefined;
+  /**
+   * NOTE IMPORTANTE : 
+   * J'ai supprimé le PersistQueryClientProvider. 
+   * En phase de développement et de correction de bugs critiques, 
+   * la persistance dans localStorage réinjecte souvent les anciennes erreurs 
+   * qui font planter l'application sur mobile.
+   */
 
   return (
-    <PersistQueryClientProvider
-      client={client}
-      persistOptions={{ 
-        persister: persister!,
-        maxAge: 1000 * 60 * 60 * 24 // Durée de vie du stockage local : 24h
-      }}
-    >
+    <QueryClientProvider client={queryClient}>
       {children}
       <ReactQueryDevtools initialIsOpen={false} />
-    </PersistQueryClientProvider>
+    </QueryClientProvider>
   );
 }
