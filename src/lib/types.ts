@@ -1,6 +1,6 @@
 import { Prisma } from "@prisma/client";
 
-// --- NOUVELLE INTERFACE POUR LES FILTRES STUDIO ---
+// --- INTERFACE POUR LES FILTRES STUDIO (JSON) ---
 export interface MediaSettings {
   brightness: number;
   contrast: number;
@@ -50,7 +50,7 @@ export function getPostDataInclude(loggedInUserId?: string) {
     user: {
       select: getUserDataSelect(loggedInUserId),
     },
-    // ✅ On inclut les attachments
+    // ✅ On inclut les médias liés au post
     attachments: true,
     likes: {
       where: {
@@ -81,17 +81,10 @@ export function getPostDataInclude(loggedInUserId?: string) {
   } satisfies Prisma.PostInclude;
 }
 
-// ✅ Type enrichi pour inclure les réglages de média
+// ✅ CORRECTION : Utilisation du type natif généré par Prisma pour éviter les conflits
 export type PostData = Prisma.PostGetPayload<{
   include: ReturnType<typeof getPostDataInclude>;
-}> & {
-  attachments: Array<{
-    id: string;
-    url: string;
-    type: "IMAGE" | "VIDEO" | "AUDIO";
-    settings?: MediaSettings | any; // Permet de stocker les filtres JSON
-  }>
-};
+}>;
 
 export interface PostsPage {
   posts: PostData[];
@@ -157,6 +150,8 @@ export interface NotificationCountInfo {
   unreadCount: number;
 }
 
+// On garde ces interfaces pour la compatibilité du MenuBar, 
+// même si Stream Chat est supprimé.
 export interface MessageCountInfo {
   unreadCount: number;
 }

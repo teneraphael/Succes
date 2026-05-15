@@ -26,41 +26,17 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  // ✅ Requis pour la validation des métadonnées sur mobile
   metadataBase: new URL("https://dealcity.app"),
   title: {
     template: "%s | DealCity",
     default: "DealCity - Petites annonces et Deals au Cameroun",
   },
-  description: "La plateforme n°1 pour acheter et vendre à Douala, Yaoundé et dans tout le Cameroun. Trouvez les meilleures offres sur DealCity.",
-  keywords: ["Cameroun", "Douala", "Yaoundé", "vente en ligne", "petites annonces", "DealCity"],
+  description: "La plateforme n°1 pour acheter et vendre au Cameroun.",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
     title: "DealCity",
-  },
-  openGraph: {
-    title: "DealCity - Petites annonces au Cameroun",
-    description: "Achetez et vendez en toute sécurité sur la plateforme n°1 au pays.",
-    url: "https://dealcity.app",
-    siteName: "DealCity",
-    images: [
-      {
-        url: "/logo.png", 
-        width: 1200,
-        height: 630,
-        alt: "Logo DealCity",
-      },
-    ],
-    locale: "fr_FR",
-    type: "website",
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "DealCity",
-    description: "Les meilleures offres au Cameroun",
-    images: ["/logo.png"],
   },
 };
 
@@ -69,12 +45,12 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Récupération de la session côté serveur
   const sessionValues = await validateRequest();
 
   return (
     <html lang="fr" suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        {/* ThemeProvider déplacé en haut pour stabiliser l'hydratation du client */}
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
@@ -82,25 +58,29 @@ export default async function RootLayout({
           disableTransitionOnChange
         >
           <LanguageProvider>
-            <LanguageSync>
-              <NextSSRPlugin routerConfig={extractRouterConfig(fileRouter)} />
-              
-              <ReactQueryProvider>
-                <SessionProvider value={sessionValues}>
-                  {/* Initialiseurs placés à l'intérieur du SessionProvider */}
-                  <NotificationHandler />
+            {/* CORRECTION 1: On s'assure que ReactQueryProvider enveloppe tout 
+                ce qui utilise des hooks de données. */}
+            <ReactQueryProvider>
+              <SessionProvider value={sessionValues}>
+                <LanguageSync>
+                  {/* CORRECTION 2: Le NextSSRPlugin peut causer des erreurs d'hydratation 
+                      s'il n'est pas placé correctement. */}
+                  <NextSSRPlugin routerConfig={extractRouterConfig(fileRouter)} />
+                  
+                  {/* CORRECTION 3: Protection du NotificationHandler. 
+                      S'il demande des permissions trop vite sur mobile, ça crash. */}
+                  {sessionValues.user && <NotificationHandler />}
                   
                   <CartProvider>
                     {children}
                   </CartProvider>
                   
                   <CookieBanner />
-                  <SonnerToaster richColors />
-                </SessionProvider>
-              </ReactQueryProvider>
-              
-              <Toaster />
-            </LanguageSync>
+                  <SonnerToaster richColors position="top-center" />
+                  <Toaster />
+                </LanguageSync>
+              </SessionProvider>
+            </ReactQueryProvider>
           </LanguageProvider>
         </ThemeProvider>
       </body>
