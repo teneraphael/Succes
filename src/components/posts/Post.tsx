@@ -14,7 +14,7 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/use-toast";
 import { useCart } from "@/context/cart-context";
-import { motion } from "framer-motion"; // Ajouté pour le layoutId
+import { motion } from "framer-motion"; 
 import Comments from "../comments/Comments";
 import Linkify from "../Linkify";
 import UserAvatar from "../UserAvatar";
@@ -98,9 +98,9 @@ export default function Post({ post }: PostProps) {
   };
 
   return (
-    <article className="group/post w-full space-y-3 bg-card py-4 md:p-5 rounded-none md:rounded-2xl border-y md:border border-border shadow-none md:shadow-sm">
+    <article className="group/post w-full space-y-3 bg-card py-4 md:py-6 rounded-none border-b border-border shadow-none">
       {/* HEADER */}
-      <div className="flex justify-between gap-3 px-4 md:px-0">
+      <div className="flex justify-between gap-3 px-4">
         <div className="flex flex-wrap gap-3">
           <UserTooltip user={post.user}>
             <Link href={`/users/${post.user.username}`}><UserAvatar avatarUrl={post.user.avatarUrl} /></Link>
@@ -111,7 +111,6 @@ export default function Post({ post }: PostProps) {
               <SellerBadge isSeller={post.user.isSeller} followerCount={post.user._count.followers} />
               {post.user.isVerified && <ShieldCheck className="size-4 text-[#4a90e2] fill-current" />}
             </div>
-            {/* CORRECTION CI-DESSOUS : Ajout de new Date() pour éviter l'erreur getTime() */}
             <p className="text-[11px] text-muted-foreground uppercase font-bold tracking-tight">{formatRelativeDate(new Date(post.createdAt))}</p>
           </div>
         </div>
@@ -119,7 +118,7 @@ export default function Post({ post }: PostProps) {
       </div>
 
       {/* INFOS PRODUIT */}
-      <div className="space-y-2 px-4 md:px-1">
+      <div className="space-y-2 px-4">
         {productName && (
           <h3 className="font-black text-xl uppercase tracking-tighter leading-none flex items-center gap-2">
             <ShoppingBag className="size-5 text-primary" /> {productName}
@@ -141,8 +140,8 @@ export default function Post({ post }: PostProps) {
         </div>
       </div>
 
-      {/* GRILLE DE MÉDIAS */}
-      <div className="w-full md:rounded-2xl overflow-hidden">
+      {/* GRILLE DE MÉDIAS - Corrigée pour occuper toute la largeur */}
+      <div className="w-full overflow-hidden">
         <MediaPreviews 
           attachments={visualAttachments} 
           userAvatar={post.user.avatarUrl}
@@ -156,7 +155,7 @@ export default function Post({ post }: PostProps) {
       </div>
 
       {/* BOUTONS D'ACTION */}
-      <div className="px-4 md:px-0 space-y-2 mt-4">
+      <div className="px-4 space-y-2 mt-4">
         <div className="flex gap-2">
           <button onClick={() => handleAddToCart(false)} className="flex-1 py-4 rounded-2xl font-bold uppercase text-[10px] bg-secondary text-secondary-foreground border border-border transition-all active:scale-[0.95] flex items-center justify-center gap-2">
             <ShoppingBag className="size-4" /> Panier
@@ -168,7 +167,7 @@ export default function Post({ post }: PostProps) {
       </div>
 
       {/* ACTIONS SOCIALES */}
-      <div className="flex items-center justify-between px-4 md:px-1 pt-1 border-t border-border/50 mt-2">
+      <div className="flex items-center justify-between px-4 pt-1 border-t border-border/50 mt-2">
         <div className="flex items-center gap-6">
           <LikeButton postId={post.id} initialState={{ likes: post._count.likes, isLikedByUser: post.likes.some(l => l.userId === loggedInUser?.id) }} />
           <div className="flex items-center gap-1.5">
@@ -228,7 +227,7 @@ function MediaPreviews({ attachments, audioUrl, availableColors, selectedColor, 
           {displayedMedia.map((m: any, i: number) => (
             <motion.div 
               key={m.id || i} 
-              layoutId={`post-image-${m.id}`} // Lien direct avec la galerie pour l'animation
+              layoutId={`post-image-${m.id}`} 
               className={cn(
                 "relative overflow-hidden bg-zinc-800",
                 count === 3 && i === 0 ? "row-span-2" : "",
@@ -253,7 +252,7 @@ function MediaPreviews({ attachments, audioUrl, availableColors, selectedColor, 
 
       {/* SÉLECTEUR DE COULEURS */}
       {availableColors.length > 0 && (
-        <div className="px-2">
+        <div className="px-4">
           <p className="text-[10px] font-black uppercase text-muted-foreground mb-2 tracking-widest">
             Couleurs disponibles :
           </p>

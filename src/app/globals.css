@@ -2,8 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-/* --- Suppression de l'import Stream Chat --- */
-
 @layer base {
   :root {
     --background: 224, 5%, 95%;
@@ -83,12 +81,44 @@
   animation: float-music 2s ease-in-out infinite;
 }
 
-/* --- NETTOYAGE EFFECTUÉ : TOUTE LA CONFIGURATION STREAM CHAT A ÉTÉ SUPPRIMÉE --- */
+/* --- MISE EN PAGE PLEIN ÉCRAN (EDGE-TO-EDGE) --- */
+@media (max-width: 768px) {
+  /* Suppression des paddings sur le conteneur principal */
+  main {
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
 
-/* Tu peux garder ces classes si tu comptes créer ton propre système 
-   de réponse aux posts plus tard, sinon tu peux aussi les supprimer.
-*/
+  /* Force les articles à prendre 100% de la largeur sans arrondis */
+  article {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    border-radius: 0 !important;
+    border-left: none !important;
+    border-right: none !important;
+  }
+}
+
+/* Optimisation pour Desktop */
+@media (min-width: 1024px) {
+  main {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+}
+
+/* --- COMPOSANTS CUSTOM (PRÉVISUALISATION RÉPONSE) --- */
 .reply-preview-container {
   @apply mx-4 mb-2 flex items-center justify-between border-l-4 border-primary bg-muted p-2 rounded-r-lg shadow-md;
   animation: slideUp 0.3s ease-out;
+}
+
+.reply-preview-image {
+  @apply h-12 w-12 shrink-0 overflow-hidden rounded-md border bg-black/5 object-cover;
 }
