@@ -1,9 +1,8 @@
 import { validateRequest } from "@/auth";
 import prisma from "@/lib/prisma";
-import streamServerClient from "@/lib/stream";
 import { createUploadthing, FileRouter } from "uploadthing/next";
 import { UploadThingError, UTApi } from "uploadthing/server";
-import { MediaType } from "@prisma/client"; // Importation du type depuis Prisma
+import { MediaType } from "@prisma/client";
 
 const f = createUploadthing();
 
@@ -20,6 +19,7 @@ export const fileRouter = {
     .onUploadComplete(async ({ metadata, file }) => {
       const oldAvatarUrl = metadata.user.avatarUrl;
 
+      // Suppression de l'ancien fichier sur UploadThing pour ne pas gaspiller d'espace
       if (oldAvatarUrl) {
         const key = oldAvatarUrl.split(
           `/a/${process.env.NEXT_PUBLIC_UPLOADTHING_APP_ID}/`,
@@ -32,16 +32,12 @@ export const fileRouter = {
         `/a/${process.env.NEXT_PUBLIC_UPLOADTHING_APP_ID}/`,
       );
 
-      await Promise.all([
-        prisma.user.update({
-          where: { id: metadata.user.id },
-          data: { avatarUrl: newAvatarUrl },
-        }),
-        streamServerClient.partialUpdateUser({
-          id: metadata.user.id,
-          set: { image: newAvatarUrl },
-        }),
-      ]);
+      // CORRECTION : On ne met à jour que Prisma. 
+      // L'appel à streamServerClient a été supprimé pour éviter les erreurs de timeout.
+      await prisma.user.update({
+        where: { id: metadata.user.id },
+        data: { avatarUrl: newAvatarUrl },
+      });
 
       return { avatarUrl: newAvatarUrl };
     }),
@@ -67,13 +63,13 @@ export const fileRouter = {
       return { userId: user.id };
     })
     .onUploadComplete(async ({ file }) => {
-      // Détection précise du type pour la base de données
+      // Détection du type pour la base de données
       let detectedType: MediaType;
       
       if (file.type.startsWith("video")) {
         detectedType = "VIDEO" as MediaType;
       } else if (file.type.startsWith("audio")) {
-        detectedType = "AUDIO" as MediaType; // Assure-toi d'avoir fait npx prisma db push
+        detectedType = "AUDIO" as MediaType;
       } else {
         detectedType = "IMAGE" as MediaType;
       }

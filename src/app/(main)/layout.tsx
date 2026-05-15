@@ -1,6 +1,5 @@
 import { validateRequest } from "@/auth";
 import MenuBar from "./MenuBar";
-import ChatInitializer from "@/components/ChatInitializer";
 import Navbar from "./Navbar";
 import CookieBanner from "@/components/CookieBanner";
 import { Analytics } from "@vercel/analytics/react";
@@ -19,13 +18,12 @@ export default async function Layout({
   return (
     <LanguageProvider>
       <SessionProvider value={session}>
-        {/* CORRECTION 1: On ne rend ces composants QUE si l'utilisateur est connecté.
-          C'est crucial car NotificationHandler peut faire planter le navigateur mobile 
-          s'il demande des permissions trop tôt ou sans session.
+        {/* NETTOYAGE : Le ChatInitializer a été supprimé pour stopper 
+          les erreurs de timeout et permettre aux posts de charger.
         */}
+        
         {session.user && (
           <>
-            <ChatInitializer />
             <NotificationHandler />
           </>
         )}
@@ -38,14 +36,17 @@ export default async function Layout({
             </aside>
           }
           mobileMenu={
-            /* CORRECTION 2: Ajout d'une protection sur le menu mobile pour éviter 
-              les décalages de rendu (Layout Shift) qui font souvent planter Safari/Chrome Mobile.
+            /* OPTIMISATION MOBILE : Le menu est fixé en bas avec un flou 
+               pour un rendu fluide sans bloquer le contenu principal (posts).
             */
             <div className="sticky bottom-0 z-50 flex w-full justify-center border-t bg-card/80 backdrop-blur-md p-3 pb-safe sm:hidden">
                <MenuBar className="flex flex-row gap-8 items-center" />
             </div>
           }
         >
+          {/* min-w-0 est crucial pour empêcher que les éléments larges 
+            ne cassent le layout horizontal sur Android.
+          */}
           <main className="flex-1 min-w-0 w-full px-2 sm:px-0">
             {children}
           </main>

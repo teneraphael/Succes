@@ -1,10 +1,8 @@
 import { validateRequest } from "@/auth";
 import { Button } from "@/components/ui/button";
 import prisma from "@/lib/prisma";
-import streamServerClient from "@/lib/stream";
 import { Home, Video, PlusSquare, Store, LogIn } from "lucide-react"; 
 import Link from "next/link";
-import MessagesButton from "./MessagesButton";
 import NotificationsButton from "./NotificationsButton";
 
 interface MenuBarProps {
@@ -14,28 +12,23 @@ interface MenuBarProps {
 export default async function MenuBar({ className }: MenuBarProps) {
   const { user } = await validateRequest();
 
-  // On initialise les compteurs à 0 par défaut pour les visiteurs
+  // On initialise les compteurs à 0 par défaut
   let unreadNotificationsCount = 0;
-  let unreadMessagesCount = 0;
 
-  // On ne fait les requêtes DB/Stream que si l'utilisateur est connecté
+  // On ne fait la requête Prisma que si l'utilisateur est connecté
   if (user) {
-    const [notifications, messages] = await Promise.all([
-      prisma.notification.count({
-        where: {
-          recipientId: user.id,
-          read: false,
-        },
-      }),
-      streamServerClient.getUnreadCount(user.id).then(res => res.total_unread_count).catch(() => 0),
-    ]);
+    const notifications = await prisma.notification.count({
+      where: {
+        recipientId: user.id,
+        read: false,
+      },
+    });
     unreadNotificationsCount = notifications;
-    unreadMessagesCount = messages;
   }
 
   return (
     <div className={className}>
-      {/* 1. ACCUEIL - Toujours accessible */}
+      {/* 1. ACCUEIL */}
       <Button
         variant="ghost"
         className="flex items-center justify-start gap-3 transition-all hover:bg-primary/10 group"
@@ -48,7 +41,7 @@ export default async function MenuBar({ className }: MenuBarProps) {
         </Link>
       </Button>
 
-      {/* 2. VIDÉOS - Toujours accessible */}
+      {/* 2. VIDÉOS */}
       <Button
         variant="ghost"
         className="flex items-center justify-start gap-3 transition-all hover:bg-primary/10 group"
@@ -100,13 +93,10 @@ export default async function MenuBar({ className }: MenuBarProps) {
         </Button>
       )}
 
-      {/* 4. NOTIFICATIONS - Gère l'absence de user en interne */}
+      {/* 4. NOTIFICATIONS */}
       <NotificationsButton
         initialState={{ unreadCount: unreadNotificationsCount }}
       />
-      
-      {/* 5. MESSAGES - Gère l'absence de user en interne */}
-      <MessagesButton initialState={{ unreadCount: unreadMessagesCount }} />
     </div>
   );
 }

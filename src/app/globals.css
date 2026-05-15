@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-@import "~stream-chat-react/dist/css/v2/index.css";
+/* --- Suppression de l'import Stream Chat --- */
 
 @layer base {
   :root {
@@ -58,7 +58,7 @@
   }
 }
 
-/* --- ANIMATIONS TIKTOK (AJOUTÉ) --- */
+/* --- ANIMATIONS TIKTOK --- */
 @keyframes spin-slow {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
@@ -70,6 +70,11 @@
   100% { transform: translateY(-20px) rotate(20deg); opacity: 0; }
 }
 
+@keyframes slideUp {
+  from { transform: translateY(10px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
 .animate-spin-slow {
   animation: spin-slow 3s linear infinite;
 }
@@ -78,125 +83,12 @@
   animation: float-music 2s ease-in-out infinite;
 }
 
-/* --- CONFIGURATION STREAM CHAT --- */
-.str-chat {
-  --str-chat__primary-color: hsl(var(--primary));
-  --str-chat__background-color: hsl(var(--card));
-  --str-chat__cta-button-border-radius: var(--radius);
-}
+/* --- NETTOYAGE EFFECTUÉ : TOUTE LA CONFIGURATION STREAM CHAT A ÉTÉ SUPPRIMÉE --- */
 
-.str-chat__header-back-button,
-.str-chat__back-button,
-.str-chat__channel-header__back-button {
-  display: none !important;
-}
-
-.str-chat,
-.str-chat-container,
-.str-chat__main-panel,
-.str-chat-channel,
-.str-chat__container {
-  height: 100% !important;
-  width: 100% !important;
-  max-width: 100% !important;
-  display: flex !important;
-  flex-direction: column !important;
-  align-items: stretch !important;
-  margin: 0 !important;
-  padding: 0 !important;
-}
-
-.str-chat__list {
-  flex: 1 1 auto !important;
-  width: 100% !important;
-  padding: 0 !important;
-}
-
-.str-chat__input-flat {
-  width: 100% !important;
-  max-width: 100% !important;
-  margin: 0 !important;
-  padding: 10px !important;
-  background-color: transparent !important;
-  flex-shrink: 0 !important;
-}
-
-.str-chat__input-flat-wrapper {
-  display: flex !important;
-  width: 100% !important;
-  align-items: center !important;
-  gap: 10px;
-}
-
-.str-chat__message-input {
-  flex-grow: 1 !important;
-  width: 100% !important;
-}
-
+/* Tu peux garder ces classes si tu comptes créer ton propre système 
+   de réponse aux posts plus tard, sinon tu peux aussi les supprimer.
+*/
 .reply-preview-container {
   @apply mx-4 mb-2 flex items-center justify-between border-l-4 border-primary bg-muted p-2 rounded-r-lg shadow-md;
   animation: slideUp 0.3s ease-out;
-}
-
-.reply-preview-image {
-  @apply h-12 w-12 shrink-0 overflow-hidden rounded-md border bg-black/5 object-cover;
-}
-
-.str-chat__message-attachment--post-reply {
-  border-left: 4px solid hsl(var(--primary)) !important;
-  background: hsl(var(--muted)) !important;
-  padding: 12px !important;
-  border-radius: 8px !important;
-  cursor: pointer !important;
-  margin-top: 5px;
-  max-width: 300px;
-  transition: all 0.2s ease;
-}
-
-.str-chat__message-attachment--post-reply:hover {
-  background: hsl(var(--accent)) !important;
-  transform: translateX(2px);
-}
-
-.str-chat__message-attachment-text {
-  font-size: 0.85rem !important;
-  color: hsl(var(--muted-foreground)) !important;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-@media (max-width: 768px) {
-  body:has(.str-chat) {
-    position: fixed;
-    width: 100%;
-    height: 100dvh;
-    overflow: hidden;
-  }
-
-  main {
-    padding: 0 !important;
-    margin: 0 !important;
-    max-width: 100% !important;
-    height: 100% !important;
-    display: flex !important;
-    flex-direction: column !important;
-  }
-
-  .str-chat__main-panel-inner {
-    width: 100% !important;
-    padding: 0 !important;
-  }
-}
-
-@media (min-width: 1024px) {
-  main:has(.str-chat) {
-    padding-left: 1.5rem !important;
-  }
-}
-
-@keyframes slideUp {
-  from { transform: translateY(10px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
 }

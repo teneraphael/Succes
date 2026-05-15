@@ -5,7 +5,6 @@ import { ThemeProvider } from "next-themes";
 import localFont from "next/font/local";
 import CookieBanner from "@/components/CookieBanner";
 import { Toaster as SonnerToaster } from "sonner";
-import ChatInitializer from "@/components/ChatInitializer";
 import { extractRouterConfig } from "uploadthing/server";
 import { fileRouter } from "./api/uploadthing/core";
 import "./globals.css";
@@ -89,7 +88,6 @@ export default async function RootLayout({
               <ReactQueryProvider>
                 <SessionProvider value={sessionValues}>
                   {/* Initialiseurs placés à l'intérieur du SessionProvider */}
-                  <ChatInitializer />
                   <NotificationHandler />
                   
                   <CartProvider>
