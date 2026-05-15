@@ -7,7 +7,7 @@ import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { useSubmitCommentMutation } from "./mutations";
 import Image from "next/image";
-import { useSession } from "@/app/(main)/SessionProvider"; // ✅ Ajouté
+import { useSession } from "@/app/(main)/SessionProvider";
 
 interface CommentInputProps {
   post: PostData;
@@ -16,7 +16,7 @@ interface CommentInputProps {
 }
 
 export default function CommentInput({ post, replyTarget, onClearReply }: CommentInputProps) {
-  const { user } = useSession(); // ✅ Récupération de l'utilisateur
+  const { user } = useSession(); 
   const [input, setInput] = useState("");
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -32,9 +32,9 @@ export default function CommentInput({ post, replyTarget, onClearReply }: Commen
       }
       setTimeout(() => inputRef.current?.focus(), 100);
     }
-  }, [replyTarget, input]);
+  }, [replyTarget]); // Simplifié pour éviter des boucles infinies sur l'input
 
-  // ✅ Nettoyage de l'URL de prévisualisation pour éviter les fuites de mémoire
+  // Nettoyage de l'URL de prévisualisation pour éviter les fuites de mémoire
   useEffect(() => {
     return () => {
       if (previewUrl) URL.revokeObjectURL(previewUrl);
@@ -44,14 +44,14 @@ export default function CommentInput({ post, replyTarget, onClearReply }: Commen
   function handleImageSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (file) {
-      if (previewUrl) URL.revokeObjectURL(previewUrl); // ✅ Libère l'ancienne URL
+      if (previewUrl) URL.revokeObjectURL(previewUrl); 
       setSelectedImage(file);
       setPreviewUrl(URL.createObjectURL(file));
     }
   }
 
   function removeImage() {
-    if (previewUrl) URL.revokeObjectURL(previewUrl); // ✅ Libère l'URL
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
     setSelectedImage(null);
     setPreviewUrl(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
@@ -60,7 +60,6 @@ export default function CommentInput({ post, replyTarget, onClearReply }: Commen
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
 
-    // ✅ SÉCURITÉ : On ne fait rien si l'utilisateur n'est pas connecté
     if (!user) return;
 
     const trimmedInput = input.trim();
@@ -92,7 +91,6 @@ export default function CommentInput({ post, replyTarget, onClearReply }: Commen
     );
   }
 
-  // ✅ Si pas d'utilisateur, on ne rend rien (le parent Comments gère déjà l'affichage du message)
   if (!user) return null;
 
   return (
@@ -129,8 +127,6 @@ export default function CommentInput({ post, replyTarget, onClearReply }: Commen
 
       <form className="mx-auto flex max-w-4xl items-center gap-2" onSubmit={onSubmit}>
         <input 
-          type="file" 
-          // eslint-disable-next-line react/jsx-no-duplicate-props
           type="file" 
           accept="image/*" 
           className="hidden" 

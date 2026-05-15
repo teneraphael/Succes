@@ -33,6 +33,13 @@ export const metadata: Metadata = {
   },
   description: "La plateforme n°1 pour acheter et vendre à Douala, Yaoundé et dans tout le Cameroun. Trouvez les meilleures offres sur DealCity.",
   keywords: ["Cameroun", "Douala", "Yaoundé", "vente en ligne", "petites annonces", "DealCity"],
+  // ✅ CONFIGURATION PWA : Lien vers le manifeste et réglages mobiles
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "DealCity",
+  },
   openGraph: {
     title: "DealCity - Petites annonces au Cameroun",
     description: "Achetez et vendez en toute sécurité sur la plateforme n°1 au pays.",
@@ -40,7 +47,7 @@ export const metadata: Metadata = {
     siteName: "DealCity",
     images: [
       {
-        url: "/logo.png", // Chemin vers ton image dans le dossier public
+        url: "/logo.png", 
         width: 1200,
         height: 630,
         alt: "Logo DealCity",
@@ -70,6 +77,7 @@ export default async function RootLayout({
         <LanguageProvider>
           <LanguageSync>
             <NextSSRPlugin routerConfig={extractRouterConfig(fileRouter)} />
+            
             <ReactQueryProvider>
               <SessionProvider value={sessionValues}>
                 <ChatInitializer />
@@ -80,14 +88,15 @@ export default async function RootLayout({
                   enableSystem
                   disableTransitionOnChange
                 >
-                 <CartProvider>
-          {children}
-        </CartProvider>
+                  <CartProvider>
+                    {children}
+                  </CartProvider>
                   <CookieBanner />
                 </ThemeProvider>
                 <SonnerToaster richColors />
               </SessionProvider>
             </ReactQueryProvider>
+            
             <Toaster />
           </LanguageSync>
         </LanguageProvider>

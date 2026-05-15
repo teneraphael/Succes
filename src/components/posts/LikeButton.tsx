@@ -32,16 +32,19 @@ export default function LikeButton({ postId, initialState }: LikeButtonProps) {
     staleTime: Infinity,
   });
 
-  const { mutate, isPending } = useMutation({
+  const { mutate } = useMutation({
     mutationFn: async () => {
-      const request = data.isLikedByUser
-        ? kyInstance.delete(`/api/posts/${postId}/likes`)
-        : kyInstance.post(`/api/posts/${postId}/likes`);
+      const isLiking = !data.isLikedByUser;
+      
+      const request = isLiking
+        ? kyInstance.post(`/api/posts/${postId}/likes`)
+        : kyInstance.delete(`/api/posts/${postId}/likes`);
       
       await request;
 
-      if (!data.isLikedByUser) {
-        await fetch("/api/posts/track", {
+      // Tracking algorithmique (lancé après la réussite du like)
+      if (isLiking) {
+        fetch("/api/posts/track", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ 
@@ -53,20 +56,30 @@ export default function LikeButton({ postId, initialState }: LikeButtonProps) {
       }
     },
     onMutate: async () => {
+      // Annuler les rafraîchissements en cours pour cette Query spécifique
       await queryClient.cancelQueries({ queryKey });
+
       const previousState = queryClient.getQueryData<LikeInfo>(queryKey);
+
+      // Mise à jour immédiate du cache (Optimiste)
       queryClient.setQueryData<LikeInfo>(queryKey, () => ({
         likes: (previousState?.likes || 0) + (previousState?.isLikedByUser ? -1 : 1),
         isLikedByUser: !previousState?.isLikedByUser,
       }));
+
       return { previousState };
     },
     onError(error, variables, context) {
+      // Retour en arrière si le serveur ou le réseau échoue
       queryClient.setQueryData(queryKey, context?.previousState);
       toast({
         variant: "destructive",
-        description: "Une erreur est survenue.",
+        description: "Une erreur réseau est survenue. Votre action n'a pas été enregistrée.",
       });
+    },
+    // On synchronise avec le serveur à la fin pour être sûr du compte final
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey });
     },
   });
 
@@ -74,15 +87,14 @@ export default function LikeButton({ postId, initialState }: LikeButtonProps) {
     <button 
       onClick={() => {
         if (!loggedInUser) {
-          toast({ variant: "destructive", description: "Veuillez vous connecter." });
+          toast({ variant: "destructive", description: "Veuillez vous connecter pour aimer ce post." });
           return;
         }
         mutate();
       }} 
-      disabled={isPending} 
       className={cn(
-        "flex items-center gap-1.5 transition-opacity",
-        isPending && "opacity-50 cursor-not-allowed"
+        "flex items-center gap-1.5 transition-transform active:scale-125", // Petit effet de scale au clic
+        "hover:opacity-80"
       )}
     >
       <Heart
@@ -91,7 +103,6 @@ export default function LikeButton({ postId, initialState }: LikeButtonProps) {
           data.isLikedByUser && "fill-red-500 text-red-500",
         )}
       />
-      {/* On n'affiche que le chiffre pour ne pas pousser le bouton voisin */}
       <span className="text-sm font-medium tabular-nums">
         {data.likes}
       </span>

@@ -19,8 +19,13 @@ export default async function Layout({
   return (
     <LanguageProvider>
       <SessionProvider value={session}>
-        {/* Initialisation du Chat si authentifié */}
-        {session.user && <><ChatInitializer /><NotificationHandler /></>}
+        {/* Initialisation sécurisée des services temps réel */}
+        {session.user && (
+          <>
+            <ChatInitializer />
+            <NotificationHandler />
+          </>
+        )}
         
         <LayoutClientWrapper
           navbar={<Navbar />}
@@ -35,12 +40,15 @@ export default async function Layout({
             </div>
           }
         >
+          {/* Main content area with responsive padding */}
           <main className="flex-1 min-w-0 w-full px-2 sm:px-0">
             {children}
           </main>
         </LayoutClientWrapper>
-         <CookieBanner />
-        {/* Placé ici pour suivre toute l'application proprement */}
+
+        <CookieBanner />
+        
+        {/* Vercel Analytics pour le suivi des performances PWA */}
         <Analytics />
       </SessionProvider>
     </LanguageProvider>

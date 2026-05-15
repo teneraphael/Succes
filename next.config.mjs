@@ -1,3 +1,5 @@
+import withPWA from 'next-pwa';
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   experimental: {
@@ -16,7 +18,6 @@ const nextConfig = {
         protocol: "https",
         hostname: "un9zgttebh.ufs.sh",
       },
-      // ✅ AJOUT : Autorise les photos de profil Google
       {
         protocol: "https",
         hostname: "lh3.googleusercontent.com",
@@ -38,4 +39,10 @@ const nextConfig = {
   },
 };
 
-export default nextConfig;
+// On enveloppe la configuration avec le plugin PWA
+export default withPWA({
+  dest: "public",         // Dossier où sera généré le Service Worker (sw.js)
+  register: true,       // Enregistre automatiquement le worker
+  skipWaiting: true,    // Force la mise à jour immédiate
+  disable: process.env.NODE_ENV === "development", // Désactivé en dev pour ne pas bloquer le cache
+})(nextConfig);

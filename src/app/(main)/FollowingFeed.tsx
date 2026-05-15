@@ -6,7 +6,7 @@ import PostsLoadingSkeleton from "@/components/posts/PostsLoadingSkeleton";
 import kyInstance from "@/lib/ky";
 import { PostsPage } from "@/lib/types";
 import { useInfiniteQuery } from "@tanstack/react-query";
-import { Loader2 } from "lucide-react";
+import { Loader2, RefreshCw } from "lucide-react";
 
 export default function FollowingFeed() {
   const {
@@ -16,6 +16,7 @@ export default function FollowingFeed() {
     isFetching,
     isFetchingNextPage,
     status,
+    refetch, // Ajouté pour permettre le réessai manuel
   } = useInfiniteQuery({
     queryKey: ["post-feed", "following"],
     queryFn: ({ pageParam }) =>
@@ -27,6 +28,8 @@ export default function FollowingFeed() {
         .json<PostsPage>(),
     initialPageParam: null as string | null,
     getNextPageParam: (lastPage) => lastPage.nextCursor,
+    retry: 3, // Tente 3 fois de récupérer les données si le réseau dérange
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 
   const posts = data?.pages.flatMap((page) => page.posts) || [];
@@ -43,13 +46,23 @@ export default function FollowingFeed() {
     );
   }
 
+  // --- VERSION CORRIGÉE POUR L'ERREUR ---
   if (status === "error") {
     return (
-      <p className="text-center text-destructive">
-        An error occurred while loading posts.
-      </p>
+      <div className="flex flex-col items-center justify-center space-y-3 py-10">
+        <p className="text-center text-muted-foreground text-sm">
+          Impossible de charger vos abonnements. Vérifiez votre connexion.
+        </p>
+        <button
+          onClick={() => refetch()}
+          className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-primary hover:underline"
+        >
+          <RefreshCw size={14} /> Réessayer
+        </button>
+      </div>
     );
   }
+  // --------------------------------------
 
   return (
     <InfiniteScrollContainer

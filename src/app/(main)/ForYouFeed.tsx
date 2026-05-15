@@ -3,11 +3,11 @@
 import InfiniteScrollContainer from "@/components/InfiniteScrollContainer";
 import Post from "@/components/posts/Post";
 import PostsLoadingSkeleton from "@/components/posts/PostsLoadingSkeleton";
-import TrackedPost from "@/components/posts/TrackedPost"; // On importe le surveillant
+import TrackedPost from "@/components/posts/TrackedPost"; 
 import kyInstance from "@/lib/ky";
 import { PostsPage } from "@/lib/types";
 import { useInfiniteQuery } from "@tanstack/react-query";
-import { Loader2 } from "lucide-react";
+import { Loader2, RefreshCw } from "lucide-react"; // Ajout de RefreshCw pour le bouton
 
 interface ForYouFeedProps {
   userId?: string;
@@ -21,21 +21,21 @@ export default function ForYouFeed({ userId }: ForYouFeedProps) {
     isFetching,
     isFetchingNextPage,
     status,
+    refetch, // Ajout de refetch pour permettre de réessayer
   } = useInfiniteQuery({
-    queryKey: ["post-feed", "for-you", userId], 
+    queryKey: ["post-feed", "for-you", userId],
     queryFn: ({ pageParam }) =>
       kyInstance
-        .get(
-          "/api/posts/for-you", // Route de ton algo de recommandation
-          {
-            searchParams: {
-              ...(pageParam ? { cursor: pageParam } : {}),
-            },
-          }
-        )
+        .get("/api/posts/for-you", {
+          searchParams: {
+            ...(pageParam ? { cursor: pageParam } : {}),
+          },
+        })
         .json<PostsPage>(),
     initialPageParam: null as string | null,
     getNextPageParam: (lastPage) => lastPage.nextCursor,
+    retry: 3, // Tente 3 fois avant d'afficher l'erreur (très important pour les connexions instables)
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), 
   });
 
   const posts = data?.pages.flatMap((page) => page.posts) || [];
@@ -52,13 +52,23 @@ export default function ForYouFeed({ userId }: ForYouFeedProps) {
     );
   }
 
+  // --- VERSION CORRIGÉE POUR L'ERREUR RÉSEAU ---
   if (status === "error") {
     return (
-      <p className="text-center text-destructive">
-        Une erreur est survenue lors du chargement du fil d&apos;actualité.
-      </p>
+      <div className="flex flex-col items-center justify-center space-y-3 py-10">
+        <p className="text-center text-muted-foreground text-sm">
+          Impossible de charger le flux. Vérifiez votre connexion.
+        </p>
+        <button
+          onClick={() => refetch()}
+          className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-primary hover:underline"
+        >
+          <RefreshCw size={14} /> Réessayer
+        </button>
+      </div>
     );
   }
+  // --------------------------------------------
 
   return (
     <InfiniteScrollContainer
@@ -66,7 +76,6 @@ export default function ForYouFeed({ userId }: ForYouFeedProps) {
       onBottomReached={() => hasNextPage && !isFetching && fetchNextPage()}
     >
       {posts.map((post) => (
-        /* ✅ On enveloppe le post pour tracker la vue sans clic */
         <TrackedPost key={post.id} post={post} userId={userId}>
           <Post post={post} />
         </TrackedPost>
