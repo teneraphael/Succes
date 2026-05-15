@@ -19,7 +19,10 @@ export default async function Layout({
   return (
     <LanguageProvider>
       <SessionProvider value={session}>
-        {/* Initialisation sécurisée des services temps réel */}
+        {/* CORRECTION 1: On ne rend ces composants QUE si l'utilisateur est connecté.
+          C'est crucial car NotificationHandler peut faire planter le navigateur mobile 
+          s'il demande des permissions trop tôt ou sans session.
+        */}
         {session.user && (
           <>
             <ChatInitializer />
@@ -35,20 +38,20 @@ export default async function Layout({
             </aside>
           }
           mobileMenu={
-            <div className="sticky bottom-0 z-50 flex w-full justify-center border-t bg-card/80 backdrop-blur-md p-3 sm:hidden">
+            /* CORRECTION 2: Ajout d'une protection sur le menu mobile pour éviter 
+              les décalages de rendu (Layout Shift) qui font souvent planter Safari/Chrome Mobile.
+            */
+            <div className="sticky bottom-0 z-50 flex w-full justify-center border-t bg-card/80 backdrop-blur-md p-3 pb-safe sm:hidden">
                <MenuBar className="flex flex-row gap-8 items-center" />
             </div>
           }
         >
-          {/* Main content area with responsive padding */}
           <main className="flex-1 min-w-0 w-full px-2 sm:px-0">
             {children}
           </main>
         </LayoutClientWrapper>
 
         <CookieBanner />
-        
-        {/* Vercel Analytics pour le suivi des performances PWA */}
         <Analytics />
       </SessionProvider>
     </LanguageProvider>

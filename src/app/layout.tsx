@@ -27,13 +27,14 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
+  // ✅ Requis pour la validation des métadonnées sur mobile
+  metadataBase: new URL("https://dealcity.app"),
   title: {
     template: "%s | DealCity",
     default: "DealCity - Petites annonces et Deals au Cameroun",
   },
   description: "La plateforme n°1 pour acheter et vendre à Douala, Yaoundé et dans tout le Cameroun. Trouvez les meilleures offres sur DealCity.",
   keywords: ["Cameroun", "Douala", "Yaoundé", "vente en ligne", "petites annonces", "DealCity"],
-  // ✅ CONFIGURATION PWA : Lien vers le manifeste et réglages mobiles
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
@@ -73,33 +74,37 @@ export default async function RootLayout({
 
   return (
     <html lang="fr" suppressHydrationWarning>
-      <body className={`${geistSans.variable} ${geistMono.variable}`}>
-        <LanguageProvider>
-          <LanguageSync>
-            <NextSSRPlugin routerConfig={extractRouterConfig(fileRouter)} />
-            
-            <ReactQueryProvider>
-              <SessionProvider value={sessionValues}>
-                <ChatInitializer />
-                <NotificationHandler />
-                <ThemeProvider
-                  attribute="class"
-                  defaultTheme="system"
-                  enableSystem
-                  disableTransitionOnChange
-                >
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+        {/* ThemeProvider déplacé en haut pour stabiliser l'hydratation du client */}
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <LanguageProvider>
+            <LanguageSync>
+              <NextSSRPlugin routerConfig={extractRouterConfig(fileRouter)} />
+              
+              <ReactQueryProvider>
+                <SessionProvider value={sessionValues}>
+                  {/* Initialiseurs placés à l'intérieur du SessionProvider */}
+                  <ChatInitializer />
+                  <NotificationHandler />
+                  
                   <CartProvider>
                     {children}
                   </CartProvider>
+                  
                   <CookieBanner />
-                </ThemeProvider>
-                <SonnerToaster richColors />
-              </SessionProvider>
-            </ReactQueryProvider>
-            
-            <Toaster />
-          </LanguageSync>
-        </LanguageProvider>
+                  <SonnerToaster richColors />
+                </SessionProvider>
+              </ReactQueryProvider>
+              
+              <Toaster />
+            </LanguageSync>
+          </LanguageProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

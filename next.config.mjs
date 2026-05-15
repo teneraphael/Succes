@@ -44,5 +44,5 @@ export default withPWA({
   dest: "public",         // Dossier où sera généré le Service Worker (sw.js)
   register: true,       // Enregistre automatiquement le worker
   skipWaiting: true,    // Force la mise à jour immédiate
-  disable: process.env.NODE_ENV === "development", // Désactivé en dev pour ne pas bloquer le cache
+  disable: true, // Désactivé en dev pour ne pas bloquer le cache
 })(nextConfig);
