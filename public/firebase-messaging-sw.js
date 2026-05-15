@@ -26,22 +26,18 @@ const messaging = firebase.messaging();
 messaging.onBackgroundMessage((payload) => {
   console.log("[SW] Payload reçu en arrière-plan:", payload);
 
-  // Valeurs par défaut
-  let title = "City App";
-  let body = "Nouvelle interaction";
+  // Valeurs par défaut adaptées au projet Succes
+  let title = "Succes";
+  let body = "Nouvelle notification de votre établissement";
   let icon = "/logo.png";
   let image = null;
   let url = "/notifications"; 
 
-  // Cas A : Payload Stream Chat
-  if (payload.data && (payload.data.sender_name || payload.data.message_id)) {
-    title = payload.data.sender_name || "Nouveau message";
-    body = payload.data.text || "Vous a envoyé un message";
-    icon = payload.data.sender_image || icon;
-    url = payload.data.channel_id ? `/messages?channelId=${payload.data.channel_id}` : "/messages";
-  } 
-  // Cas B : Payload Firebase Admin ou autre
-  else if (payload.notification || payload.data) {
+  /**
+   * Gestion du Payload Firebase Admin
+   * On traite ici les notifications envoyées depuis ton backend Prisma/FCM
+   */
+  if (payload.notification || payload.data) {
     title = payload.notification?.title || payload.data?.title || title;
     body = payload.notification?.body || payload.data?.body || body;
     icon = payload.notification?.icon || payload.data?.icon || icon;
@@ -53,8 +49,8 @@ messaging.onBackgroundMessage((payload) => {
     body,
     icon,
     image,
-    badge: "/badge-icon.png",
-    tag: "city-notif-system",  // Evite d'empiler trop de notifications
+    badge: "/icons/Icône 192x192 px.png", // Utilisation de ton icône générée
+    tag: "succes-notif-system", // Evite d'empiler trop de notifications
     renotify: true,
     vibrate: [200, 100, 200],
     data: { url }

@@ -1,6 +1,5 @@
 import { initializeApp } from "firebase/app";
 import { getMessaging, getToken } from "firebase/messaging";
-import { StreamChat } from "stream-chat";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDYTmdZpLhw04HNXLmnnmKqJf7umAKu35g",
@@ -14,14 +13,15 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 
-// ... (tes imports et firebaseConfig restent identiques)
-
-export const requestNotificationPermission = async (userId: string, chatClient: StreamChat) => {
-  // 1. Vérifications rapides (Non-bloquant)
+/**
+ * Demande la permission pour les notifications et enregistre le token FCM
+ * Nettoyé de toute référence à Stream Chat pour le projet Succes.
+ */
+export const requestNotificationPermission = async (userId: string) => {
+  // 1. Vérifications rapides (Non-bloquant pour le SSR)
   if (typeof window === "undefined" || !("Notification" in window) || !("serviceWorker" in navigator)) return;
 
-  // On lance le reste dans un bloc asynchrone SANS 'await' devant l'appel initial
-  // pour libérer le thread principal immédiatement.
+  // On lance le reste dans un bloc asynchrone pour ne pas bloquer le thread principal
   (async () => {
     try {
       const messaging = getMessaging(app);
@@ -29,12 +29,15 @@ export const requestNotificationPermission = async (userId: string, chatClient: 
       
       if (permission !== "granted") return;
 
-      // Enregistrement du worker
-      const registration = await navigator.serviceWorker.register("/firebase-messaging-sw.js", { scope: "/" });
+      // Enregistrement du service worker
+      const registration = await navigator.serviceWorker.register("/firebase-messaging-sw.js", { 
+        scope: "/" 
+      });
       
-      // Attendre que le worker soit actif avant de demander le token
+      // Attendre que le worker soit prêt
       await navigator.serviceWorker.ready;
 
+      // Récupération du token FCM
       const token = await getToken(messaging, { 
         vapidKey: "BOFuO3gXPZPcvGvfbMGtxch6q9H4kmAqN2EDFzK6xMIjPoYeOd2VWe_5s1IOoRk4zrw4KeCFFyxXz0td1g9iSmY",
         serviceWorkerRegistration: registration 
@@ -42,30 +45,15 @@ export const requestNotificationPermission = async (userId: string, chatClient: 
 
       if (!token) return;
 
-      // --- SAUVEGARDE ASYNC (On ne bloque pas pour ça) ---
+      // --- SAUVEGARDE DU TOKEN DANS TA BASE DE DONNÉES ---
+      // On envoie le token à ton API interne pour pouvoir envoyer des notifications plus tard
       fetch("/api/notifications/save-token", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId, token }),
-      }).catch(e => console.error("Erreur Prisma (silencieuse):", e));
+      }).catch(e => console.error("Erreur enregistrement token (silencieuse):", e));
 
-      // --- ENREGISTREMENT STREAM ---
-      // On vérifie si le client est connecté
-      if (!chatClient.userID) {
-        console.log("FCM: Client Stream non prêt, on réessaiera plus tard.");
-        return;
-      }
-
-      // On ajoute le device sans bloquer l'interface
-      try {
-        await chatClient.addDevice(token, "firebase", userId, "firebase");
-        console.log("✅ Appareil enregistré dans Stream !");
-      } catch (err: any) {
-        // Si le device existe déjà, Stream renvoie une erreur, on l'ignore proprement
-        if (err.body?.code !== 17) { 
-          console.warn("Note Stream Device:", err.message);
-        }
-      }
+      console.log("✅ Token FCM récupéré et enregistré avec succès.");
 
     } catch (error) {
       console.error("Erreur FCM (fond) :", error);

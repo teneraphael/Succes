@@ -1,7 +1,6 @@
 import { google, lucia } from "@/auth";
 import kyInstance from "@/lib/ky";
 import prisma from "@/lib/prisma";
-import streamServerClient from "@/lib/stream";
 import { slugify } from "@/lib/utils";
 import { generateIdFromEntropySize } from "lucia";
 import { cookies } from "next/headers";
@@ -33,7 +32,6 @@ export async function GET(req: NextRequest) {
     const tokens = await google.validateAuthorizationCode(code, storedCodeVerifier);
 
     // 3. Récupération des informations de l'utilisateur chez Google
-    // ✅ Correction : tokens.accessToken() est une méthode, il faut les parenthèses
     const googleUser = await kyInstance
       .get("https://www.googleapis.com/oauth2/v1/userinfo", {
         headers: { 
@@ -66,17 +64,8 @@ export async function GET(req: NextRequest) {
             avatarUrl: googleUser.picture || null 
           }
         });
-
-        // 5. Synchronisation avec Stream Chat (optionnel, ne doit pas bloquer le login)
-        try {
-          await streamServerClient.upsertUser({ 
-            id: userId, 
-            username, 
-            name: googleUser.name 
-          });
-        } catch (streamError) { 
-          console.error("Stream Sync Error (ignored):", streamError); 
-        }
+        
+        // ✅ CORRECTION : La synchronisation Stream a été supprimée d'ici
       });
     }
 

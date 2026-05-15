@@ -31,11 +31,11 @@ function TermsModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void 
         </div>
         <div className="p-8 overflow-y-auto max-h-[60vh] space-y-4 text-sm text-muted-foreground leading-relaxed">
           <p className="font-bold text-foreground">1. Collecte des données</p>
-          <p>DealCity stocke votre email et nom d&apos;utilisateur pour créer votre profil unique.</p>
-          <p className="font-bold text-foreground">2. Notifications & Chat</p>
-          <p>En vous inscrivant, vous acceptez l&apos;utilisation de Firebase (notifications) et Stream.io (messagerie) pour le bon fonctionnement des échanges.</p>
+          <p>Nous stockons votre email et nom d&apos;utilisateur pour créer votre profil unique et sécurisé.</p>
+          <p className="font-bold text-foreground">2. Notifications & Alertes</p>
+          <p>En vous inscrivant, vous acceptez l&apos;utilisation de Firebase pour recevoir des notifications en temps réel concernant vos activités sur la plateforme.</p>
           <p className="font-bold text-foreground">3. Sécurité</p>
-          <p>Vos mots de passe sont cryptés et ne sont jamais visibles par notre équipe.</p>
+          <p>Vos mots de passe sont protégés par un algorithme de hachage de niveau professionnel et ne sont jamais accessibles en clair.</p>
         </div>
         <div className="p-6 bg-muted/30 text-center">
           <button onClick={onClose} className="bg-[#4a90e2] text-white px-8 py-3 rounded-full font-bold uppercase text-xs tracking-widest hover:bg-[#357abd] transition-all">
@@ -83,7 +83,6 @@ export default function SignUpForm() {
             </div>
           )}
           
-          {/* Champs Username, Email, Password (gardés tels quels) */}
           <FormField
             control={form.control}
             name="username"
@@ -138,26 +137,24 @@ export default function SignUpForm() {
             )}
           />
 
-          {/* --- SECTION LÉGALE AJOUTÉE --- */}
+          {/* --- SECTION LÉGALE MISE À JOUR --- */}
           <div className="space-y-3 px-2">
-            {/* Consentement Marketing (Optionnel) */}
             <div className="flex items-center gap-3">
               <div className="relative flex items-center">
                 <input type="checkbox" id="marketing" defaultChecked className="peer h-5 w-5 cursor-pointer appearance-none rounded-md border border-slate-300 checked:border-[#5cb85c] checked:bg-[#5cb85c] transition-all" />
                 <CheckCircle2 className="absolute h-5 w-5 text-white opacity-0 peer-checked:opacity-100 pointer-events-none p-0.5" />
               </div>
               <label htmlFor="marketing" className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider cursor-pointer select-none">
-                Recevoir les bons plans DealCity
+                Recevoir les alertes importantes
               </label>
             </div>
 
-            {/* Consentement Légal (OBLIGATOIRE) */}
             <div className="flex items-start gap-3">
               <div className="relative flex items-center mt-0.5">
                 <input 
                   type="checkbox" 
                   id="terms" 
-                  required // Bloque le formulaire si non coché
+                  required 
                   className="peer h-5 w-5 cursor-pointer appearance-none rounded-md border border-slate-300 checked:border-[#4a90e2] checked:bg-[#4a90e2] transition-all" 
                 />
                 <CheckCircle2 className="absolute h-5 w-5 text-white opacity-0 peer-checked:opacity-100 pointer-events-none p-0.5" />
@@ -182,7 +179,6 @@ export default function SignUpForm() {
         </form>
       </Form>
 
-      {/* Affichage de la Modal */}
       <TermsModal isOpen={showTerms} onClose={() => setShowTerms(false)} />
     </>
   );

@@ -2,14 +2,13 @@
 
 import { lucia } from "@/auth";
 import prisma from "@/lib/prisma";
-import streamServerClient from "@/lib/stream";
 import { signUpSchema, SignUpValues } from "@/lib/validation";
 import { hash } from "@node-rs/argon2";
 import { generateIdFromEntropySize } from "lucia";
 import { isRedirectError } from "next/dist/client/components/redirect";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { sendWelcomeEmail } from "@/lib/mail"; // <-- AJOUTE CET IMPORT
+import { sendWelcomeEmail } from "@/lib/mail"; 
 
 export async function signUp(
   credentials: SignUpValues,
@@ -56,6 +55,7 @@ export async function signUp(
       };
     }
 
+    // ✅ CORRECTION : Suppression de streamServerClient dans la transaction
     await prisma.$transaction(async (tx) => {
       await tx.user.create({
         data: {
@@ -65,11 +65,6 @@ export async function signUp(
           email,
           passwordHash,
         },
-      });
-      await streamServerClient.upsertUser({
-        id: userId,
-        username,
-        name: username,
       });
     });
 
