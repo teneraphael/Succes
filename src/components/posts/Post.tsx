@@ -111,7 +111,8 @@ export default function Post({ post }: PostProps) {
               <SellerBadge isSeller={post.user.isSeller} followerCount={post.user._count.followers} />
               {post.user.isVerified && <ShieldCheck className="size-4 text-[#4a90e2] fill-current" />}
             </div>
-            <p className="text-[11px] text-muted-foreground uppercase font-bold tracking-tight">{formatRelativeDate(post.createdAt)}</p>
+            {/* CORRECTION CI-DESSOUS : Ajout de new Date() pour éviter l'erreur getTime() */}
+            <p className="text-[11px] text-muted-foreground uppercase font-bold tracking-tight">{formatRelativeDate(new Date(post.createdAt))}</p>
           </div>
         </div>
         <PostMoreButton post={post} />
