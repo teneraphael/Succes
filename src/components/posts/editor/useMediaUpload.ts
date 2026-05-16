@@ -9,6 +9,7 @@ export interface Attachment {
   file: File;
   mediaId?: string;
   isUploading: boolean;
+  customId: string; // 🔥 Permet d'identifier le fichier de manière unique entre le client et le serveur
 }
 
 export default function useMediaUpload() {
@@ -16,30 +17,36 @@ export default function useMediaUpload() {
 
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [uploadProgress, setUploadProgress] = useState<number>();
-  
-  // ✨ État dédié pour l'audio unique de l'annonce
   const [audioAttachment, setAudioAttachment] = useState<Attachment | null>(null);
 
   const { startUpload, isUploading } = useUploadThing("attachment", {
     onBeforeUploadBegin(files) {
-      const renamedFiles = files.map((file) => {
+      // On génère un tableau d'objets contenant le fichier renommé et un customId unique
+      const prepared = files.map((file) => {
         const extension = file.name.split(".").pop();
         const prefix = file.type.startsWith("audio") ? "audio" : "attachment";
-        return new File(
+        const customId = uuidv4();
+        
+        // On intègre le customId directement dans le nom du fichier lu par UploadThing
+        const renamedFile = new File(
           [file],
-          `${prefix}_${uuidv4()}.${extension}`,
+          `${prefix}_${customId}.${extension}`,
           { type: file.type }
         );
+
+        return { renamedFile, customId };
       });
 
-      // On sépare l'audio des autres médias dans l'UI
-      const newAttachments = renamedFiles
-        .filter(f => !f.type.startsWith("audio"))
-        .map(file => ({ file, isUploading: true }));
+      const renamedFiles = prepared.map(p => p.renamedFile);
+
+      // On sépare les médias pour l'affichage de l'UI
+      const newAttachments = prepared
+        .filter(p => !p.renamedFile.type.startsWith("audio"))
+        .map(p => ({ file: p.renamedFile, isUploading: true, customId: p.customId }));
       
-      const newAudio = renamedFiles
-        .filter(f => f.type.startsWith("audio"))
-        .map(file => ({ file, isUploading: true }))[0];
+      const newAudio = prepared
+        .filter(p => p.renamedFile.type.startsWith("audio"))
+        .map(p => ({ file: p.renamedFile, isUploading: true, customId: p.customId }))[0];
 
       if (newAttachments.length > 0) {
         setAttachments((prev) => [...prev, ...newAttachments]);
@@ -53,24 +60,30 @@ export default function useMediaUpload() {
     },
     onUploadProgress: setUploadProgress,
     onClientUploadComplete(res) {
-      // 1. Mise à jour des images/vidéos
+      // On extrait le customId depuis le nom du fichier renvoyé par le serveur
+      const getCustomIdFromName = (name: string) => {
+        const match = name.match(/_(.*?)\./);
+        return match ? match[1] : name;
+      };
+
+      // 1. Mise à jour des images / vidéos avec l'ID média définitif du serveur
       setAttachments((prev) =>
         prev.map((a) => {
-          const uploadResult = res.find((r) => r.name === a.file.name);
-          if (!uploadResult) return a;
+          const uploadResult = res.find((r) => getCustomIdFromName(r.name) === a.customId);
+          if (!uploadResult || !uploadResult.serverData) return a;
           return {
             ...a,
-            mediaId: uploadResult.serverData.mediaId,
+            mediaId: uploadResult.serverData.mediaId, // L'ID du média filigrané en BDD
             isUploading: false,
           };
         })
       );
 
-      // 2. Mise à jour de l'audio si présent
+      // 2. Mise à jour de l'audio
       setAudioAttachment((prev) => {
         if (!prev) return null;
-        const uploadResult = res.find((r) => r.name === prev.file.name);
-        if (!uploadResult) return prev;
+        const uploadResult = res.find((r) => getCustomIdFromName(r.name) === prev.customId);
+        if (!uploadResult || !uploadResult.serverData) return prev;
         return {
           ...prev,
           mediaId: uploadResult.serverData.mediaId,
@@ -97,11 +110,9 @@ export default function useMediaUpload() {
       return;
     }
 
-    // Séparer les types
     const audioFiles = files.filter(f => f.type.startsWith("audio"));
     const mediaFiles = files.filter(f => !f.type.startsWith("audio"));
 
-    // Validation limite médias (10)
     if (attachments.length + mediaFiles.length > 10) {
       toast({
         variant: "destructive",
@@ -110,7 +121,6 @@ export default function useMediaUpload() {
       return;
     }
 
-    // Validation audio unique
     if (audioFiles.length > 1) {
       toast({
         variant: "destructive",
@@ -122,8 +132,8 @@ export default function useMediaUpload() {
     startUpload(files);
   }
 
-  function removeAttachment(fileName: string) {
-    setAttachments((prev) => prev.filter((a) => a.file.name !== fileName));
+  function removeAttachment(customId: string) {
+    setAttachments((prev) => prev.filter((a) => a.customId !== customId));
   }
 
   function removeAudio() {
@@ -139,7 +149,7 @@ export default function useMediaUpload() {
   return {
     startUpload: handleStartUpload,
     attachments,
-    audioAttachment, // ✨ Retourne l'audio séparément
+    audioAttachment,
     isUploading,
     uploadProgress,
     removeAttachment,

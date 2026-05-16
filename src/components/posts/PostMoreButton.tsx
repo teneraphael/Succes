@@ -111,18 +111,26 @@ export default function PostMoreButton({
 
     for (const [index, media] of post.attachments.entries()) {
       try {
-        const response = await fetch(media.url);
+        // 🔥 FIX : Ajout d'un timestamp (?t=...) pour forcer le navigateur à ignorer son cache local
+        // et récupérer la version fraîchement filigranée sur les serveurs
+        const freshUrl = `${media.url}?t=${Date.now()}`;
+        
+        const response = await fetch(freshUrl);
         const blob = await response.blob();
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = `dealcity_${post.user.username}_${index + 1}`;
+        
+        // Gérer l'extension dynamiquement pour éviter les corruptions
+        const isVideo = media.type === "VIDEO";
+        a.download = `dealcity_${post.user.username}_${index + 1}${isVideo ? '.mp4' : '.jpg'}`;
+        
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         window.URL.revokeObjectURL(url);
       } catch (error) {
-        toast({ variant: "destructive", description: "Erreur média." });
+        toast({ variant: "destructive", description: "Erreur lors du téléchargement du média." });
       }
     }
   }
@@ -168,7 +176,6 @@ export default function PostMoreButton({
                   rel="noopener noreferrer"
                   className={`flex items-center ${socialInfo.color} font-black italic cursor-pointer focus:bg-muted transition-all active:scale-95 px-2 py-1.5`}
                 >
-                  {/* FIX: Un seul enfant (div) sous le <a> */}
                   <div className="flex items-center w-full">
                     {socialInfo.icon}
                     <span>{socialInfo.label}</span>
@@ -189,20 +196,18 @@ export default function PostMoreButton({
             Copier le lien
           </DropdownMenuItem>
 
+          {/* FIX : Utilisation propre de asChild pour éviter les conflits Radix UI */}
           <DropdownMenuItem asChild className="cursor-pointer font-medium rounded-lg">
             <a href={`/posts/${post.id}`} target="_blank" rel="noopener noreferrer" className="flex items-center w-full px-2 py-1.5">
-              {/* FIX: Un seul enfant (div ou les éléments directs si gérés par le style du <a>) */}
-              <div className="flex items-center">
-                <ExternalLink className="mr-2 size-4 text-muted-foreground" />
-                <span>Mode plein écran</span>
-              </div>
+              <ExternalLink className="mr-2 size-4 text-muted-foreground" />
+              <span>Mode plein écran</span>
             </a>
           </DropdownMenuItem>
 
           {post.attachments.length > 0 && (
             <DropdownMenuItem onClick={downloadMedia} className="cursor-pointer font-medium text-blue-600 focus:text-blue-500 rounded-lg">
               <Download className="mr-2 size-4" />
-              Télécharger les images
+              Télécharger
             </DropdownMenuItem>
           )}
 

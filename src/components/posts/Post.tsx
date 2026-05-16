@@ -140,7 +140,7 @@ export default function Post({ post }: PostProps) {
         </div>
       </div>
 
-      {/* GRILLE DE MÉDIAS - Corrigée pour occuper toute la largeur */}
+      {/* GRILLE DE MÉDIAS */}
       <div className="w-full overflow-hidden">
         <MediaPreviews 
           attachments={visualAttachments} 
@@ -235,7 +235,19 @@ function MediaPreviews({ attachments, audioUrl, availableColors, selectedColor, 
               )}
             >
               {m.type === "IMAGE" ? (
-                <Image src={m.url} alt="DealCity Product" fill className="object-cover" />
+                <Image 
+                  src={m.url} 
+                  alt="DealCity Product" 
+                  fill 
+                  // 🔥 FIX : Optimisation de la taille demandée au CDN selon le nombre de colonnes dans la grille
+                  sizes={
+                    count === 1 
+                      ? "(max-width: 768px) 100vw, 600px" 
+                      : "(max-width: 768px) 50vw, 300px"
+                  }
+                  className="object-cover" 
+                  priority={i === 0} // Optionnel : Donne la priorité au premier média pour le LCP
+                />
               ) : (
                 <VideoPost src={m.url} />
               )}

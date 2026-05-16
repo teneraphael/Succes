@@ -13,6 +13,18 @@ export async function POST(req: Request) {
 
     // ✅ LOGIQUE DE TRACKING STABLE
     if (itemType === "POST" && type === "VIEW") {
+      
+      // 🛡️ SÉCURITÉ : On vérifie d'abord que le Post existe en BDD
+      const postExists = await prisma.post.findUnique({
+        where: { id: id },
+        select: { id: true }, // Version ultra-légère juste pour la vérification
+      });
+
+      if (!postExists) {
+        console.warn(`[TRACKING_DEALCITY] Tentative de vue sur un post inexistant ou supprimé ID: ${id}`);
+        return NextResponse.json({ error: "Post introuvable" }, { status: 404 });
+      }
+
       // Utilisation d'une transaction pour garantir l'intégrité
       await prisma.$transaction([
         // 1. Incrémenter le compteur global de vues
@@ -21,8 +33,7 @@ export async function POST(req: Request) {
           data: { views: { increment: 1 } },
         }),
         
-        // 2. Si l'utilisateur est connecté, on enregistre l'interaction 
-        // pour affiner l'algorithme de recommandation sans casser le flux.
+        // 2. Si l'utilisateur est connecté, on enregistre l'interaction
         ...(user 
           ? [
               prisma.userInteraction.create({
@@ -30,9 +41,9 @@ export async function POST(req: Request) {
                   userId: user.id,
                   postId: id,
                   type: "VIEW",
-                  dealId: "",
-                  // On évite les chaînes vides pour les relations optionnelles, 
-                  // on laisse Prisma gérer le null si le champ est optionnel.
+                  // 🔥 CORRECTION : On retire totalement dealId ou on le met explicitement à null 
+                  // pour éviter que Prisma ne cherche une clé étrangère vide ""
+                  dealId: null, 
                 },
               }),
             ] 
