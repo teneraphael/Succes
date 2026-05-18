@@ -16,13 +16,11 @@ import {
   LayoutDashboard,
   Settings,
   ShieldCheck,
-  ShoppingBag,
-  Truck, // Import de l'icône Camion pour la livraison
+  Truck,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import Link from "next/link";
 import { useLanguage } from "@/components/LanguageProvider";
-import { useCart } from "@/context/cart-context";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -47,7 +45,6 @@ export default function UserButton({ className, user: propUser }: UserButtonProp
   const { user: sessionUser } = useSession();
   const { theme, setTheme } = useTheme();
   const { t, lang, setLang } = useLanguage(); 
-  const { cart } = useCart(); 
   const queryClient = useQueryClient();
 
   const user = propUser || sessionUser;
@@ -90,7 +87,7 @@ export default function UserButton({ className, user: propUser }: UserButtonProp
               </Link>
             </DropdownMenuItem>
 
-            {/* ✅ NOUVEAU : BOUTON LIVRAISONS */}
+            {/* BOUTON LIVRAISONS */}
             <DropdownMenuItem asChild className="rounded-xl py-3 mt-1 cursor-pointer bg-emerald-600/5 text-emerald-600 focus:bg-emerald-600/10 focus:text-emerald-700">
               <Link href="/delivery-dashboard">
                 <div className="flex items-center w-full">
@@ -103,23 +100,6 @@ export default function UserButton({ className, user: propUser }: UserButtonProp
             <DropdownMenuSeparator className="mx-2" />
           </>
         )}
-
-        {/* SECTION PANIER */}
-        <DropdownMenuItem asChild className="rounded-xl py-3 cursor-pointer bg-orange-500/5 text-orange-600 focus:bg-orange-500/10 focus:text-orange-700">
-          <Link href="/cart">
-            <div className="flex items-center w-full">
-              <ShoppingBag className="mr-3 size-5" />
-              <span className="font-bold flex-1">Mon Panier</span>
-              {cart.length > 0 && (
-                <span className="bg-orange-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full animate-in zoom-in">
-                  {cart.length}
-                </span>
-              )}
-            </div>
-          </Link>
-        </DropdownMenuItem>
-
-        <DropdownMenuSeparator className="mx-2" />
 
         {/* SECTION VENDEUR */}
         {user.isSeller ? (
