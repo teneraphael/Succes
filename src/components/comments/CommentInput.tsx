@@ -25,6 +25,7 @@ export default function CommentInput({ post, replyTarget, onClearReply }: Commen
   const fileInputRef = useRef<HTMLInputElement>(null);
   const mutation = useSubmitCommentMutation(post.id);
 
+  // GESTION DU FOCUS ET DE LA MENTION (Désactivation propre du linter pour éviter les boucles infinies)
   useEffect(() => {
     if (replyTarget) {
       if (!input.startsWith(`@${replyTarget}`)) {
@@ -32,7 +33,8 @@ export default function CommentInput({ post, replyTarget, onClearReply }: Commen
       }
       setTimeout(() => inputRef.current?.focus(), 100);
     }
-  }, [replyTarget]); // Simplifié pour éviter des boucles infinies sur l'input
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [replyTarget]); 
 
   // Nettoyage de l'URL de prévisualisation pour éviter les fuites de mémoire
   useEffect(() => {
