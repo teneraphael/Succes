@@ -16,14 +16,14 @@ export default function Page() {
         {/* EN-TÊTE ÉDITORIAL ET DISCRET */}
         <div className="px-4 sm:px-2 pt-2">
           <h1 className="text-xl font-bold tracking-tight text-foreground font-sans">
-            Centre d'alertes
+            Centre d&apos;alertes
           </h1>
           <p className="text-xs text-muted-foreground mt-0.5">
-           Suis l&apos;activité de ta vitrine et tes interactions en temps réel.
+            Suis l&apos;activité de ta vitrine et tes interactions en temps réel.
           </p>
         </div>
 
-        {/* COMPOSANT FLUX (Déjà configuré avec ses propres bordures et arrondis) */}
+        {/* COMPOSANT FLUX */}
         <Notifications />
         
       </div>
