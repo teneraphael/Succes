@@ -17,10 +17,13 @@ import UserPosts from "./UserPosts";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import BookmarksFeed from "@/app/(main)/bookmarks/Bookmarks"; 
 import OrderConfirmationList from "./OrderConfirmationList";
-import { Calendar, Store, Heart, Package, ArrowUpRight } from "lucide-react";
+import { Calendar, Store, Heart, Package, ShieldCheck, CheckCircle2 } from "lucide-react";
+import Image from "next/image";
+import ShareProfileButton from "./ShareProfileButton";
+import MoreOptionsButton from "./MoreOptionsButton"; // 👈 On importe notre nouveau bouton client
 
 interface PageProps {
-  params: { username: string };
+  params: Promise<{ username: string }>;
 }
 
 const getUser = cache(async (username: string, loggedInUserId: string) => {
@@ -38,7 +41,8 @@ const getUser = cache(async (username: string, loggedInUserId: string) => {
   return user;
 });
 
-export async function generateMetadata({ params: { username } }: PageProps): Promise<Metadata> {
+export async function generateMetadata(props: PageProps): Promise<Metadata> {
+  const { username } = await props.params;
   const { user: loggedInUser } = await validateRequest();
   if (!loggedInUser) return {};
   try {
@@ -49,7 +53,8 @@ export async function generateMetadata({ params: { username } }: PageProps): Pro
   }
 }
 
-export default async function Page({ params: { username } }: PageProps) {
+export default async function Page(props: PageProps) {
+  const { username } = await props.params;
   const { user: loggedInUser } = await validateRequest();
 
   if (!loggedInUser) redirect("/login");
@@ -62,31 +67,31 @@ export default async function Page({ params: { username } }: PageProps) {
     <main className="flex w-full min-w-0 gap-0 lg:gap-8 items-start">
       <div className="w-full min-w-0 space-y-6 lg:space-y-8">
         
-        {/* COMPOSANT PROFIL AVEC IDENTITÉ PREMIUM ET RESPONSIVE */}
-        <UserProfile user={user} loggedInUserId={loggedInUser.id} />
+        {/* COMPOSANT PROFIL MAQUETTÉ */}
+        <UserProfile user={user as any} loggedInUserId={loggedInUser.id} />
         
-        {/* NAVIGATION ASSOCIEE À L'IDENTITÉ ÉDITORIALE */}
+        {/* NAVIGATION DES ONGLETS */}
         <div className="px-4 sm:px-6 lg:px-0">
           <Tabs defaultValue="posts" className="w-full">
-            <TabsList className="bg-transparent border-b border-border w-full justify-start rounded-none p-0 h-auto gap-6 sm:gap-10 overflow-x-auto scrollbar-none">
+            <TabsList className="bg-[#f1f5f9] border border-slate-200/60 p-1 rounded-2xl flex items-center gap-1 shadow-sm">
               <TabsTrigger 
                 value="posts" 
-                className="px-0 py-4 bg-transparent rounded-none data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:border-b-2 data-[state=active]:border-amber-600 font-bold text-sm tracking-tight flex items-center gap-2 transition-all opacity-60 data-[state=active]:opacity-100 shadow-none"
+                className="flex-1 py-2.5 px-3 rounded-xl text-slate-500 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:border data-[state=active]:border-slate-200/80 text-xs font-bold flex items-center justify-center gap-2 transition-all shadow-none"
               >
-                <Store className="size-4" /> Catalogue
+                <Store className="size-4 text-[#00b272]" /> Catalogue
               </TabsTrigger>
               
               {isUserProfile && (
                 <>
                   <TabsTrigger 
                     value="orders" 
-                    className="px-0 py-4 bg-transparent rounded-none data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:border-b-2 data-[state=active]:border-amber-600 font-bold text-sm tracking-tight flex items-center gap-2 transition-all opacity-60 data-[state=active]:opacity-100 shadow-none"
+                    className="flex-1 py-2.5 px-3 rounded-xl text-slate-500 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:border data-[state=active]:border-slate-200/80 text-xs font-bold flex items-center justify-center gap-2 transition-all shadow-none"
                   >
                     <Package className="size-4" /> Commandes
                   </TabsTrigger>
                   <TabsTrigger 
                     value="bookmarks" 
-                    className="px-0 py-4 bg-transparent rounded-none data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:border-b-2 data-[state=active]:border-amber-600 font-bold text-sm tracking-tight flex items-center gap-2 transition-all opacity-60 data-[state=active]:opacity-100 shadow-none"
+                    className="flex-1 py-2.5 px-3 rounded-xl text-slate-500 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:border data-[state=active]:border-slate-200/80 text-xs font-bold flex items-center justify-center gap-2 transition-all shadow-none"
                   >
                     <Heart className="size-4" /> Favoris
                   </TabsTrigger>
@@ -118,7 +123,7 @@ export default async function Page({ params: { username } }: PageProps) {
 }
 
 interface UserProfileProps {
-  user: UserData;
+  user: UserData & { coverUrl?: string | null };
   loggedInUserId: string;
 }
 
@@ -131,77 +136,120 @@ async function UserProfile({ user, loggedInUserId }: UserProfileProps) {
   };
 
   return (
-    /* rounded-none sur mobile, bords arrondis élégants sur grand écran, fond ultra clair et lumineux */
-    <div className="w-full bg-white dark:bg-card border-b sm:border border-border/80 rounded-none sm:rounded-3xl p-6 md:p-10 shadow-[0_2px_24px_rgba(0,0,0,0.02)] relative overflow-hidden">
+    <div className="w-full bg-slate-50 text-slate-800 rounded-none sm:rounded-3xl overflow-hidden border border-slate-200/60 shadow-sm relative">
       
-      {/* Filigrane d'identité en arrière-plan (très discret, ton sur ton) */}
-      <div className="absolute -bottom-10 -right-10 text-[10rem] font-black text-muted-foreground/[0.03] select-none pointer-events-none font-sans hidden sm:block">
-        DC
-      </div>
-
-      <div className="flex flex-col md:flex-row gap-8 md:gap-12 items-center md:items-start relative z-10">
-        
-        {/* SECTIONS VISUELLE : L'AVATAR ET SON COMPTEUR FLOTTANT */}
-        <div className="relative shrink-0">
-          <div className="relative p-1 bg-background border rounded-full">
-            <UserAvatar
-              avatarUrl={user.avatarUrl}
-              size={140}
-              className="size-32 md:size-36 rounded-full object-cover"
+      {/* 1. BANNIÈRE EXTENSIBLE POUR L'IMAGE DU VENDEUR */}
+      <div className="h-36 sm:h-48 w-full relative bg-slate-200 overflow-hidden border-b border-slate-200/40">
+        {user.coverUrl ? (
+          <Image 
+            src={user.coverUrl} 
+            alt="Bannière de couverture" 
+            fill 
+            priority
+            className="object-cover"
+          />
+        ) : (
+          /* Dégradé de secours si le vendeur n'a pas chargé d'image */
+          <div className="absolute inset-0 bg-gradient-to-br from-slate-100 via-slate-50 to-emerald-50/50">
+            <div 
+              className="absolute inset-0 opacity-40" 
+              style={{
+                backgroundImage: "linear-gradient(rgba(0,0,0,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.03) 1px, transparent 1px)",
+                backgroundSize: "20px 20px"
+              }}
             />
           </div>
-          {/* Badge asymétrique chevauchant l'avatar */}
-          <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-foreground text-background text-[10px] font-black tracking-widest uppercase px-3 py-1 rounded-full whitespace-nowrap shadow-sm border border-background">
-            {formatNumber(user._count.posts)} Créations
-          </div>
-        </div>
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent" />
+      </div>
 
-        {/* CONTENU TEXTUEL : ARCHITECTURE ÉDITORIALE */}
-        <div className="flex-1 space-y-6 w-full">
-          
-          {/* LIGNE DE TÊTE : INFOS ET BOUTONS */}
-          <div className="flex flex-col sm:flex-row items-center sm:items-start justify-between gap-6 text-center sm:text-left">
-            <div className="space-y-1.5">
-              <h1 className="text-3xl md:text-4xl font-light tracking-tight text-foreground font-sans">
-                {user.displayName}
-              </h1>
-              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3 text-sm">
-                <span className="font-medium text-amber-600 dark:text-amber-500 tracking-wide">@{user.username}</span>
-                <span className="text-muted-foreground/30 hidden sm:inline">|</span>
-                <span className="text-muted-foreground flex items-center gap-1 text-xs">
-                  <Calendar className="size-3.5 opacity-60" />
-                  Depuis {formatDate(user.createdAt, "MMMM yyyy", { locale: fr })}
-                </span>
+      {/* CONTENEUR DES DONNÉES DU PROFIL */}
+      <div className="px-4 sm:px-6 pb-6 -mt-12 relative z-10 space-y-5">
+        
+        {/* 2. EN-TÊTE AVATAR ET ACTIONS COMPORTEMENTALES */}
+        <div className="flex items-end justify-between gap-4">
+          <div className="relative">
+            {/* Boîtier d'avatar parfaitement circulaire */}
+            <div className="p-1 bg-white rounded-full border border-slate-200/80 shadow-md">
+              <UserAvatar
+                avatarUrl={user.avatarUrl}
+                size={100}
+                className="size-20 sm:size-24 rounded-full object-cover"
+              />
+            </div>
+            
+            {/* Badge Administrateur */}
+            {user.username.toLowerCase() === "dealcity" && (
+              <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 bg-[#00b272] text-white text-[9px] font-black px-2 py-0.5 rounded-full flex items-center gap-1 shadow-sm uppercase tracking-wider">
+                <ShieldCheck className="size-2.5 stroke-[3]" />
+                Admin
               </div>
-            </div>
-
-            {/* ACTION TRIGGER (SUIVRE / CONFIGURER) */}
-            <div className="shrink-0 w-full sm:w-auto">
-              {user.id === loggedInUserId ? (
-                <EditProfileButton user={user} />
-              ) : (
-                <FollowButton userId={user.id} initialState={followerInfo} />
-              )}
-            </div>
+            )}
           </div>
 
-          {/* COMPTEUR DE COMMUNAUTÉ SOUS FORME DE COMPOSANT MINIMALISTE */}
-          <div className="flex items-center justify-center sm:justify-start gap-8 pt-2 border-t border-border/60">
-            <FollowerCount userId={user.id} initialState={followerInfo} />
+          {/* Boutons d'actions adaptatifs sans handlers serveurs */}
+          <div className="flex items-center gap-2">
+            {user.id === loggedInUserId ? (
+              <EditProfileButton user={user} />
+            ) : (
+              <FollowButton userId={user.id} initialState={followerInfo} />
+            )}
+            
+            {/* Composant Client pour le partage */}
+            <ShareProfileButton username={user.username} />
+            
+            {/* Composant Client pour les options complémentaires */}
+            <MoreOptionsButton />
           </div>
-
-          {/* LA BIOGRAPHIE PRÉSENTÉE COMME UNE NOTE SIGNÉE */}
-          {user.bio && (
-            <div className="pt-2 text-center sm:text-left border-t border-dashed border-border">
-              <Linkify>
-                <p className="whitespace-pre-line break-words text-sm text-foreground/80 leading-relaxed font-serif italic max-w-2xl">
-                  {user.bio}
-                </p>
-              </Linkify>
-            </div>
-          )}
-
         </div>
+
+        {/* 3. IDENTITÉ ET CERTIFICATION */}
+        <div className="space-y-0.5">
+          <h1 className="text-xl sm:text-2xl font-black tracking-tight flex items-center gap-1.5 text-slate-900">
+            {user.displayName}
+            {user.username.toLowerCase() === "dealcity" && (
+              <CheckCircle2 className="size-4 text-purple-500 fill-purple-500/10 stroke-[2.5]" />
+            )}
+          </h1>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-semibold">
+            <span className="text-[#00b272]">@{user.username}</span>
+            <span className="text-slate-300">|</span>
+            <span className="text-slate-400 flex items-center gap-1 font-medium">
+              <Calendar className="size-3.5 opacity-70" />
+              Membre depuis {formatDate(user.createdAt, "MMMM yyyy", { locale: fr })}
+            </span>
+          </div>
+        </div>
+
+        {/* 4. ENCADRÉ BIOGRAPHIE */}
+        <div className="p-3.5 rounded-xl bg-white border border-slate-200/80 flex items-center gap-3 shadow-sm">
+          <div className="px-2 py-0.5 bg-purple-50 border border-purple-100 rounded text-[9px] font-black text-purple-600 tracking-wider uppercase shrink-0">
+            Marketplace
+          </div>
+          <div className="text-xs text-slate-600 font-medium leading-relaxed flex-1">
+            {user.bio ? (
+              <Linkify>{user.bio}</Linkify>
+            ) : (
+              "Marketplace & réseau social — Achetez, vendez, connectez-vous."
+            )}
+          </div>
+        </div>
+
+        {/* 5. STATISTIQUES ÉPURÉES */}
+        <div className="grid grid-cols-2 gap-3 pt-1 max-w-md">
+          <div className="p-3 bg-white border border-slate-200/60 rounded-xl text-center space-y-0.5 shadow-sm">
+            <div className="text-lg font-black text-slate-900">{formatNumber(user._count.posts)}</div>
+            <div className="text-[10px] font-black uppercase tracking-wider text-slate-400">Créations</div>
+          </div>
+          
+          <div className="p-3 bg-white border border-slate-200/60 rounded-xl text-center space-y-0.5 shadow-sm">
+            <div className="text-lg font-black text-slate-900">
+              <FollowerCount userId={user.id} initialState={followerInfo} />
+            </div>
+            <div className="text-[10px] font-black uppercase tracking-wider text-slate-400">Abonnés</div>
+          </div>
+        </div>
+
       </div>
     </div>
   );

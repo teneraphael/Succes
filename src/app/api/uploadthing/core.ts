@@ -101,7 +101,7 @@ async function processMediaWithLogoWatermark(fileUrl: string, fileType: string, 
 }
 
 export const fileRouter = {
-  // --- UPLOAD AVATAR (Inchangé, pas de filigrane sur la photo de profil) ---
+  // --- UPLOAD AVATAR (Pas de filigrane sur la photo de profil) ---
   avatar: f({
     image: { maxFileSize: "512KB" },
   })
@@ -131,6 +131,50 @@ export const fileRouter = {
       });
 
       return { avatarUrl: newAvatarUrl };
+    }),
+
+  // --- UPLOAD BANNIÈRE / COVER COUVERTURE (Pas de filigrane) ---
+  coverPicture: f({
+    image: { maxFileSize: "4MB", maxFileCount: 1 },
+  })
+    .middleware(async () => {
+      const { user } = await validateRequest();
+      if (!user) throw new UploadThingError("Unauthorized");
+      
+      // On récupère l'utilisateur actuel en BDD pour obtenir l'ancienne coverUrl au besoin
+      const dbUser = await prisma.user.findUnique({
+        where: { id: user.id },
+        select: { id: true, coverUrl: true }
+      });
+      
+      if (!dbUser) throw new UploadThingError("User not found");
+      return { user: dbUser };
+    })
+    .onUploadComplete(async ({ metadata, file }) => {
+      // Cast explicite en string | null pour empêcher l'inférence en type 'never'
+      const oldCoverUrl = metadata.user.coverUrl as string | null;
+
+      // Nettoyage de l'ancienne image de couverture si elle existait sur UploadThing
+      if (oldCoverUrl) {
+        const key = oldCoverUrl.split(
+          `/a/${process.env.NEXT_PUBLIC_UPLOADTHING_APP_ID}/`,
+        )[1];
+        if (key) await utapi.deleteFiles(key).catch((e) => console.error("Erreur suppression ancienne cover:", e));
+      }
+
+      // Formatage de la nouvelle URL personnalisée sécurisée
+      const newCoverUrl = file.ufsUrl.replace(
+        `/b/`,
+        `/a/${process.env.NEXT_PUBLIC_UPLOADTHING_APP_ID}/`,
+      );
+
+      // Enregistrement en base de données
+      await prisma.user.update({
+        where: { id: metadata.user.id },
+        data: { coverUrl: newCoverUrl },
+      });
+
+      return { coverUrl: newCoverUrl };
     }),
 
   // --- UPLOAD STUDIO (MULTIMÉDIA FILIGRANÉ AVEC TON LOGO PROPRE) ---

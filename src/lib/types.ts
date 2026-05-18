@@ -13,6 +13,7 @@ export function getUserDataSelect(loggedInUserId?: string) {
     username: true,
     displayName: true,
     avatarUrl: true,
+    coverUrl: true,
     bio: true,
     isSeller: true,
     isPioneer: true,

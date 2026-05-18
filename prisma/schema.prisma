@@ -45,6 +45,7 @@ model User {
   passExpiryDate  DateTime?
   deliveryRequests DeliveryRequest[]
   bio             String?
+  coverUrl     String?
   allowNotifications Boolean     @default(true)
   sessions        Session[]
   orders          Order[]        @relation("BuyerOrders") 
