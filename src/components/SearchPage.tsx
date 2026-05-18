@@ -163,9 +163,9 @@ export default function SearchPage({ onClose }: SearchPageProps) {
             </div>
           </div>
         ) : inputValue.trim() !== "" && !isLoading ? (
-          /* Aucun résultat trouvé dans la base de données */
+          /* Aucun résultat trouvé dans la base de données (CORRIGÉ POUR ESLINT ICI) */
           <div className="text-center py-8 text-sm text-muted-foreground font-semibold">
-            Aucun produit exact trouvé. Taper Entrée pour chercher <span className="text-primary font-black">"{inputValue}"</span>
+            Aucun produit exact trouvé. Taper Entrée pour chercher <span className="text-primary font-black">{`"${inputValue}"`}</span>
           </div>
         ) : (
           /* BLOC PAR DÉFAUT (Champ vide : Historique + Tendances Réelles) */

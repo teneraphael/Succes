@@ -19,7 +19,7 @@ export default function Page() {
             Centre d'alertes
           </h1>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Suis l'activité de ta vitrine et tes interactions en temps réel.
+            {`Suis l'activité de ta vitrine et tes interactions en temps réel.`}
           </p>
         </div>
 
