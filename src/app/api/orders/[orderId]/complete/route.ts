@@ -39,29 +39,51 @@ export async function POST(
       return NextResponse.json({ error: "Cette commande est déjà marquée comme livrée." }, { status: 400 });
     }
 
-    // 5. Mise à jour du statut
-    // Dans un système COD, marquer comme "DELIVERED" signifie 
-    // que le livreur a ENCAISSÉ l'argent et REMIS le colis.
-    await prisma.order.update({
-      where: { id: orderId },
-      data: { 
-        status: "DELIVERED",
-        // On peut aussi imaginer un champ 'paidAt' si tu veux tracker l'encaissement
-        updatedAt: new Date()
-      },
+    // 5. TRANSACTION PRISMA : MISE À JOUR STATUT + DÉCRÉMENTATION DU STOCK
+    // Utiliser $transaction garantit que si la mise à jour du stock échoue, 
+    // le statut de la commande ne passera pas à "DELIVERED" (évite les incohérences en BDD).
+    await prisma.$transaction(async (tx) => {
+      
+      // A. Mise à jour du statut de la commande
+      await tx.order.update({
+        where: { id: orderId },
+        data: { 
+          status: "DELIVERED",
+          updatedAt: new Date()
+        },
+      });
+
+      // B. Décrémentation du stock du produit lié (Post)
+      if (order.postId) {
+        const quantityToReduce = order.quantity || 1;
+
+        const updatedPost = await tx.post.update({
+          where: { id: order.postId },
+          data: {
+            stock: {
+              decrement: quantityToReduce,
+            },
+          },
+        });
+
+        // Sécurité critique : Si le stock devient négatif, on annule tout !
+        if (updatedPost.stock < 0) {
+          throw new Error("Le stock disponible en base de données est insuffisant pour valider cette livraison.");
+        }
+      }
     });
 
-    console.log(`✅ Commande ${orderId} : Argent encaissé et colis livré par l'admin.`);
+    console.log(`✅ Commande ${orderId} : Argent encaissé, colis livré et stock mis à jour.`);
 
     return NextResponse.json({ 
       success: true, 
-      message: "Livraison confirmée et paiement encaissé." 
+      message: "Livraison confirmée, paiement encaissé et stock décrémenté." 
     });
 
   } catch (error: any) {
     console.error("ERREUR_LIVREUR_UPDATE:", error);
     return NextResponse.json({ 
-      error: "Erreur lors de la mise à jour",
+      error: error.message || "Erreur lors de la mise à jour",
       details: error.message 
     }, { status: 500 });
   }

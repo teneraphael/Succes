@@ -1,6 +1,5 @@
 "use client";
 
-import { useSession } from "@/app/(main)/SessionProvider";
 import { useToast } from "@/components/ui/use-toast";
 import { PostsPage } from "@/lib/types";
 import {
@@ -11,12 +10,23 @@ import {
 } from "@tanstack/react-query";
 import { submitPost } from "./actions";
 
+// Typage des arguments attendus par la mutation pour une sécurité maximale
+interface SubmitPostArgs {
+  content: string;
+  mediaIds: string[];
+  stock: number; // 📦 Ajout du typage pour le stock
+  targetUserId?: string;
+}
+
 export function useSubmitPostMutation() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
-    mutationFn: submitPost,
+    // mutationFn reçoit maintenant explicitement l'objet structuré envoyé par le PostEditor
+    mutationFn: ({ content, mediaIds, stock, targetUserId }: SubmitPostArgs) =>
+      submitPost({ content, mediaIds, stock, targetUserId }),
+
     onSuccess: async (newPost) => {
       // 1. Définir les flux à mettre à jour
       // On cible "for-you" ET le flux spécifique de l'auteur du post (soit toi, soit le pionnier substitué)
@@ -26,7 +36,7 @@ export function useSubmitPostMutation() {
           return (
             query.queryKey.includes("for-you") ||
             (query.queryKey.includes("user-posts") &&
-              query.queryKey.includes(newPost.user.id)) // Utilise newPost.user.id pour être sûr de viser le bon profil
+              query.queryKey.includes(newPost.user.id)) // Utilise newPost.user.id pour viser le bon profil
           );
         },
       };
@@ -34,7 +44,7 @@ export function useSubmitPostMutation() {
       // 2. Annuler les requêtes en cours pour éviter que le serveur n'écrase notre mise à jour optimiste
       await queryClient.cancelQueries(queryFilter);
 
-      // 3. Mise à jour optimiste du cache
+      // 3. Mise à jour optimiste du cache TanStack Query
       queryClient.setQueriesData<InfiniteData<PostsPage, string | null>>(
         queryFilter,
         (oldData) => {
@@ -58,7 +68,6 @@ export function useSubmitPostMutation() {
       );
 
       // 4. Invalidation ciblée
-      // On force le rafraîchissement uniquement si le cache était vide ou pour confirmer la donnée
       queryClient.invalidateQueries({
         queryKey: ["post-feed"],
         predicate(query) {

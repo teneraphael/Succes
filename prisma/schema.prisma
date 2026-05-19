@@ -249,6 +249,7 @@ model Post {
   audioArtist  String?
   videoFilter   String?   // Pour stocker le nom du filtre appliqué
   thumbnailUrl  String?
+  stock       Int      @default(0)
   
   // RELATION AJOUTÉE POUR LES SIGNALEMENTS
   reports             Report[]       

@@ -52,6 +52,9 @@ export default function Post({ post }: PostProps) {
   const { productName, price, availableColors } = extractInfo(post.content);
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
 
+  // Vérification de la disponibilité du produit via le stock Prisma
+  const isAvailable = post.stock !== undefined ? post.stock > 0 : true;
+
   useEffect(() => {
     if (availableColors.length > 0 && !selectedColor) {
       setSelectedColor(availableColors[0]);
@@ -64,6 +67,15 @@ export default function Post({ post }: PostProps) {
   const finalAudioTitle = post.audioTitle || "Son original";
 
   const handleAddToCart = (redirect = false) => {
+    if (!isAvailable) {
+      toast({ 
+        variant: "destructive", 
+        description: "Désolé, cet article est en rupture de stock !", 
+        duration: 2000 
+      });
+      return;
+    }
+
     const numericPrice = price ? parseInt(price.replace(/\D/g, '')) : 0;
     const firstImage = visualAttachments.find(m => m.type === "IMAGE")?.url || visualAttachments[0]?.url || "";
 
@@ -73,7 +85,7 @@ export default function Post({ post }: PostProps) {
       price: numericPrice,
       image: firstImage,
       quantity: 1,
-      color: selectedColor,
+      color: selectedColor ?? undefined, // ✅ Correction du type : string | null -> string | undefined
     };
 
     if (redirect) {
@@ -127,15 +139,26 @@ export default function Post({ post }: PostProps) {
               {productName}
             </h3>
           )}
-          <span className="inline-flex text-[9px] font-black uppercase tracking-widest text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-500/10">
-            Disponible en stock
-          </span>
+          
+          {/* Badge de disponibilité dynamique selon la quantité réelle */}
+          {isAvailable ? (
+            <span className="inline-flex text-[9px] font-black uppercase tracking-widest text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-500/10">
+              Disponible en stock ({post.stock})
+            </span>
+          ) : (
+            <span className="inline-flex text-[9px] font-black uppercase tracking-widest text-red-600 bg-red-50 px-2 py-0.5 rounded-md border border-red-500/10 animate-pulse">
+              Rupture de Stock
+            </span>
+          )}
         </div>
         
         {/* LE PRIX : Énorme et accrocheur */}
         {price && (
           <div className="text-right whitespace-nowrap">
-            <span className="text-2xl font-black tracking-tighter text-emerald-600 bg-emerald-50/70 border-2 border-emerald-500/10 px-3.5 py-1 rounded-2xl block shadow-sm transform -rotate-1">
+            <span className={cn(
+              "text-2xl font-black tracking-tighter bg-emerald-50/70 border-2 border-emerald-500/10 px-3.5 py-1 rounded-2xl block shadow-sm transform -rotate-1",
+              isAvailable ? "text-emerald-600" : "text-muted-foreground bg-neutral-100 border-neutral-200 line-through opacity-60"
+            )}>
               {price} <span className="text-xs font-bold tracking-normal">FCFA</span>
             </span>
           </div>
@@ -156,22 +179,33 @@ export default function Post({ post }: PostProps) {
         />
       </div>
 
-      {/* LA DESCRIPTION EN BAS A ÉTÉ SUPPRIMÉE ICI */}
-
       {/* BOUTONS D'ACHAT DIRECT (CTA) */}
       <div className="px-5 pt-1">
         <div className="flex gap-2 w-full">
           <button 
+            disabled={!isAvailable}
             onClick={() => handleAddToCart(false)} 
-            className="flex-1 py-4 rounded-xl font-black uppercase text-[10px] tracking-widest bg-secondary text-secondary-foreground border border-border/80 transition-all hover:bg-secondary/80 active:scale-[0.97] flex items-center justify-center gap-2"
+            className={cn(
+              "flex-1 py-4 rounded-xl font-black uppercase text-[10px] tracking-widest text-secondary-foreground border border-border/80 transition-all flex items-center justify-center gap-2",
+              isAvailable 
+                ? "bg-secondary hover:bg-secondary/80 active:scale-[0.97]" 
+                : "bg-neutral-100 text-neutral-400 border-neutral-200 cursor-not-allowed opacity-50"
+            )}
           >
             <ShoppingBag className="size-4" /> Panier
           </button>
           <button 
+            disabled={!isAvailable}
             onClick={() => handleAddToCart(true)} 
-            className="flex-[2.5] py-4 rounded-xl font-black uppercase italic text-xs tracking-widest shadow-md shadow-primary/20 transition-all active:scale-[0.97] bg-primary text-primary-foreground flex items-center justify-center gap-2 hover:opacity-95"
+            className={cn(
+              "flex-[2.5] py-4 rounded-xl font-black uppercase italic text-xs tracking-widest shadow-md transition-all flex items-center justify-center gap-2",
+              isAvailable 
+                ? "bg-primary text-primary-foreground shadow-primary/20 hover:opacity-95 active:scale-[0.97]" 
+                : "bg-neutral-200 text-neutral-400 shadow-none cursor-not-allowed opacity-50"
+            )}
           >
-            <CreditCard className="size-4 animate-pulse text-orange-400" /> Achat Sécurisé
+            <CreditCard className={cn("size-4 text-orange-400", isAvailable && "animate-pulse")} /> 
+            {isAvailable ? "Achat Sécurisé" : "Indisponible"}
           </button>
         </div>
       </div>

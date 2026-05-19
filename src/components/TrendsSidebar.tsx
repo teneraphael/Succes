@@ -1,5 +1,3 @@
-// ❌ Suppression de "use client" ici pour en faire un Server Component
-
 import { validateRequest } from "@/auth";
 import prisma from "@/lib/prisma";
 import { getUserDataSelect } from "@/lib/types";
@@ -8,7 +6,7 @@ import { Loader2 } from "lucide-react";
 import { unstable_cache } from "next/cache";
 import Link from "next/link";
 import { Suspense } from "react";
-import FollowButton from "./FollowButton"; // 👈 Ce bouton lui est un Client Component, et c'est parfait !
+import FollowButton from "./FollowButton";
 import UserAvatar from "./UserAvatar";
 import UserTooltip from "./UserTooltip";
 
@@ -18,7 +16,7 @@ interface TrendsSidebarProps {
 
 export default function TrendsSidebar({ className }: TrendsSidebarProps) {
   return (
-    <div className={cn("sticky top-[5.25rem] h-fit w-72 flex-none space-y-5 lg:w-80", className)}>
+    <div className={cn("hidden md:block sticky top-[5.25rem] h-fit w-72 flex-none space-y-5 lg:w-80", className)}>
       <Suspense fallback={<Loader2 className="mx-auto animate-spin" />}>
         <WhoToFollow />
         <TrendingTopics />
