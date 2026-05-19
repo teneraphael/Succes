@@ -49,7 +49,7 @@ export default function DeliveryDashboard() {
   }
 
   // Fonction pour gérer les actions (Livraison / Annulation / Suppression)
-  async function handleAction(orderId: string, action: 'deliver' | 'cancel' | 'delete') {
+ async function handleAction(orderId: string, action: 'deliver' | 'cancel' | 'delete') {
     const confirmMessages = {
       deliver: "Confirmes-tu avoir encaissé l'argent liquide auprès du client ?",
       cancel: "Voulez-vous marquer cette commande comme ANNULÉE ?",
@@ -60,21 +60,28 @@ export default function DeliveryDashboard() {
 
     setIsUpdating(orderId);
     try {
-      const res = await fetch(`/api/orders/${orderId}/${action}`, { 
+      // CORRECTION : On traduit 'deliver' en 'complete' pour correspondre à votre nom de dossier API
+      const apiEndpoint = action === 'deliver' ? 'complete' : action;
+
+      const res = await fetch(`/api/orders/${orderId}/${apiEndpoint}`, { 
         method: "POST" 
       });
 
       if (res.ok) {
+        // Suppression locale de la commande dans la liste pour rafraîchir l'UI immédiatement
         setOrders((prev) => prev.filter((o) => o.id !== orderId));
+        
         const successMsgs = {
-            deliver: "✅ Livraison validée !",
-            cancel: "Commande marquée comme annulée.",
-            delete: "Commande supprimée définitivement."
+          deliver: "✅ Livraison validée !",
+          cancel: "Commande marquée comme annulée.",
+          delete: "Commande supprimée définitivement."
         };
+        
         toast({ description: successMsgs[action] });
       } else {
-        const errorData = await res.json();
-        throw new Error(errorData.error || "Erreur lors de l'opération");
+        // Tentative de récupération du message d'erreur envoyé par le serveur
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || `Erreur ${res.status} lors de l'opération`);
       }
     } catch (error: any) {
       toast({ 
