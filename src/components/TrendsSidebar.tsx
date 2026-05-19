@@ -1,18 +1,24 @@
+// ❌ Suppression de "use client" ici pour en faire un Server Component
+
 import { validateRequest } from "@/auth";
 import prisma from "@/lib/prisma";
 import { getUserDataSelect } from "@/lib/types";
-import { formatNumber } from "@/lib/utils";
+import { formatNumber, cn } from "@/lib/utils";
 import { Loader2 } from "lucide-react";
 import { unstable_cache } from "next/cache";
 import Link from "next/link";
 import { Suspense } from "react";
-import FollowButton from "./FollowButton";
+import FollowButton from "./FollowButton"; // 👈 Ce bouton lui est un Client Component, et c'est parfait !
 import UserAvatar from "./UserAvatar";
 import UserTooltip from "./UserTooltip";
 
-export default function TrendsSidebar() {
+interface TrendsSidebarProps {
+  className?: string;
+}
+
+export default function TrendsSidebar({ className }: TrendsSidebarProps) {
   return (
-    <div className="sticky top-[5.25rem] hidden h-fit w-72 flex-none space-y-5 md:block lg:w-80">
+    <div className={cn("sticky top-[5.25rem] h-fit w-72 flex-none space-y-5 lg:w-80", className)}>
       <Suspense fallback={<Loader2 className="mx-auto animate-spin" />}>
         <WhoToFollow />
         <TrendingTopics />
@@ -42,8 +48,8 @@ async function WhoToFollow() {
   });
 
   return (
-    <div className="space-y-5 rounded-2xl bg-card p-5 shadow-sm">
-      <div className="text-xl font-bold">Who to follow</div>
+    <div className="space-y-5 rounded-2xl bg-card p-5 shadow-sm border border-border">
+      <div className="text-xl font-bold tracking-tight">Suggestions</div>
       {usersToFollow.map((user) => (
         <div key={user.id} className="flex items-center justify-between gap-3">
           <UserTooltip user={user}>
@@ -53,10 +59,10 @@ async function WhoToFollow() {
             >
               <UserAvatar avatarUrl={user.avatarUrl} className="flex-none" />
               <div>
-                <p className="line-clamp-1 break-all font-semibold hover:underline">
+                <p className="line-clamp-1 break-all font-semibold hover:underline text-sm">
                   {user.displayName}
                 </p>
-                <p className="line-clamp-1 break-all text-muted-foreground">
+                <p className="line-clamp-1 break-all text-xs text-muted-foreground">
                   @{user.username}
                 </p>
               </div>
@@ -102,20 +108,20 @@ async function TrendingTopics() {
   const trendingTopics = await getTrendingTopics();
 
   return (
-    <div className="space-y-5 rounded-2xl bg-card p-5 shadow-sm">
-      <div className="text-xl font-bold">Trending topics</div>
+    <div className="space-y-5 rounded-2xl bg-card p-5 shadow-sm border border-border">
+      <div className="text-xl font-bold tracking-tight">Tendances</div>
       {trendingTopics.map(({ hashtag, count }) => {
         const title = hashtag.split("#")[1];
 
         return (
-          <Link key={title} href={`/hashtag/${title}`} className="block">
+          <Link key={title} href={`/hashtag/${title}`} className="block group">
             <p
-              className="line-clamp-1 break-all font-semibold hover:underline"
+              className="line-clamp-1 break-all font-semibold group-hover:underline text-sm text-[#4a90e2]"
               title={hashtag}
             >
               {hashtag}
             </p>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-xs text-muted-foreground mt-0.5">
               {formatNumber(count)} {count === 1 ? "post" : "posts"}
             </p>
           </Link>

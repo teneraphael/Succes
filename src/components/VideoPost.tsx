@@ -18,10 +18,10 @@ const MUTE_EVENT = "video-global-mute-change";
 const VideoPost = ({ src, className, style, setIsGlobalPlaying, muted: forcedMuted }: VideoPostProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   
-  // État initial du mute basé sur la prop ou le défaut (true pour autoplay)
   const [isMuted, setIsMuted] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
   const [isPaused, setIsPaused] = useState(false);
+  const [progress, setProgress] = useState(0); 
 
   // 1. GESTION DES ÉVÉNEMENTS GLOBAUX
   useEffect(() => {
@@ -44,14 +44,14 @@ const VideoPost = ({ src, className, style, setIsGlobalPlaying, muted: forcedMut
       
       if (videoRef.current) {
         videoRef.current.pause();
-        videoRef.current.removeAttribute('src'); // Libère la mémoire
+        videoRef.current.removeAttribute('src'); 
         // eslint-disable-next-line react-hooks/exhaustive-deps
         videoRef.current.load();
       }
     };
   }, []);
 
-  // Hook personnalisé pour l'autoplay
+  // Autoplay à l'écran
   useAutoplayOnVisible(videoRef, 0.5); 
 
   // 2. SYNCHRONISATION DU VOLUME
@@ -60,7 +60,7 @@ const VideoPost = ({ src, className, style, setIsGlobalPlaying, muted: forcedMut
     if (!video) return;
 
     if (forcedMuted) {
-      video.muted = false; // On gère le volume manuellement si forcé
+      video.muted = false; 
       video.volume = 0.25; 
     } else {
       video.muted = isMuted;
@@ -68,12 +68,19 @@ const VideoPost = ({ src, className, style, setIsGlobalPlaying, muted: forcedMut
     }
   }, [forcedMuted, isMuted]);
 
+  // Suivi de la barre de progression temporelle
+  const handleTimeUpdate = () => {
+    if (videoRef.current) {
+      const currentProgress = (videoRef.current.currentTime / videoRef.current.duration) * 100;
+      setProgress(currentProgress);
+    }
+  };
+
   const toggleMute = (e: React.MouseEvent) => {
     e.stopPropagation();
     const newMutedState = !isMuted;
     setIsMuted(newMutedState);
     
-    // Notification à tous les autres composants VideoPost
     const event = new CustomEvent(MUTE_EVENT, { detail: { muted: newMutedState } });
     window.dispatchEvent(event);
   };
@@ -95,17 +102,20 @@ const VideoPost = ({ src, className, style, setIsGlobalPlaying, muted: forcedMut
   }, []);
 
   return (
-    <div className={cn("relative group overflow-hidden bg-black flex items-center justify-center w-full h-full", className)}>
+    // 👈 Les classes 'rounded-2xl' et 'sm:rounded-3xl' ont été retirées ici pour avoir des bords droits
+    <div className={cn("relative group overflow-hidden bg-zinc-950 flex items-center justify-center w-full h-full shadow-md border border-slate-200/5 dark:border-zinc-800/40 select-none", className)}>
       
+      {/* LECTEUR VIDÉO */}
       <video
         ref={videoRef}
-        src={src} // Utilisation directe pour une meilleure réactivité
-        className="w-full h-full object-cover block cursor-pointer"
+        src={src} 
+        className="w-full h-full object-cover block cursor-pointer transition-transform duration-500"
         style={style}
         loop 
         muted={isMuted && !forcedMuted} 
         playsInline 
         onClick={handleVideoClick}
+        onTimeUpdate={handleTimeUpdate} 
         preload="metadata" 
         crossOrigin="anonymous"
         onWaiting={() => setIsLoading(true)}
@@ -123,38 +133,52 @@ const VideoPost = ({ src, className, style, setIsGlobalPlaying, muted: forcedMut
         Ton navigateur ne supporte pas la lecture de vidéos.
       </video>
 
-      {/* Loader central */}
-      {isLoading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-[2px] z-10 pointer-events-none">
-          <Loader2 className="size-10 animate-spin text-white/80" />
-        </div>
-      )}
+      {/* GRADIENT D'OMBRAGE INFÉRIEUR */}
+      <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-black/60 via-black/10 to-transparent pointer-events-none z-10" />
 
-      {/* Icône Play au milieu quand en pause */}
-      {isPaused && !isLoading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/10 pointer-events-none z-10 transition-opacity">
-          <div className="bg-black/20 p-4 rounded-full backdrop-blur-sm">
-            <Play className="size-12 text-white/70 fill-current" />
+      {/* LOADER CENTRAL DESIGN */}
+      {isLoading && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black/30 backdrop-blur-xs z-20 pointer-events-none">
+          <div className="p-3 rounded-2xl bg-black/40 border border-white/10 backdrop-blur-md shadow-xl">
+            <Loader2 className="size-8 animate-spin text-[#00b272]" />
           </div>
         </div>
       )}
 
-      {/* Bouton Mute individuel/global */}
+      {/* BOUTON PLAY CINÉMATIQUE EN PAUSE */}
+      {isPaused && !isLoading && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black/10 pointer-events-none z-20">
+          <div className="bg-white/15 p-4 rounded-full backdrop-blur-xl border border-white/20 shadow-2xl animate-in fade-in zoom-in-75 duration-200">
+            <Play className="size-10 text-white fill-white ml-0.5" />
+          </div>
+        </div>
+      )}
+
+      {/* BOUTON DE SON GLOBAL */}
       {!forcedMuted && (
         <button
           onClick={toggleMute}
           type="button"
           aria-label={isMuted ? "Activer le son" : "Désactiver le son"}
-          className="absolute top-4 right-4 z-50 rounded-full bg-black/60 p-2 text-white backdrop-blur-md transition-all hover:bg-black/80 border border-white/10 shadow-lg active:scale-90"
+          className="absolute top-4 right-4 z-30 rounded-xl bg-black/50 p-2.5 text-white backdrop-blur-lg transition-all hover:bg-black/70 border border-white/10 shadow-lg active:scale-95"
         >
-          {isMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
+          {isMuted ? <VolumeX size={16} className="text-zinc-300" /> : <Volume2 size={16} className="text-[#00b272]" />}
         </button>
       )}
 
-      {/* Badge indicateur */}
-      <div className="absolute bottom-4 left-4 z-20 rounded-md bg-black/40 px-2 py-1 text-[10px] font-bold text-white/80 backdrop-blur-sm pointer-events-none border border-white/5 uppercase tracking-wider">
-        Video
+      {/* BADGE DE TYPE DE MÉDIA */}
+      <div className="absolute bottom-4 left-4 z-20 rounded-lg bg-black/40 px-2.5 py-1 text-[9px] font-black uppercase text-zinc-100 tracking-widest backdrop-blur-md pointer-events-none border border-white/5 shadow-sm">
+        Aperçu
       </div>
+
+      {/* BARRE DE PROGRESSION DISCRÈTE */}
+      <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/10 z-30 pointer-events-none">
+        <div 
+          className="h-full bg-gradient-to-r from-[#00b272] to-emerald-400 transition-all duration-100 ease-linear"
+          style={{ width: `${progress}%` }}
+        />
+      </div>
+
     </div>
   );
 };
