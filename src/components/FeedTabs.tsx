@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, PanInfo } from "framer-motion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface FeedTabsProps {
@@ -13,16 +13,15 @@ interface FeedTabsProps {
 export default function FeedTabs({ userId, forYouFeed, followingFeed }: FeedTabsProps) {
   const [activeTab, setActiveTab] = useState("for-you");
 
+  // Fonction pour gérer le swipe
+  const handleDragEnd = (event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+    // On définit un seuil de 50px pour le swipe
+    if (info.offset.x > 50) setActiveTab("for-you");
+    else if (info.offset.x < -50) setActiveTab("following");
+  };
+
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-      {/* CORRECTION :
-        1. sticky : rend l'élément collant.
-        2. top-[5.25rem] : C'est la valeur cruciale. 
-           Si ta navbar fait 84px (5.25rem), alors tes onglets se colleront 
-           juste en dessous d'elle dès que tu scrolles.
-        3. z-40 : pour s'assurer qu'il passe au-dessus des posts.
-        4. bg-background/95 : obligatoire pour que le contenu derrière soit masqué.
-      */}
       <div className="sticky top-[5.25rem] z-40 w-full bg-background/95 bg-background py-2.5 shadow-sm">
         <TabsList className="bg-muted/75 border border-border/20 p-1 h-11 max-w-[280px] sm:max-w-xs mx-auto flex rounded-full select-none">
           <TabsTrigger 
@@ -40,14 +39,20 @@ export default function FeedTabs({ userId, forYouFeed, followingFeed }: FeedTabs
         </TabsList>
       </div>
 
-      <div className="w-full">
+      <div className="w-full overflow-hidden">
         <AnimatePresence mode="wait">
           <motion.div
             key={activeTab}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.2 }}
+            initial={{ opacity: 0, x: activeTab === "following" ? 50 : -50 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: activeTab === "following" ? -50 : 50 }}
+            transition={{ duration: 0.25, ease: "easeInOut" }}
+            
+            /* Réactivation du swipe sans bloquer le scroll vertical */
+            drag="x"
+            dragConstraints={{ left: 0, right: 0 }}
+            dragElastic={0.2}
+            onDragEnd={handleDragEnd}
           >
             <TabsContent value="for-you" className="mt-4 outline-none border-none">
               {forYouFeed}
