@@ -45,12 +45,15 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // Récupération de la session côté serveur
   const sessionValues = await validateRequest();
 
   return (
     <html lang="fr" suppressHydrationWarning>
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+      {/* CORRECTION : Suppression de toute classe de hauteur fixe sur le body.
+        Le 'sticky' a besoin que le scroll soit géré par le navigateur (body) 
+        et non par un conteneur interne pour fonctionner correctement. 
+      */}
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen bg-background text-foreground`}>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
@@ -58,17 +61,11 @@ export default async function RootLayout({
           disableTransitionOnChange
         >
           <LanguageProvider>
-            {/* CORRECTION 1: On s'assure que ReactQueryProvider enveloppe tout 
-                ce qui utilise des hooks de données. */}
             <ReactQueryProvider>
               <SessionProvider value={sessionValues}>
                 <LanguageSync>
-                  {/* CORRECTION 2: Le NextSSRPlugin peut causer des erreurs d'hydratation 
-                      s'il n'est pas placé correctement. */}
                   <NextSSRPlugin routerConfig={extractRouterConfig(fileRouter)} />
                   
-                  {/* CORRECTION 3: Protection du NotificationHandler. 
-                      S'il demande des permissions trop vite sur mobile, ça crash. */}
                   {sessionValues.user && <NotificationHandler />}
                   
                   <CartProvider>

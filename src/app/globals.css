@@ -83,17 +83,16 @@
 
 /* --- MISE EN PAGE PLEIN ÉCRAN (EDGE-TO-EDGE) --- */
 @media (max-width: 768px) {
-  /* Suppression des paddings sur le conteneur principal */
+  /* Supprime display: flex et flex-direction ici */
   main {
     padding: 0 !important;
     margin: 0 !important;
     max-width: 100% !important;
     width: 100% !important;
-    display: flex !important;
-    flex-direction: column !important;
+    /* Supprime le bloc flex forcé qui tue le sticky */
   }
 
-  /* Force les articles à prendre 100% de la largeur sans arrondis */
+  /* Reste du code pour les articles... */
   article {
     width: 100% !important;
     max-width: 100% !important;

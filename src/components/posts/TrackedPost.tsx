@@ -10,46 +10,46 @@ interface TrackedPostProps {
 }
 
 export default function TrackedPost({ post, userId, children }: TrackedPostProps) {
-  // On utilise un useRef pour suivre si l'interaction a déjà été envoyée au serveur
-  // pour cette instance précise, afin d'éviter les doubles appels lors de re-renders.
   const hasTracked = useRef(false);
 
   const { ref, inView } = useInView({
-    threshold: 0.7, // 70% de visibilité pour confirmer l'intérêt
-    triggerOnce: true, // L'observateur s'arrête après la première détection
+    threshold: 0.7,
+    triggerOnce: true, 
   });
 
   useEffect(() => {
-    // On ne lance le timer que si le post est visible, l'user connecté, 
-    // et qu'on n'a pas encore tracké ce post.
-    if (inView && userId && !hasTracked.current) {
-      const timer = setTimeout(async () => {
-        try {
-          // On marque immédiatement comme tracké pour bloquer tout autre appel
-          hasTracked.current = true;
+    // Si l'élément n'est pas en vue ou si l'utilisateur n'est pas loggé, on ignore
+    if (!inView || !userId || hasTracked.current) return;
 
-          await fetch("/api/posts/track", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              id: post.id,
-              type: "VIEW",
-              itemType: "POST"
-            }),
-            // Indique au navigateur que cette requête ne doit pas bloquer 
-            // ou rafraîchir l'interface utilisateur inutilement
-            priority: "low" 
-          });
-        } catch (error) {
-          console.error("Erreur de tracking DealCity:", error);
-          // En cas d'échec, on permet une nouvelle tentative au prochain scroll
-          hasTracked.current = false;
+    const timer = setTimeout(async () => {
+      // Sécurité : on marque avant l'appel pour éviter les doublons même en cas de latence
+      hasTracked.current = true;
+
+      try {
+        const response = await fetch("/api/posts/track", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id: post.id,
+            type: "VIEW",
+            itemType: "POST"
+          }),
+        });
+
+        // Si l'API renvoie une erreur (ex: 500), on ne veut pas bloquer l'UI.
+        // On logue discrètement pour le debug.
+        if (!response.ok) {
+          console.warn(`Tracking non critique échoué pour le post ${post.id}`);
         }
-      }, 1000); // 1 seconde de focus = intérêt réel
+      } catch (error) {
+        // En cas d'erreur réseau (ex: CORS ou timeout), on ne fait rien
+        // pour ne pas interrompre l'expérience utilisateur.
+        console.warn("Tracking network error, ignoring.");
+      }
+    }, 1000);
 
-      return () => clearTimeout(timer);
-    }
+    return () => clearTimeout(timer);
   }, [inView, userId, post.id]);
 
-  return <div ref={ref}>{children}</div>;
+  return <div ref={ref} className="w-full">{children}</div>;
 }
