@@ -17,7 +17,7 @@ export default async function Page() {
         className="inline-flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-slate-900 transition-colors mb-4"
       >
         <ArrowLeft className="size-4" />
-        Retour à l'accueil
+        Retour à l&apos;accueil
       </Link>
 
       {/* En-tête épuré */}
@@ -26,7 +26,7 @@ export default async function Page() {
           Mes commandes
         </h1>
         <p className="text-slate-500 text-sm">
-          Retrouvez ici l'historique et le suivi de vos achats.
+          Retrouvez ici l&apos;historique et le suivi de vos achats.
         </p>
       </div>
 
