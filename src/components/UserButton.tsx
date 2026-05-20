@@ -10,7 +10,6 @@ import {
   Monitor, 
   Moon, 
   Sun, 
-  UserIcon, 
   Store, 
   Languages,
   LayoutDashboard,
@@ -121,17 +120,6 @@ export default function UserButton({ className, user: propUser }: UserButtonProp
             </Link>
           </DropdownMenuItem>
         )}
-
-        <DropdownMenuSeparator className="mx-2" />
-        
-        <DropdownMenuItem asChild className="rounded-xl py-3 cursor-pointer">
-          <Link href={`/users/${user.username}`}>
-            <div className="flex items-center w-full">
-              <UserIcon className="mr-3 size-5 text-muted-foreground" />
-              <span className="font-medium">{t.profile}</span>
-            </div>
-          </Link>
-        </DropdownMenuItem>
 
         <DropdownMenuItem asChild className="rounded-xl py-3 cursor-pointer">
           <Link href="/settings">

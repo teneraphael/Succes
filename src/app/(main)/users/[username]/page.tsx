@@ -16,8 +16,7 @@ import EditProfileButton from "./EditProfileButton";
 import UserPosts from "./UserPosts";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import BookmarksFeed from "@/app/(main)/bookmarks/Bookmarks"; 
-import OrderConfirmationList from "./OrderConfirmationList";
-import { Calendar, Store, Heart, Package, ShieldCheck, CheckCircle2 } from "lucide-react";
+import { Calendar, Store, Heart, ShieldCheck, CheckCircle2 } from "lucide-react";
 import Image from "next/image";
 import ShareProfileButton from "./ShareProfileButton";
 import MoreOptionsButton from "./MoreOptionsButton";
@@ -65,13 +64,10 @@ export default async function Page(props: PageProps) {
 
   return (
     <main className="flex w-full min-w-0 gap-0 lg:gap-8 items-start">
-      {/* Ajout de flex-1 pour occuper toute la largeur disponible */}
       <div className="w-full min-w-0 flex-1 space-y-6 lg:space-y-8">
         
-        {/* COMPOSANT PROFIL MAQUETTÉ */}
         <UserProfile user={user as any} loggedInUserId={loggedInUser.id} />
         
-        {/* Suppression du padding horizontal pour aligner les onglets avec le profil */}
         <div className="w-full">
           <Tabs defaultValue="posts" className="w-full">
             <TabsList className="bg-[#f1f5f9] border border-slate-200/60 p-1 rounded-2xl flex items-center gap-1 shadow-sm w-full">
@@ -83,20 +79,12 @@ export default async function Page(props: PageProps) {
               </TabsTrigger>
               
               {isUserProfile && (
-                <>
-                  <TabsTrigger 
-                    value="orders" 
-                    className="flex-1 py-2.5 px-3 rounded-xl text-slate-500 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:border data-[state=active]:border-slate-200/80 text-xs font-bold flex items-center justify-center gap-2 transition-all shadow-none"
-                  >
-                    <Package className="size-4" /> Commandes
-                  </TabsTrigger>
-                  <TabsTrigger 
-                    value="bookmarks" 
-                    className="flex-1 py-2.5 px-3 rounded-xl text-slate-500 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:border data-[state=active]:border-slate-200/80 text-xs font-bold flex items-center justify-center gap-2 transition-all shadow-none"
-                  >
-                    <Heart className="size-4" /> Favoris
-                  </TabsTrigger>
-                </>
+                <TabsTrigger 
+                  value="bookmarks" 
+                  className="flex-1 py-2.5 px-3 rounded-xl text-slate-500 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:border data-[state=active]:border-slate-200/80 text-xs font-bold flex items-center justify-center gap-2 transition-all shadow-none"
+                >
+                  <Heart className="size-4" /> Favoris
+                </TabsTrigger>
               )}
             </TabsList>
 
@@ -105,14 +93,9 @@ export default async function Page(props: PageProps) {
             </TabsContent>
 
             {isUserProfile && (
-              <>
-                <TabsContent value="orders" className="outline-none pt-6 w-full">
-                  <OrderConfirmationList userId={user.id} />
-                </TabsContent>
-                <TabsContent value="bookmarks" className="outline-none pt-6 w-full">
-                  <BookmarksFeed />
-                </TabsContent>
-              </>
+              <TabsContent value="bookmarks" className="outline-none pt-6 w-full">
+                <BookmarksFeed />
+              </TabsContent>
             )}
           </Tabs>
         </div>
