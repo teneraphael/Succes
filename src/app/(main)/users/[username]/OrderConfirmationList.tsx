@@ -1,10 +1,11 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { Package, Loader2, ShoppingCart, CheckCircle2, Clock, Truck } from "lucide-react";
+import { Package, Loader2, ShoppingCart, CheckCircle2, Clock, Truck, CreditCard } from "lucide-react";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
 import OrderConfirmButton from "./OrderConfirmButton"; 
+import { PayDeliveryButton } from "@/app/actions/PayDeliveryButton"; // Ton nouveau bouton
 
 interface OrderConfirmationListProps {
   userId: string;
@@ -40,7 +41,6 @@ export default function OrderConfirmationList({ userId }: OrderConfirmationListP
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
-      {/* HEADER DE SECTION */}
       <div className="flex items-center justify-between px-2">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-primary/10 rounded-xl">
@@ -56,12 +56,12 @@ export default function OrderConfirmationList({ userId }: OrderConfirmationListP
         {orders.map((order: any) => {
           const displayPrice = order.price || order.totalAmount || 0;
           
-          // --- LOGIQUE DES STATUTS CORRIGÉE POUR DEALCITY ---
-          const isPending = order.status === "PENDING";      // Juste commandé
-          const isDelivered = order.status === "DELIVERED";  // Encaissé par le livreur
-          const isCompleted = order.status === "COMPLETED";  // Clôturé
+          // Logique des statuts incluant le paiement des frais
+          const isPendingFee = order.status === "PENDING_DELIVERY_FEE"; 
+          const isPending = order.status === "PENDING";
+          const isDelivered = order.status === "DELIVERED";
+          const isCompleted = order.status === "COMPLETED";
           
-          // Le bouton de confirmation s'affiche quand le livreur a marqué "DELIVERED"
           const canConfirm = isDelivered; 
 
           return (
@@ -69,87 +69,57 @@ export default function OrderConfirmationList({ userId }: OrderConfirmationListP
               key={order.id} 
               className={cn(
                 "group relative bg-card border rounded-[2.2rem] overflow-hidden transition-all duration-300",
-                canConfirm ? "border-blue-500/30 bg-blue-50/10 shadow-md shadow-blue-500/5" : "border-border shadow-sm",
-                isPending && "opacity-90"
+                canConfirm ? "border-blue-500/30 bg-blue-50/10" : "border-border",
+                isPendingFee && "border-amber-500/30 bg-amber-50/10"
               )}
             >
-              {/* INDICATEUR LATÉRAL ÉPAIS */}
+              {/* INDICATEUR LATÉRAL */}
               <div className={cn(
                 "absolute left-0 top-0 bottom-0 w-2",
+                isPendingFee && "bg-amber-500 animate-pulse",
                 isPending && "bg-orange-400",
-                canConfirm && "bg-blue-500 animate-pulse",
+                canConfirm && "bg-blue-500",
                 isCompleted && "bg-[#6ab344]"
               )} />
 
               <div className="p-5 pl-7">
                 <div className="flex gap-5">
-                  {/* IMAGE PRODUIT */}
-                  <div className="relative size-20 rounded-[1.4rem] overflow-hidden border bg-muted shrink-0 shadow-inner">
+                  <div className="relative size-20 rounded-[1.4rem] overflow-hidden border bg-muted shrink-0">
                     <Image 
                       src={order.post?.attachments?.[0]?.url || "/placeholder.png"} 
-                      fill 
-                      alt="Produit" 
-                      className="object-cover transition-transform group-hover:scale-110 duration-500"
-                      unoptimized
+                      fill alt="Produit" className="object-cover" unoptimized
                     />
                   </div>
 
-                  {/* CONTENU INFOS */}
                   <div className="flex-1 min-w-0 flex flex-col justify-between">
                     <div>
                       <div className="flex justify-between items-start gap-2 mb-1">
-                        <h4 className="font-black uppercase text-[12px] truncate text-foreground/80 tracking-tight">
-                          {order.post?.content || "Article DealCity"}
-                        </h4>
+                        <h4 className="font-black uppercase text-[12px] truncate">{order.post?.content || "Article"}</h4>
                         <span className="text-sm font-black text-[#6ab344] italic">
-                          {Number(displayPrice).toLocaleString()} <small className="text-[10px] not-italic opacity-70 ml-0.5">F</small>
+                          {Number(displayPrice).toLocaleString()} <small className="text-[10px] opacity-70">F</small>
                         </span>
                       </div>
 
+                      {/* STATUT */}
                       <div className="flex items-center gap-2">
-                         <div className={cn(
-                           "p-1 rounded-md",
-                           isPending && "bg-orange-100 text-orange-500",
-                           canConfirm && "bg-blue-100 text-blue-500",
-                           isCompleted && "bg-green-100 text-green-500"
-                         )}>
-                           {isPending && <Clock className="size-3" />}
-                           {canConfirm && <Truck className="size-3" />}
-                           {isCompleted && <CheckCircle2 className="size-3" />}
-                         </div>
-                         
-                         <span className={cn(
-                           "text-[10px] font-black uppercase tracking-widest italic",
-                           isPending && "text-orange-600",
-                           canConfirm && "text-blue-600",
-                           isCompleted && "text-green-600"
-                         )}>
-                           {isPending && "Préparation / En route"}
-                           {canConfirm && "Colis livré ! À confirmer"}
-                           {isCompleted && "Commande terminée"}
-                         </span>
+                        <div className={cn("p-1 rounded-md", isPendingFee ? "bg-amber-100 text-amber-600" : "bg-muted")}>
+                           {isPendingFee && <CreditCard className="size-3" />}
+                        </div>
+                        <span className={cn("text-[10px] font-black uppercase italic", isPendingFee ? "text-amber-600" : "text-muted-foreground")}>
+                           {isPendingFee ? "En attente des frais de livraison (1000 FCFA)" : "Suivi en cours"}
+                        </span>
                       </div>
                     </div>
 
-                    {/* ACTION DE CONFIRMATION (Uniquement si DELIVERED) */}
-                    {canConfirm && (
-                      <div className="mt-4 pt-4 border-t border-blue-500/10">
-                        <div className="flex flex-col gap-3">
-                          <p className="text-[9px] font-black text-blue-500/70 uppercase tracking-tighter">
-                            Cliquez ci-dessous pour confirmer que vous avez bien reçu votre colis :
-                          </p>
-                          <OrderConfirmButton orderId={order.id} status={order.status} />
-                        </div>
+                    {/* ACTION PAIEMENT FRAIS */}
+                    {isPendingFee && (
+                      <div className="mt-3">
+                        <PayDeliveryButton orderId={order.id} />
                       </div>
                     )}
 
-                    {isCompleted && (
-                      <div className="mt-3 pt-3 border-t border-dashed border-green-200/50">
-                        <p className="text-[10px] font-black text-[#6ab344] uppercase tracking-widest italic">
-                          Merci de votre confiance !
-                        </p>
-                      </div>
-                    )}
+                    {/* ACTION CONFIRMATION */}
+                    {canConfirm && <OrderConfirmButton orderId={order.id} status={order.status} />}
                   </div>
                 </div>
               </div>

@@ -89,7 +89,6 @@ model User {
 
 model Order {
   id                String      @id @default(cuid())
-  status            OrderStatus @default(PENDING)
   quantity        Int         @default(1)
   // Informations de paiement
   total             Int         // Prix total en XAF
@@ -105,7 +104,9 @@ model Order {
   notes             String?
   paymentMethod   String      @default("CASH_ON_DELIVERY")
   deliveryCode      String?     // <--- AJOUTÉ : Le code secret à 4 chiffres pour la validation
-  
+  deliveryFeePaid   Boolean  @default(false) // Nouveau champ
+  status            String   @default("PENDING_DELIVERY_FEE")
+  monetbilTxId    String?
   // Relations
   userId            String      // L'acheteur
   user              User        @relation("BuyerOrders", fields: [userId], references: [id], onDelete: Cascade)
@@ -347,6 +348,7 @@ enum OrderStatus {
   SHIPPED    // Livreur a récupéré/livré le colis
   FAILED
   INITIALIZED
+  FEE_PAID_AWAITING_DELIVERY
   DELIVERED
   COMPLETED  // Client a confirmé la réception (L'argent peut être versé au vendeur)
   CANCELLED  // Annulé ou Échec de paiement

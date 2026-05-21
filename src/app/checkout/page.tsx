@@ -3,7 +3,7 @@
 import { useCart } from '@/context/cart-context';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useState, Suspense } from 'react';
-import { ArrowLeft, MapPin, Phone, User, CheckCircle2, ShieldCheck, Palette, Plus, Minus, Loader2, MessageSquare, Truck, CreditCard } from 'lucide-react';
+import { ArrowLeft, MapPin, Phone, User, Palette, Plus, Minus, Loader2, MessageSquare, Truck, Info } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import Image from 'next/image';
 
@@ -26,8 +26,6 @@ function CheckoutContent() {
 
   const directId = searchParams.get('directId');
   const [directQty, setDirectQty] = useState(Number(searchParams.get('qty')) || 1);
-
-  // RÉCUPÉRATION DE LA COULEUR CHOISIE DEPUIS L'URL
   const selectedColor = searchParams.get('color') || null;
 
   const displayItems = directId ? [{
@@ -36,7 +34,7 @@ function CheckoutContent() {
     price: Number(searchParams.get('price')) || 0,
     image: searchParams.get('image') || "",
     quantity: directQty,
-    color: selectedColor, // Utilise la couleur passée en paramètre
+    color: selectedColor,
   }] : cart;
 
   const totalAmount = displayItems.reduce((acc, item) => acc + (item.price * (item.quantity || 1)), 0);
@@ -44,12 +42,8 @@ function CheckoutContent() {
   const handleQtyChange = (id: string, currentQty: number, color: string | null | undefined, delta: number) => {
     const newQty = currentQty + delta;
     if (newQty < 1) return;
-
-    if (directId) {
-      setDirectQty(newQty);
-    } else {
-      updateQuantity(id, newQty, color || undefined);
-    }
+    if (directId) setDirectQty(newQty);
+    else updateQuantity(id, newQty, color || undefined);
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -61,17 +55,16 @@ function CheckoutContent() {
 
     setIsSubmitting(true);
     const formData = new FormData(e.currentTarget);
-    
     const rawPhone = formData.get('phone') as string;
     const cleanPhone = rawPhone.replace(/\s+/g, '').replace(/^\+237/, '');
 
-    // --- CONSTRUCTION DES DONNÉES ENVOYÉES À L'API ---
     const orderData = {
       customerName: formData.get('name'),
       customerPhone: cleanPhone,
       customerAddress: formData.get('address'),
       note: orderNote, 
       total: totalAmount,
+      status: "pending_payment", // Statut à mettre à jour manuellement
       items: displayItems.map(item => ({
         postId: item.id,
         name: item.name,
@@ -93,38 +86,25 @@ function CheckoutContent() {
       });
 
       const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || "Erreur lors de la validation");
-      }
+      if (!response.ok) throw new Error(result.error || "Erreur lors de la validation");
 
       if (result.success) {
         toast({ 
-          title: "COMMANDE VALIDÉE 📦",
-          description: "Votre commande a été enregistrée. Préparez le montant pour la livraison.",
-          duration: 5000,
+          title: "COMMANDE ENREGISTRÉE !", 
+          description: "Veuillez effectuer le paiement des frais de 1000F pour valider votre commande.",
+          duration: 7000,
         });
-        
         if (!directId) clearCart();
-        
-        // Redirection vers l'espace utilisateur
         router.push(`/users/me?tab=orders`);
       }
-
     } catch (error: any) {
-      toast({ 
-        variant: "destructive", 
-        title: "ERREUR", 
-        description: error.message || "Impossible de valider la commande." 
-      });
-    } finally {
+      toast({ variant: "destructive", title: "ERREUR", description: error.message });
       setIsSubmitting(false);
     }
   };
 
   return (
     <div className="min-h-screen bg-[#F8F9FA] dark:bg-zinc-950 pb-20 transition-colors font-sans">
-      {/* HEADER */}
       <div className="bg-white dark:bg-zinc-900 border-b border-slate-100 dark:border-zinc-800/80 sticky top-0 z-10 px-4 py-5 transition-colors shadow-xs">
         <div className="max-w-md mx-auto flex items-center gap-4">
           <button onClick={() => router.back()} className="p-2 -ml-2 hover:bg-slate-50 dark:hover:bg-zinc-800 rounded-full transition">
@@ -135,12 +115,19 @@ function CheckoutContent() {
       </div>
 
       <div className="max-w-md mx-auto p-4 space-y-6 mt-2">
+        {/* SECTION PAIEMENT FRAIS */}
+        <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800 p-5 rounded-[26px] flex gap-4">
+          <Info className="text-[#00b272] size-12 flex-shrink-0" />
+          <div>
+            <p className="text-xs font-black text-emerald-900 dark:text-emerald-100 uppercase italic">Frais de livraison : 1000 FCFA</p>
+            <p className="text-[11px] text-emerald-700 dark:text-emerald-300 font-bold mt-1">Envoyez 1000F par Mobile Money pour confirmer :</p>
+            <p className="text-sm font-black text-emerald-900 dark:text-white mt-2">MTN : <span className="underline italic">673910659</span></p>
+            <p className="text-sm font-black text-emerald-900 dark:text-white">ORANGE : <span className="underline italic">687305263</span></p>
+          </div>
+        </div>
+
         {/* RECAP ARTICLES */}
-        <div className="space-y-3">
-          <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1 italic">
-            {directId ? "Achat immédiat" : "Récapitulatif de ta commande"}
-          </p>
-          <div className="bg-white dark:bg-zinc-900 rounded-[26px] border border-slate-200/60 dark:border-zinc-800/60 p-4 shadow-xs space-y-4">
+        <div className="bg-white dark:bg-zinc-900 rounded-[26px] border border-slate-200/60 dark:border-zinc-800/60 p-4 shadow-xs space-y-4">
             {displayItems.map((item, index) => (
               <div key={`${item.id}-${index}`} className="flex gap-4">
                 <div className="relative size-20 rounded-2xl overflow-hidden bg-slate-50 dark:bg-zinc-800 flex-shrink-0 border border-slate-100 dark:border-zinc-800">
@@ -148,13 +135,6 @@ function CheckoutContent() {
                 </div>
                 <div className="flex-1 min-w-0 flex flex-col justify-center">
                   <h3 className="font-black text-sm uppercase truncate italic tracking-tight mb-1 text-slate-900 dark:text-white">{item.name}</h3>
-                  <div className="flex items-center gap-2 mb-2">
-                    {item.color && (
-                      <div className="flex items-center gap-1 text-[9px] font-black text-blue-500 bg-blue-50 dark:bg-blue-500/10 px-2 py-1 rounded-md border border-blue-100/60 dark:border-blue-500/10 uppercase italic">
-                        <Palette className="size-2.5" /> {item.color}
-                      </div>
-                    )}
-                  </div>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2.5 bg-slate-50 dark:bg-zinc-800/80 p-1 rounded-xl border border-slate-100 dark:border-zinc-800">
                       <button type="button" onClick={() => handleQtyChange(item.id, item.quantity, item.color, -1)} className="size-7 flex items-center justify-center bg-white dark:bg-zinc-700 rounded-lg shadow-xs active:scale-90" disabled={item.quantity <= 1}>
@@ -165,7 +145,6 @@ function CheckoutContent() {
                         <Plus className="size-3 text-slate-700 dark:text-zinc-200" />
                       </button>
                     </div>
-                    {/* 🟢 Couleur harmonisée ici */}
                     <p className="text-[#00b272] font-black text-base italic">
                       {(item.price * (item.quantity || 1)).toLocaleString('fr-FR')} <span className="text-[9px] not-italic font-bold">FCFA</span>
                     </p>
@@ -173,19 +152,6 @@ function CheckoutContent() {
                 </div>
               </div>
             ))}
-          </div>
-        </div>
-
-        {/* TOTAL */}
-        <div className="bg-white dark:bg-zinc-900 p-6 rounded-[26px] border border-slate-200/60 dark:border-zinc-800/60 shadow-xs">
-          <div className="flex justify-between items-center mb-2">
-            <span className="text-muted-foreground font-black text-[9px] uppercase tracking-widest italic">Total à payer</span>
-            <span className="bg-orange-50 dark:bg-orange-500/10 text-orange-500 text-[9px] font-extrabold px-2.5 py-1 rounded-lg uppercase italic border border-orange-100/50 dark:border-orange-500/10 flex items-center gap-1">
-                <Truck className="size-3" /> Cash on Delivery
-            </span>
-          </div>
-          {/* 🟢 Couleur harmonisée ici */}
-          <p className="text-3xl font-black tracking-tighter text-slate-900 dark:text-white italic">{totalAmount.toLocaleString('fr-FR')} <span className="text-xs font-bold text-[#00b272]">FCFA</span></p>
         </div>
 
         {/* FORMULAIRE */}
@@ -195,30 +161,20 @@ function CheckoutContent() {
               <User className="absolute left-4 top-1/2 -translate-y-1/2 size-5 text-slate-400" />
               <input required name="name" placeholder="Ton nom complet" className="w-full bg-white dark:bg-zinc-900 border-none ring-1 ring-slate-200/60 dark:ring-zinc-800 rounded-2xl py-5 pl-12 pr-4 font-bold focus:ring-2 focus:ring-black dark:focus:ring-white outline-none text-slate-900 dark:text-white text-sm" />
             </div>
-            
             <div className="relative">
               <Phone className="absolute left-4 top-1/2 -translate-y-1/2 size-5 text-slate-400" />
               <input required type="tel" name="phone" placeholder="Téléphone de contact" className="w-full bg-white dark:bg-zinc-900 border-none ring-1 ring-slate-200/60 dark:ring-zinc-800 rounded-2xl py-5 pl-12 pr-4 font-bold focus:ring-2 focus:ring-black dark:focus:ring-white outline-none text-slate-900 dark:text-white text-sm" />
             </div>
-
             <div className="relative">
               <MessageSquare className="absolute left-4 top-5 size-5 text-slate-400" />
-              <textarea 
-                value={orderNote}
-                onChange={(e) => setOrderNote(e.target.value)}
-                placeholder="Comment voulez-vous votre commande ?" 
-                rows={2} 
-                className="w-full bg-white dark:bg-zinc-900 border-none ring-1 ring-slate-200/60 dark:ring-zinc-800 rounded-2xl py-5 pl-12 pr-4 font-bold focus:ring-2 focus:ring-black dark:focus:ring-white outline-none resize-none text-slate-900 dark:text-white italic text-sm" 
-              />
+              <textarea value={orderNote} onChange={(e) => setOrderNote(e.target.value)} placeholder="Note pour la commande" rows={2} className="w-full bg-white dark:bg-zinc-900 border-none ring-1 ring-slate-200/60 dark:ring-zinc-800 rounded-2xl py-5 pl-12 pr-4 font-bold focus:ring-2 focus:ring-black dark:focus:ring-white outline-none resize-none text-slate-900 dark:text-white italic text-sm" />
             </div>
-
             <div className="relative">
               <MapPin className="absolute left-4 top-5 size-5 text-slate-400" />
-              <textarea required name="address" placeholder="Douala, Bonabéri, Lieu-dit..." rows={3} className="w-full bg-white dark:bg-zinc-900 border-none ring-1 ring-slate-200/60 dark:ring-zinc-800 rounded-2xl py-5 pl-12 pr-4 font-bold focus:ring-2 focus:ring-black dark:focus:ring-white outline-none resize-none text-slate-900 dark:text-white text-sm" />
+              <textarea required name="address" placeholder="Adresse de livraison..." rows={3} className="w-full bg-white dark:bg-zinc-900 border-none ring-1 ring-slate-200/60 dark:ring-zinc-800 rounded-2xl py-5 pl-12 pr-4 font-bold focus:ring-2 focus:ring-black dark:focus:ring-white outline-none resize-none text-slate-900 dark:text-white text-sm" />
             </div>
           </div>
 
-          {/* 🟢 Bouton principal harmonisé avec le vert d'action de DealCity */}
           <button 
             type="submit"
             disabled={isSubmitting || displayItems.length === 0}
@@ -227,7 +183,7 @@ function CheckoutContent() {
             {isSubmitting ? (
               <><Loader2 className="animate-spin size-4" /> Enregistrement...</>
             ) : (
-              "Commander maintenant"
+              "Valider la commande"
             )}
           </button>
         </form>

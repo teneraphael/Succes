@@ -22,7 +22,7 @@ export default function FeedTabs({ userId, forYouFeed, followingFeed }: FeedTabs
 
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-      <div className="sticky top-[5.25rem] z-40 w-full bg-background/95 bg-background py-2.5 shadow-sm">
+      <div className="sticky top-[5.25rem] z-40 w-full  py-2.5 shadow-sm">
         <TabsList className="bg-muted/75 border border-border/20 p-1 h-11 max-w-[280px] sm:max-w-xs mx-auto flex rounded-full select-none">
           <TabsTrigger 
             value="for-you" 

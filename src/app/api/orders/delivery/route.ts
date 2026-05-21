@@ -12,10 +12,10 @@ export async function GET() {
       return NextResponse.json({ error: "Accès refusé" }, { status: 403 });
     }
 
-    // RÉCUPÉRATION : On s'assure de ne prendre que les commandes en attente
+    // CORRECTION : On filtre uniquement les commandes dont les frais sont payés
     const orders = await prisma.order.findMany({
       where: { 
-        status: "PENDING" // <--- C'est ici que se joue la disparition après annulation
+        status: "FEE_PAID_AWAITING_DELIVERY" 
       },
       include: {
         post: {
@@ -54,7 +54,6 @@ export async function GET() {
         id: order.id,
         productName: productName || "Article DealCity",
         productImage: firstImage || "/placeholder.png", 
-        // 4. DONNÉES CRITIQUES
         quantity: order.quantity || 1, 
         clientChoice: color,           
         clientNote: note,              
