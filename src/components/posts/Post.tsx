@@ -38,7 +38,7 @@ const extractInfo = (content: string) => {
     productName: productMatch ? productMatch[1].trim() : null,
     price: priceMatch ? priceMatch[1].trim() : null,
     availableColors: colorsMatch ? colorsMatch[1].split(',').map(c => c.trim()).filter(c => c !== "") : [],
-    cleanDescription: descMatch ? descMatch[1].trim() : content,
+    cleanDescription: descMatch ? descMatch[1].trim() : null,
   };
 };
 
@@ -49,10 +49,9 @@ export default function Post({ post }: PostProps) {
   const { addToCart } = useCart();
   const isDesktop = useMediaQuery("(min-width: 768px)");
 
-  const { productName, price, availableColors } = extractInfo(post.content);
+  const { productName, price, availableColors, cleanDescription } = extractInfo(post.content);
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
 
-  // Vérification de la disponibilité du produit via le stock Prisma
   const isAvailable = post.stock !== undefined ? post.stock > 0 : true;
 
   useEffect(() => {
@@ -85,7 +84,7 @@ export default function Post({ post }: PostProps) {
       price: numericPrice,
       image: firstImage,
       quantity: 1,
-      color: selectedColor ?? undefined, // ✅ Correction du type : string | null -> string | undefined
+      color: selectedColor ?? undefined,
     };
 
     if (redirect) {
@@ -107,7 +106,6 @@ export default function Post({ post }: PostProps) {
   return (
     <article className="group/post w-full space-y-4 bg-card py-4 md:py-5 md:rounded-3xl border-b md:border border-border/70 shadow-sm transition-all duration-200 hover:shadow-md max-w-xl mx-auto mb-5 overflow-hidden">
       
-      {/* HEADER : INFOS DU VENDEUR */}
       <div className="flex justify-between items-center gap-3 px-5">
         <div className="flex flex-wrap items-center gap-3">
           <UserTooltip user={post.user}>
@@ -131,7 +129,6 @@ export default function Post({ post }: PostProps) {
         <PostMoreButton post={post} />
       </div>
 
-      {/* TITRE & PRIX COMPACTS STYLE MAGAZINE */}
       <div className="px-5 flex items-start justify-between gap-4">
         <div className="space-y-1.5 flex-1">
           {productName && (
@@ -140,7 +137,6 @@ export default function Post({ post }: PostProps) {
             </h3>
           )}
           
-          {/* Badge de disponibilité dynamique selon la quantité réelle */}
           {isAvailable ? (
             <span className="inline-flex text-[9px] font-black uppercase tracking-widest text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-500/10">
               Disponible en stock ({post.stock})
@@ -152,7 +148,6 @@ export default function Post({ post }: PostProps) {
           )}
         </div>
         
-        {/* LE PRIX : Énorme et accrocheur */}
         {price && (
           <div className="text-right whitespace-nowrap">
             <span className={cn(
@@ -165,7 +160,15 @@ export default function Post({ post }: PostProps) {
         )}
       </div>
 
-      {/* GRILLE DE MÉDIAS PRINCIPALE */}
+      {/* DESCRIPTION NIANGA */}
+      {cleanDescription && (
+        <div className="px-5">
+          <p className="text-[10px] uppercase tracking-widest text-muted-foreground/80 italic font-bold leading-relaxed line-clamp-2">
+            {cleanDescription}
+          </p>
+        </div>
+      )}
+
       <div className="w-full overflow-hidden border-y border-border/40">
         <MediaPreviews 
           attachments={visualAttachments} 
@@ -179,7 +182,6 @@ export default function Post({ post }: PostProps) {
         />
       </div>
 
-      {/* BOUTONS D'ACHAT DIRECT (CTA) */}
       <div className="px-5 pt-1">
         <div className="flex gap-2 w-full">
           <button 
@@ -187,9 +189,7 @@ export default function Post({ post }: PostProps) {
             onClick={() => handleAddToCart(false)} 
             className={cn(
               "flex-1 py-4 rounded-xl font-black uppercase text-[10px] tracking-widest text-secondary-foreground border border-border/80 transition-all flex items-center justify-center gap-2",
-              isAvailable 
-                ? "bg-secondary hover:bg-secondary/80 active:scale-[0.97]" 
-                : "bg-neutral-100 text-neutral-400 border-neutral-200 cursor-not-allowed opacity-50"
+              isAvailable ? "bg-secondary hover:bg-secondary/80 active:scale-[0.97]" : "bg-neutral-100 text-neutral-400 border-neutral-200 cursor-not-allowed opacity-50"
             )}
           >
             <ShoppingBag className="size-4" /> Panier
@@ -199,9 +199,7 @@ export default function Post({ post }: PostProps) {
             onClick={() => handleAddToCart(true)} 
             className={cn(
               "flex-[2.5] py-4 rounded-xl font-black uppercase italic text-xs tracking-widest shadow-md transition-all flex items-center justify-center gap-2",
-              isAvailable 
-                ? "bg-primary text-primary-foreground shadow-primary/20 hover:opacity-95 active:scale-[0.97]" 
-                : "bg-neutral-200 text-neutral-400 shadow-none cursor-not-allowed opacity-50"
+              isAvailable ? "bg-primary text-primary-foreground shadow-primary/20 hover:opacity-95 active:scale-[0.97]" : "bg-neutral-200 text-neutral-400 shadow-none cursor-not-allowed opacity-50"
             )}
           >
             <CreditCard className={cn("size-4 text-orange-400", isAvailable && "animate-pulse")} /> 
@@ -210,7 +208,6 @@ export default function Post({ post }: PostProps) {
         </div>
       </div>
 
-      {/* ACTIONS SOCIALES */}
       <div className="flex items-center justify-between px-5 pt-3 border-t border-border/40">
         <div className="flex items-center gap-6">
           <LikeButton postId={post.id} initialState={{ likes: post._count.likes, isLikedByUser: post.likes.some(l => l.userId === loggedInUser?.id) }} />
@@ -248,7 +245,6 @@ function MediaPreviews({ attachments, audioUrl, availableColors, selectedColor, 
   const router = useRouter();
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
-
   const count = attachments.length;
   const displayedMedia = attachments.slice(0, 4);
 
@@ -258,8 +254,6 @@ function MediaPreviews({ attachments, audioUrl, availableColors, selectedColor, 
     <div className="w-full space-y-3">
       <div ref={containerRef} className="relative w-full bg-zinc-950 group/media overflow-hidden">
         {audioUrl && <audio ref={audioRef} src={audioUrl} loop className="hidden" />}
-
-        {/* GRILLE CLIQUABLE */}
         <div 
           onClick={() => router.push(`/posts/${postId}/photos`, { scroll: false })}
           className={cn(
@@ -283,18 +277,13 @@ function MediaPreviews({ attachments, audioUrl, availableColors, selectedColor, 
                   src={m.url} 
                   alt="DealCity Product" 
                   fill 
-                  sizes={
-                    count === 1 
-                      ? "(max-width: 768px) 100vw, 600px" 
-                      : "(max-width: 768px) 50vw, 300px"
-                  }
+                  sizes={count === 1 ? "(max-width: 768px) 100vw, 600px" : "(max-width: 768px) 50vw, 300px"}
                   className="object-cover transition-transform duration-300 group-hover/media:scale-[1.02]" 
                   priority={i === 0}
                 />
               ) : (
                 <VideoPost src={m.url} />
               )}
-
               {count > 4 && i === 3 && (
                 <div className="absolute inset-0 bg-black/70 flex items-center justify-center z-10 backdrop-blur-[2px]">
                   <span className="text-white text-2xl font-black">+{count - 3}</span>
@@ -305,7 +294,6 @@ function MediaPreviews({ attachments, audioUrl, availableColors, selectedColor, 
         </div>
       </div>
 
-      {/* SÉLECTEUR DE COULEURS */}
       {availableColors.length > 0 && (
         <div className="px-5 pt-1">
           <p className="text-[9px] font-black uppercase text-muted-foreground/60 mb-2 tracking-widest">
