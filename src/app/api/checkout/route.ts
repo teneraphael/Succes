@@ -12,7 +12,7 @@ export async function POST(req: Request) {
     const body = await req.json();
     
     const { 
-        items, // On récupère le tableau complet envoyé par le front-end
+        items, 
         customerName, 
         customerPhone, 
         customerAddress, 
@@ -24,9 +24,7 @@ export async function POST(req: Request) {
     }
 
     // --- TRAITEMENT DE CHAQUE PRODUIT ---
-    // On utilise Promise.all pour créer toutes les lignes de commande en parallèle
     const orders = await Promise.all(items.map(async (item: any) => {
-      // 1. Trouver le vendeur pour chaque produit
       const post = await prisma.post.findUnique({
         where: { id: item.postId },
         select: { userId: true } 
@@ -34,15 +32,12 @@ export async function POST(req: Request) {
 
       if (!post) return null;
 
-      // 2. Calculs financiers pour cet article précis
       const itemTotal = Number(item.price) * Number(item.quantity);
       const commission = Math.round(itemTotal * 0.05); 
       const sellerEarnings = itemTotal - commission;
 
-      // 3. Formatage de la note (Couleur de l'item + Note globale du client)
       const finalNote = `COULEUR : ${item.color || "Standard"}${note ? ` | NOTE : ${note}` : ""}`;
 
-      // 4. Création de la commande dans la DB
       return prisma.order.create({
         data: {
           userId: buyer.id,
@@ -62,12 +57,20 @@ export async function POST(req: Request) {
       });
     }));
 
-    // Filtrer les éventuels produits introuvables (null)
+    // Filtrer les éventuels produits introuvables
     const successfulOrders = orders.filter(o => o !== null);
 
+    if (successfulOrders.length === 0) {
+      return NextResponse.json({ error: "Aucune commande n'a pu être créée" }, { status: 500 });
+    }
+
+    // --- CORRECTION : Retourner les informations nécessaires au paiement ---
+    // On renvoie l'ID de la première commande et les frais de livraison
     return NextResponse.json({ 
       success: true, 
       count: successfulOrders.length,
+      orderId: successfulOrders[0]?.id, // ID utilisé pour lier le paiement
+      deliveryFee: 1000,                // Montant des frais de livraison
       message: "Commandes enregistrées avec succès" 
     });
 
