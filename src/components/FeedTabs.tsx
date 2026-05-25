@@ -42,7 +42,7 @@ export default function FeedTabs({ userId, forYouFeed, followingFeed }: FeedTabs
     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
       {/* Header avec animation de glissement */}
       <motion.div 
-        className="sticky top-[5.25rem] z-40 w-full py-2.5 shadow-sm bg-background/80 "
+        className="sticky top-[5.25rem] z-40 w-full py-2.5 shadow-sm  "
         initial={{ y: 0 }}
         animate={{ y: isHeaderVisible ? 0 : -80 }}
         transition={{ duration: 0.3, ease: "easeInOut" }}
