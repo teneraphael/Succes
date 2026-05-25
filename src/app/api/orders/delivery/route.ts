@@ -12,12 +12,14 @@ export async function GET() {
       return NextResponse.json({ error: "Accès refusé" }, { status: 403 });
     }
 
-    // CORRECTION : On filtre uniquement les commandes dont les frais sont payés
     const orders = await prisma.order.findMany({
       where: { 
-        status: "FEE_PAID_AWAITING_DELIVERY" 
+        status: {
+          in: ["PENDING", "FEE_PAID_AWAITING_DELIVERY"]
+        }
       },
       include: {
+        items: true, // Requis pour accéder à la couleur et quantité par item
         post: {
           select: {
             content: true,
@@ -29,45 +31,41 @@ export async function GET() {
     });
 
     const formattedOrders = orders.map((order: any) => {
-      // 1. Extraction de l'image
+      // Extraction de l'image
       const attachments = order.post?.attachments;
       const firstImage = Array.isArray(attachments) && attachments.length > 0 
         ? attachments[0]?.url 
-        : null;
+        : "/placeholder.png";
 
-      // 2. Nettoyage du nom du produit
+      // Nettoyage du nom
       const fullContent = order.post?.content || "";
       const productName = fullContent
         .replace(/🛍️\s*PRODUIT\s*:\s*/i, "")
         .split(/[💰🎨📝\n]/)[0]
         .trim();
 
-      // 3. DÉCOUPAGE ROBUSTE (REGEX)
-      const notesStr = order.notes || "";
-      const colorMatch = notesStr.match(/COULEUR\s*:\s*([^|]+)/i);
-      const noteMatch = notesStr.match(/NOTE\s*:\s*(.+)/i);
-
-      const color = colorMatch ? colorMatch[1].trim() : "Standard";
-      const note = noteMatch ? noteMatch[1].trim() : "";
+      // Récupération des données items (avec fallback)
+      const firstItem = order.items && order.items.length > 0 ? order.items[0] : null;
 
       return {
         id: order.id,
         productName: productName || "Article DealCity",
-        productImage: firstImage || "/placeholder.png", 
-        quantity: order.quantity || 1, 
-        clientChoice: color,           
-        clientNote: note,              
+        productImage: firstImage, 
+        // Priorité : Quantité dans l'Order, sinon dans l'Item, sinon 1
+        quantity: order.quantity || firstItem?.quantity || 1, 
+        // Priorité : Couleur dans l'Item, sinon "Standard"
+        clientChoice: firstItem?.color || "Standard",           
+        clientNote: order.notes || "",             
         price: order.totalAmount, 
         customerName: order.customerName,
-        customerPhone: order.customerPhone,
-        deliveryAddress: order.customerAddress,
+        customerPhone: order.customerPhone || "Non fourni",
+        deliveryAddress: order.customerAddress || "Non fournie",
         status: order.status,
         createdAt: order.createdAt,
       };
     });
 
     return NextResponse.json(formattedOrders);
-
   } catch (error) {
     console.error("DEBUG_DELIVERY_API_ERROR:", error);
     return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });

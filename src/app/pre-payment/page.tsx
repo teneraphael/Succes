@@ -16,7 +16,8 @@ export default function PrePaymentPage() {
     name: searchParams.get('productName') ? decodeURIComponent(searchParams.get('productName')!) : "Article",
     price: searchParams.get('price') || "0",
     image: searchParams.get('image') ? decodeURIComponent(searchParams.get('image')!) : "",
-    quantity: searchParams.get('qty') || "1"
+    quantity: searchParams.get('qty') || "1",
+  color: searchParams.get('color') ? decodeURIComponent(searchParams.get('color')!) : "Standard"
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {

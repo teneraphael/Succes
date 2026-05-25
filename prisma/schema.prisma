@@ -34,53 +34,53 @@ model PasswordResetToken {
 }
 
 model User {
-  id              String         @id
-  username        String         @unique
-  displayName     String
-  email           String?        @unique
-  passwordHash    String?
-  googleId        String?        @unique
-  avatarUrl       String?
-  hasDeliveryPass Boolean        @default(false)
-  passExpiryDate  DateTime?
-  deliveryRequests DeliveryRequest[]
-  bio             String?
-  coverUrl     String?
-  allowNotifications Boolean     @default(true)
-  sessions        Session[]
-  orders          Order[]        @relation("BuyerOrders") 
-  sales           Order[]        @relation("SellerOrders")
-  posts           Post[]
-  deals           Deal[]
-  balance         Int            @default(0)
-  transactions    Transaction[]
-  interactions    UserInteraction[]
-  following       Follow[]       @relation("Following")
-  followers       Follow[]       @relation("Followers")
-  likes           Like[]
-  bookmarks       Bookmark[]
-  comments        Comment[]
-  isPioneer       Boolean        @default(false) 
-  isVerified      Boolean        @default(false)
-  whatsappUrl     String?
-  facebookUrl     String?
-  instagramUrl    String?
-  tiktokUrl       String?
-  phoneNumber     String?
-  
-  // RELATION AJOUTÉE POUR LES SIGNALEMENTS
-  reports         Report[]       
+  id                 String            @id
+  username           String            @unique
+  displayName        String
+  email              String?           @unique
+  passwordHash       String?
+  googleId           String?           @unique
+  avatarUrl          String?
+  hasDeliveryPass    Boolean           @default(false)
+  passExpiryDate     DateTime?
+  deliveryRequests   DeliveryRequest[]
+  bio                String?
+  coverUrl           String?
+  allowNotifications Boolean           @default(true)
+  sessions           Session[]
+  orders             Order[]           @relation("BuyerOrders")
+  sales              Order[]           @relation("SellerOrders")
+  posts              Post[]
+  deals              Deal[]
+  balance            Int               @default(0)
+  transactions       Transaction[]
+  interactions       UserInteraction[]
+  following          Follow[]          @relation("Following")
+  followers          Follow[]          @relation("Followers")
+  likes              Like[]
+  bookmarks          Bookmark[]
+  comments           Comment[]
+  isPioneer          Boolean           @default(false)
+  isVerified         Boolean           @default(false)
+  whatsappUrl        String?
+  facebookUrl        String?
+  instagramUrl       String?
+  tiktokUrl          String?
+  phoneNumber        String?
 
-  isSeller         Boolean        @default(false)
-  businessName     String?
-  businessDomain   String?
-  businessEmail    String?
-  businessProducts String?
+  // RELATION AJOUTÉE POUR LES SIGNALEMENTS
+  reports Report[]
+
+  isSeller              Boolean        @default(false)
+  businessName          String?
+  businessDomain        String?
+  businessEmail         String?
+  businessProducts      String?
   receivedNotifications Notification[] @relation("Recipient")
   issuedNotifications   Notification[] @relation("Issuer")
-  fcmToken         String?        @map("fcm_token")
-  conversations    Conversation[] @relation("ConversationParticipants")
-  messagesSent     Message[]      @relation("UserMessagesSent")
+  fcmToken              String?        @map("fcm_token")
+  conversations         Conversation[] @relation("ConversationParticipants")
+  messagesSent          Message[]      @relation("UserMessagesSent")
 
   createdAt DateTime @default(now())
 
@@ -88,48 +88,49 @@ model User {
 }
 
 model Order {
-  id                String      @id @default(cuid())
-  quantity        Int         @default(1)
+  id             String  @id @default(cuid())
+  quantity       Int     @default(1)
   // Informations de paiement
-  total             Int         // Prix total en XAF
-  paymentId         String?     @unique // ID de transaction Monetbil
-  totalAmount       Int         // Prix total payé par le client
-  commission        Int         // Les 5% que tu gardes (totalAmount * 0.05)
-  sellerEarnings    Int
-  
+  total          Int // Prix total en XAF
+  paymentId      String? @unique // ID de transaction Monetbil
+  totalAmount    Int // Prix total payé par le client
+  commission     Int // Les 5% que tu gardes (totalAmount * 0.05)
+  sellerEarnings Int
+
   // Informations de livraison & Sécurité
-  customerName      String
-  customerPhone     String
-  customerAddress   String
-  notes             String?
+  customerName    String
+  customerPhone   String
+  customerAddress String
+  notes           String?
   paymentMethod   String      @default("CASH_ON_DELIVERY")
-  deliveryCode      String?     // <--- AJOUTÉ : Le code secret à 4 chiffres pour la validation
-  deliveryFeePaid   Boolean  @default(false) // Nouveau champ
-  status OrderStatus @default(PENDING_DELIVERY_FEE)
+  deliveryCode    String? // <--- AJOUTÉ : Le code secret à 4 chiffres pour la validation
+  deliveryFeePaid Boolean     @default(false) // Nouveau champ
+  status          OrderStatus @default(PENDING_DELIVERY_FEE)
   monetbilTxId    String?
   // Relations
-  userId            String      // L'acheteur
-  user              User        @relation("BuyerOrders", fields: [userId], references: [id], onDelete: Cascade)
-  
-  sellerId          String      // Le vendeur (extrait du Post)
-  seller            User        @relation("SellerOrders", fields: [sellerId], references: [id], onDelete: Cascade)
-  
-  postId            String      // Le produit acheté
-  post              Post        @relation(fields: [postId], references: [id], onDelete: Cascade)
-  items           OrderItem[]
-  createdAt         DateTime    @default(now())
-  updatedAt         DateTime    @updatedAt
+  userId          String // L'acheteur
+  user            User        @relation("BuyerOrders", fields: [userId], references: [id], onDelete: Cascade)
+
+  sellerId String // Le vendeur (extrait du Post)
+  seller   User   @relation("SellerOrders", fields: [sellerId], references: [id], onDelete: Cascade)
+
+  postId    String // Le produit acheté
+  post      Post        @relation(fields: [postId], references: [id], onDelete: Cascade)
+  items     OrderItem[]
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
 
   @@map("orders")
 }
 
-
 model OrderItem {
-  id        String @id @default(cuid())
+  id        String  @id @default(cuid())
   orderId   String
   productId String
+  quantity  Int     @default(1) // <--- Ajouté
+  color     String?
   price     Int
-  order     Order  @relation(fields: [orderId], references: [id])
+  order     Order   @relation(fields: [orderId], references: [id])
 }
 
 model DeliveryRequest {
@@ -139,8 +140,8 @@ model DeliveryRequest {
   postId       String
   post         Post     @relation(fields: [postId], references: [id])
   status       String   @default("PENDING") // PENDING, PICKED_UP, DELIVERED
-  pickupAddr   String   // Adresse du vendeur
-  deliveryAddr String   // Adresse du client
+  pickupAddr   String // Adresse du vendeur
+  deliveryAddr String // Adresse du client
   createdAt    DateTime @default(now())
 }
 
@@ -148,8 +149,8 @@ model Transaction {
   id        String   @id @default(cuid())
   userId    String
   amount    Int
-  type      String?  // Passé en optionnel pour éviter les erreurs de Reset
-  reason    String?  // Passé en optionnel pour éviter les erreurs de Reset
+  type      String? // Passé en optionnel pour éviter les erreurs de Reset
+  reason    String? // Passé en optionnel pour éviter les erreurs de Reset
   status    String   @default("SUCCESS")
   createdAt DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -163,30 +164,31 @@ model Deal {
   description String?
   price       Float
   images      String[] // Tes URLs d'images
-  
+
   // Champs importants pour l'algo
-  category    String   // Ex: "MODE", "TECH", "AUTO", "IMMOBILIER"
-  views       Int      @default(0) // Popularité globale
-  createdAt   DateTime @default(now())
-  
+  category  String // Ex: "MODE", "TECH", "AUTO", "IMMOBILIER"
+  views     Int      @default(0) // Popularité globale
+  createdAt DateTime @default(now())
+
   // Relations
-  userId      String
-  user        User     @relation(fields: [userId], references: [id])
+  userId       String
+  user         User              @relation(fields: [userId], references: [id])
   interactions UserInteraction[]
 }
 
 model UserInteraction {
   id        String   @id @default(cuid())
   createdAt DateTime @default(now())
-  type      String   // "VIEW", "CHAT", "FAVORITE"
-  
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  postId    String   // <--- Assure-toi que c'est "postId" et non "dealId" si ton modèle s'appelle Post
-  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
-  dealId    String
-  deal      Deal     @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  type      String // "VIEW", "CHAT", "FAVORITE"
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  postId String // <--- Assure-toi que c'est "postId" et non "dealId" si ton modèle s'appelle Post
+  post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+  dealId String
+  deal   Deal   @relation(fields: [dealId], references: [id], onDelete: Cascade)
+
   @@index([userId])
   @@index([postId])
 }
@@ -232,32 +234,33 @@ model Follow {
 }
 
 model Post {
-  id                  String         @id @default(cuid())
+  id                  String            @id @default(cuid())
   content             String
   userId              String
-  user                User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user                User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   attachments         Media[]
   likes               Like[]
-  orders    Order[]
+  orders              Order[]
   bookmarks           Bookmark[]
   deliveryRequests    DeliveryRequest[]
-  category    String   @default("DIVERS") 
-  views       Int      @default(0)
-  interactions UserInteraction[]
+  category            String            @default("DIVERS")
+  views               Int               @default(0)
+  interactions        UserInteraction[]
   comments            Comment[]
   linkedNotifications Notification[]
-  audioUrl     String?   
-  audioTitle   String?     @default("Son original")
-  audioArtist  String?
-  videoFilter   String?   // Pour stocker le nom du filtre appliqué
-  thumbnailUrl  String?
-  stock       Int      @default(0)
-  
+  audioUrl            String?
+  audioTitle          String?           @default("Son original")
+  audioArtist         String?
+  videoFilter         String? // Pour stocker le nom du filtre appliqué
+  thumbnailUrl        String?
+  stock               Int               @default(0)
+
   // RELATION AJOUTÉE POUR LES SIGNALEMENTS
-  reports             Report[]       
+  reports Report[]
 
   createdAt DateTime @default(now())
-  @@index([category]) 
+
+  @@index([category])
   @@map("posts")
 }
 
@@ -267,7 +270,7 @@ model Media {
   post      Post?     @relation(fields: [postId], references: [id], onDelete: SetNull)
   type      MediaType
   url       String
-  settings Json?
+  settings  Json?
   createdAt DateTime  @default(now())
 
   @@map("post_media")
@@ -282,8 +285,8 @@ enum MediaType {
 model Comment {
   id        String   @id @default(cuid())
   content   String
-  image   String?
-  mediaUrl String?
+  image     String?
+  mediaUrl  String?
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   postId    String
@@ -344,16 +347,16 @@ enum InteractionType {
 }
 
 enum OrderStatus {
-  PENDING    // Commande créée, paiement non initié
-  PAID       // Argent encaissé par Monetbil (Bloqué sur la plateforme)
-  SHIPPED    // Livreur a récupéré/livré le colis
+  PENDING // Commande créée, paiement non initié
+  PAID // Argent encaissé par Monetbil (Bloqué sur la plateforme)
+  SHIPPED // Livreur a récupéré/livré le colis
   FAILED
   PENDING_DELIVERY_FEE
   INITIALIZED
   FEE_PAID_AWAITING_DELIVERY
   DELIVERED
-  COMPLETED  // Client a confirmé la réception (L'argent peut être versé au vendeur)
-  CANCELLED  // Annulé ou Échec de paiement
+  COMPLETED // Client a confirmé la réception (L'argent peut être versé au vendeur)
+  CANCELLED // Annulé ou Échec de paiement
 }
 
 model Payment {

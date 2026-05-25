@@ -210,7 +210,6 @@ const handleAddToCart = async (isPrePayment = false) => {
         </div>
       </div>
 
-      {/* ... (Le reste du JSX reste identique : LikeButton, Comments, etc.) */}
       <div className="flex items-center justify-between px-5 pt-3 border-t border-border/40">
         <div className="flex items-center gap-6">
           <LikeButton postId={post.id} initialState={{ likes: post._count.likes, isLikedByUser: post.likes.some(l => l.userId === loggedInUser?.id) }} />
