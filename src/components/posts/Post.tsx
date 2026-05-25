@@ -26,6 +26,27 @@ import { Drawer, DrawerContent, DrawerTrigger } from "@/components/ui/drawer";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import SellerBadge from "../SellerBadge";
 
+// CORRECTION : Supprimé le px-5 interne pour un alignement propre
+function ExpandableDescription({ text, limit = 120 }: { text: string; limit?: number }) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  
+  if (text.length <= limit) return <p className="text-[10px] uppercase tracking-widest text-muted-foreground/80 italic font-bold leading-relaxed">{text}</p>;
+  
+  return (
+    <div>
+      <p className="text-[10px] uppercase tracking-widest text-muted-foreground/80 italic font-bold leading-relaxed">
+        {isExpanded ? text : `${text.slice(0, limit)}...`}
+      </p>
+      <button 
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="text-[10px] font-black uppercase text-blue-600 mt-1 hover:underline"
+      >
+        {isExpanded ? "Voir moins" : "Voir plus"}
+      </button>
+    </div>
+  );
+}
+
 interface PostProps { post: PostData; }
 
 const extractInfo = (content: string) => {
@@ -65,47 +86,41 @@ export default function Post({ post }: PostProps) {
   const finalAudioUrl = post.audioUrl || audioMedia?.url;
   const finalAudioTitle = post.audioTitle || "Son original";
 
-const handleAddToCart = async (isPrePayment = false) => {
-  if (!isAvailable) {
-    toast({ variant: "destructive", description: "Article indisponible !", duration: 2000 });
-    return;
-  }
+  const handleAddToCart = async (isPrePayment = false) => {
+    if (!isAvailable) {
+      toast({ variant: "destructive", description: "Article indisponible !", duration: 2000 });
+      return;
+    }
 
-  // Nettoyage et formatage du prix
-  const numericPrice = price ? parseInt(price.replace(/\D/g, '')) : 0;
-  const firstImage = visualAttachments.find(m => m.type === "IMAGE")?.url || visualAttachments[0]?.url || "";
+    const numericPrice = price ? parseInt(price.replace(/\D/g, '')) : 0;
+    const firstImage = visualAttachments.find(m => m.type === "IMAGE")?.url || visualAttachments[0]?.url || "";
 
-  const product = {
-    id: post.id,
-    name: productName || "Article DealCity",
-    price: numericPrice,
-    image: firstImage,
-    quantity: 1,
-    color: selectedColor ?? undefined,
+    const product = {
+      id: post.id,
+      name: productName || "Article DealCity",
+      price: numericPrice,
+      image: firstImage,
+      quantity: 1,
+      color: selectedColor ?? undefined,
+    };
+
+    if (isPrePayment) {
+      sessionStorage.setItem("current_product", JSON.stringify(product));
+      const params = new URLSearchParams({
+        directId: product.id,
+        productName: product.name,
+        price: product.price.toString(),
+        image: product.image,
+        qty: "1",
+        color: product.color || ""
+      });
+      router.push(`/pre-payment?${params.toString()}`);
+    } else {
+      addToCart({ ...product, availableColors });
+      toast({ description: `🛒 ${product.name} ajouté !`, duration: 2000 });
+    }
   };
 
-  if (isPrePayment) {
-    // 1. Sauvegarde robuste dans la session du navigateur
-    sessionStorage.setItem("current_product", JSON.stringify(product));
-
-    // 2. Préparation des paramètres d'URL pour le suivi
-    const params = new URLSearchParams({
-      directId: product.id,
-      productName: product.name,
-      price: product.price.toString(),
-      image: product.image,
-      qty: "1",
-      color: product.color || ""
-    });
-    
-    // 3. Redirection vers la page de pré-paiement
-    router.push(`/pre-payment?${params.toString()}`);
-  } else {
-    // Cas classique : ajout au panier
-    addToCart({ ...product, availableColors });
-    toast({ description: `🛒 ${product.name} ajouté !`, duration: 2000 });
-  }
-};
   return (
     <article className="group/post w-full space-y-4 bg-card py-4 md:py-5 md:rounded-3xl border-b md:border border-border/70 shadow-sm transition-all duration-200 hover:shadow-md max-w-xl mx-auto mb-5 overflow-hidden">
       
@@ -163,11 +178,10 @@ const handleAddToCart = async (isPrePayment = false) => {
         )}
       </div>
 
+      {/* CORRECTION : Ajout du px-5 ici pour l'alignement */}
       {cleanDescription && (
         <div className="px-5">
-          <p className="text-[10px] uppercase tracking-widest text-muted-foreground/80 italic font-bold leading-relaxed line-clamp-2">
-            {cleanDescription}
-          </p>
+          <ExpandableDescription text={cleanDescription} />
         </div>
       )}
 
@@ -242,18 +256,18 @@ const handleAddToCart = async (isPrePayment = false) => {
     </article>
   );
 }
+
 function MediaPreviews({ attachments, audioUrl, availableColors, selectedColor, setSelectedColor, postId }: any) {
   const router = useRouter();
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const containerRef = useRef<HTMLDivElement | null>(null);
-  const count = attachments.length;
-  const displayedMedia = attachments.slice(0, 4);
+  const count = attachments?.length || 0;
+  const displayedMedia = attachments?.slice(0, 4) || [];
 
   if (count === 0) return null;
 
   return (
     <div className="w-full space-y-3">
-      <div ref={containerRef} className="relative w-full bg-zinc-950 group/media overflow-hidden">
+      <div className="relative w-full bg-zinc-950 group/media overflow-hidden">
         {audioUrl && <audio ref={audioRef} src={audioUrl} loop className="hidden" />}
         <div 
           onClick={() => router.push(`/posts/${postId}/photos`, { scroll: false })}
@@ -295,7 +309,7 @@ function MediaPreviews({ attachments, audioUrl, availableColors, selectedColor, 
         </div>
       </div>
 
-      {availableColors.length > 0 && (
+      {availableColors?.length > 0 && (
         <div className="px-5 pt-1">
           <p className="text-[9px] font-black uppercase text-muted-foreground/60 mb-2 tracking-widest">
             Sélectionner une couleur :
