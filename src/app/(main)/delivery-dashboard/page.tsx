@@ -2,10 +2,10 @@
 
 import { useSession } from "@/app/(main)/SessionProvider";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { 
   Truck, MapPin, Phone, PackageCheck, 
-  Loader2, User, Banknote, XCircle, Palette,
+  Loader2, User, XCircle, Palette,
   MoreVertical, Trash2, CheckCircle
 } from "lucide-react";
 import Image from "next/image";
@@ -28,26 +28,26 @@ export default function DeliveryDashboard() {
   const [loading, setLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!loggedInUser) { router.push("/login"); return; }
-    if (loggedInUser.id !== MY_ADMIN_ID) { router.push("/"); return; }
-    fetchOrders();
-  }, [loggedInUser, router]);
-
-  async function fetchOrders() {
+  // Correction 1: useCallback pour éviter les boucles et warnings
+  const fetchOrders = useCallback(async () => {
     try {
       setLoading(true);
       const res = await fetch("/api/orders/delivery"); 
       if (!res.ok) throw new Error("Erreur serveur");
       const data = await res.json();
-      // On s'assure que data est un tableau
       setOrders(Array.isArray(data) ? data : []);
     } catch (error: any) {
       toast({ variant: "destructive", description: "Erreur de chargement des colis." });
     } finally {
       setLoading(false);
     }
-  }
+  }, [toast]);
+
+  useEffect(() => {
+    if (!loggedInUser) { router.push("/login"); return; }
+    if (loggedInUser.id !== MY_ADMIN_ID) { router.push("/"); return; }
+    fetchOrders();
+  }, [loggedInUser, router, fetchOrders]);
 
   async function handleAction(orderId: string, action: 'deliver' | 'cancel' | 'delete') {
     const confirmMessages = {
@@ -146,10 +146,11 @@ export default function DeliveryDashboard() {
                 </div>
               </div>
 
+              {/* Correction 2: Utilisation de &ldquo; et &rdquo; pour éviter les erreurs de guillemets */}
               {order.clientNote && (
                 <div className="bg-zinc-100 p-4 rounded-2xl border-l-4 border-orange-400">
                   <p className="text-[10px] font-black text-zinc-400 uppercase">Indications :</p>
-                  <p className="text-xs italic text-zinc-600">"{order.clientNote}"</p>
+                  <p className="text-xs italic text-zinc-600">&ldquo;{order.clientNote}&rdquo;</p>
                 </div>
               )}
 
