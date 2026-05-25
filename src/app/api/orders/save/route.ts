@@ -1,47 +1,62 @@
 import { NextResponse } from 'next/server';
-import prisma from '@/lib/prisma'; // Assurez-vous que votre instance prisma est bien ici
+import prisma from '@/lib/prisma';
+import { validateRequest } from "@/auth";
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
-    const { orderId, customerName, customerPhone, customerAddress, note, items } = body;
-
-    if (!customerName || !customerPhone || !customerAddress) {
-      return NextResponse.json({ error: "Données manquantes" }, { status: 400 });
+    // 1. Authentification
+    const { user } = await validateRequest();
+    if (!user) {
+      return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
     }
 
-    // Ici, vous pouvez soit créer une NOUVELLE commande
-    // soit mettre à jour celle créée lors de l'étape 1.
-    // Exemple : Création d'une nouvelle entrée dans votre table 'Order'
+    const body = await request.json();
+    const { 
+      customerName, 
+      customerPhone, 
+      customerAddress, 
+      note,
+      items,
+      total,
+      paymentId
+    } = body;
+
+    // 2. Validation basique
+    if (!customerName || !customerPhone || !customerAddress || !items || items.length === 0 || !total) {
+      return NextResponse.json({ error: "Données de commande incomplètes" }, { status: 400 });
+    }
+
+    // 3. Récupération du vendeur (Post) pour éviter l'erreur de Foreign Key
+    const firstItem = items[0];
+    const post = await prisma.post.findUnique({
+      where: { id: firstItem.postId || firstItem.id },
+      select: { userId: true }
+    });
+
+    if (!post) {
+      return NextResponse.json({ error: "Produit non trouvé" }, { status: 404 });
+    }
+
+    // 4. Création de la commande
     const newOrder = await prisma.order.create({
-     data: {
-        id: orderId,
+      data: {
+        userId: user.id,
         customerName,
         customerPhone,
         customerAddress,
-        notes: note,
+        notes: note || "",
+        totalAmount: Number(total),
+        total: Number(total),      
         status: "PENDING",
-        total: body.total || 0,
-        totalAmount: body.total || 0,
-        commission: 0,
-        sellerEarnings: 0,
-        
-        // --- LES RELATIONS MANQUANTES ---
-        // Si l'utilisateur est connecté, vous devriez avoir son ID
-        user: { connect: { id: body.userId } }, 
-        // Si vous avez un ID vendeur
-        seller: { connect: { id: body.sellerId } },
-        // Si la commande est liée à un post spécifique
-        post: { connect: { id: items[0].postId } }, 
-
+        paymentId: paymentId || null, // null est préférable à "COD" si le champ est optionnel
+        sellerId: post.userId,        // Le vrai ID du vendeur
+        postId: firstItem.postId || firstItem.id,
+        commission: 0, 
+        sellerEarnings: Number(total), // À ajuster selon ta logique de commission
         items: {
           create: items.map((item: any) => ({
-            postId: item.postId || item.id,
-            name: item.name,
-            price: item.price,
-            quantity: item.quantity,
-            color: item.color,
-            image: item.image
+            productId: item.id || item.postId,
+            price: Number(item.price)
           }))
         }
       }
@@ -49,8 +64,11 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ success: true, order: newOrder });
 
-  } catch (error) {
-    console.error("Erreur sauvegarde commande:", error);
-    return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });
+  } catch (error: any) {
+    console.error("Erreur création commande:", error);
+    return NextResponse.json({ 
+        error: "Erreur serveur lors de la sauvegarde", 
+        details: error.message 
+    }, { status: 500 });
   }
 }

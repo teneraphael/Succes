@@ -65,44 +65,47 @@ export default function Post({ post }: PostProps) {
   const finalAudioUrl = post.audioUrl || audioMedia?.url;
   const finalAudioTitle = post.audioTitle || "Son original";
 
-  const handleAddToCart = (redirect = false) => {
-    if (!isAvailable) {
-      toast({ 
-        variant: "destructive", 
-        description: "Désolé, cet article est en rupture de stock !", 
-        duration: 2000 
-      });
-      return;
-    }
+const handleAddToCart = async (isPrePayment = false) => {
+  if (!isAvailable) {
+    toast({ variant: "destructive", description: "Article indisponible !", duration: 2000 });
+    return;
+  }
 
-    const numericPrice = price ? parseInt(price.replace(/\D/g, '')) : 0;
-    const firstImage = visualAttachments.find(m => m.type === "IMAGE")?.url || visualAttachments[0]?.url || "";
+  // Nettoyage et formatage du prix
+  const numericPrice = price ? parseInt(price.replace(/\D/g, '')) : 0;
+  const firstImage = visualAttachments.find(m => m.type === "IMAGE")?.url || visualAttachments[0]?.url || "";
 
-    const product = {
-      id: post.id,
-      name: productName || "Article DealCity",
-      price: numericPrice,
-      image: firstImage,
-      quantity: 1,
-      color: selectedColor ?? undefined,
-    };
-
-    if (redirect) {
-      const params = new URLSearchParams({
-        directId: post.id,
-        name: product.name,
-        price: product.price.toString(),
-        image: product.image,
-        qty: "1",
-        color: product.color || ""
-      });
-      router.push(`/checkout?${params.toString()}`);
-    } else {
-      addToCart({ ...product, availableColors });
-      toast({ description: `🛒 ${product.name} ajouté !`, duration: 2000 });
-    }
+  const product = {
+    id: post.id,
+    name: productName || "Article DealCity",
+    price: numericPrice,
+    image: firstImage,
+    quantity: 1,
+    color: selectedColor ?? undefined,
   };
 
+  if (isPrePayment) {
+    // 1. Sauvegarde robuste dans la session du navigateur
+    sessionStorage.setItem("current_product", JSON.stringify(product));
+
+    // 2. Préparation des paramètres d'URL pour le suivi
+    const params = new URLSearchParams({
+      directId: product.id,
+      productName: product.name,
+      price: product.price.toString(),
+      image: product.image,
+      qty: "1",
+      color: product.color || ""
+    });
+    
+    // 3. Redirection vers la page de pré-paiement
+    router.push(`/pre-payment?${params.toString()}`);
+  } else {
+    // Cas classique : ajout au panier
+    addToCart({ ...product, availableColors });
+    toast({ description: `🛒 ${product.name} ajouté !`, duration: 2000 });
+  }
+};
   return (
     <article className="group/post w-full space-y-4 bg-card py-4 md:py-5 md:rounded-3xl border-b md:border border-border/70 shadow-sm transition-all duration-200 hover:shadow-md max-w-xl mx-auto mb-5 overflow-hidden">
       
@@ -160,7 +163,6 @@ export default function Post({ post }: PostProps) {
         )}
       </div>
 
-      {/* DESCRIPTION NIANGA */}
       {cleanDescription && (
         <div className="px-5">
           <p className="text-[10px] uppercase tracking-widest text-muted-foreground/80 italic font-bold leading-relaxed line-clamp-2">
@@ -208,6 +210,7 @@ export default function Post({ post }: PostProps) {
         </div>
       </div>
 
+      {/* ... (Le reste du JSX reste identique : LikeButton, Comments, etc.) */}
       <div className="flex items-center justify-between px-5 pt-3 border-t border-border/40">
         <div className="flex items-center gap-6">
           <LikeButton postId={post.id} initialState={{ likes: post._count.likes, isLikedByUser: post.likes.some(l => l.userId === loggedInUser?.id) }} />
@@ -240,7 +243,6 @@ export default function Post({ post }: PostProps) {
     </article>
   );
 }
-
 function MediaPreviews({ attachments, audioUrl, availableColors, selectedColor, setSelectedColor, postId }: any) {
   const router = useRouter();
   const audioRef = useRef<HTMLAudioElement | null>(null);

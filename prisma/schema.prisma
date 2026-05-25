@@ -105,7 +105,7 @@ model Order {
   paymentMethod   String      @default("CASH_ON_DELIVERY")
   deliveryCode      String?     // <--- AJOUTÉ : Le code secret à 4 chiffres pour la validation
   deliveryFeePaid   Boolean  @default(false) // Nouveau champ
-  status            String   @default("PENDING_DELIVERY_FEE")
+  status OrderStatus @default(PENDING_DELIVERY_FEE)
   monetbilTxId    String?
   // Relations
   userId            String      // L'acheteur
@@ -122,6 +122,7 @@ model Order {
 
   @@map("orders")
 }
+
 
 model OrderItem {
   id        String @id @default(cuid())
@@ -347,9 +348,20 @@ enum OrderStatus {
   PAID       // Argent encaissé par Monetbil (Bloqué sur la plateforme)
   SHIPPED    // Livreur a récupéré/livré le colis
   FAILED
+  PENDING_DELIVERY_FEE
   INITIALIZED
   FEE_PAID_AWAITING_DELIVERY
   DELIVERED
   COMPLETED  // Client a confirmé la réception (L'argent peut être versé au vendeur)
   CANCELLED  // Annulé ou Échec de paiement
+}
+
+model Payment {
+  id        String   @id // C'est ici que tu stockeras ton paymentRef
+  amount    Int
+  status    String   @default("pending")
+  note      String?
+  createdAt DateTime @default(now())
+
+  @@map("payments") // Cela crée la table "payments" en base de données
 }

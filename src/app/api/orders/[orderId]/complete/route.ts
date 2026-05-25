@@ -24,67 +24,64 @@ export async function POST(
       return NextResponse.json({ error: "ID de commande manquant" }, { status: 400 });
     }
 
-    // 3. Vérifier que la commande existe
+    // 3. Récupération de la commande avec le produit associé pour vérifier le stock
     const order = await prisma.order.findUnique({
-      where: { id: orderId }
+      where: { id: orderId },
+      include: { post: true } // On récupère le post lié pour vérifier le stock réel
     });
 
     if (!order) {
       return NextResponse.json({ error: "Commande introuvable" }, { status: 404 });
     }
 
-    // 4. LOGIQUE PAIEMENT À LA LIVRAISON (COD)
-    // On vérifie que la commande n'est pas déjà livrée ou annulée
+    // 4. Vérifications d'état
     if (order.status === "DELIVERED") {
       return NextResponse.json({ error: "Cette commande est déjà marquée comme livrée." }, { status: 400 });
     }
 
-    // 5. TRANSACTION PRISMA : MISE À JOUR STATUT + DÉCRÉMENTATION DU STOCK
-    // Utiliser $transaction garantit que si la mise à jour du stock échoue, 
-    // le statut de la commande ne passera pas à "DELIVERED" (évite les incohérences en BDD).
-    await prisma.$transaction(async (tx) => {
+    // 5. TRANSACTION PRISMA : Sécurisation de l'état
+    const result = await prisma.$transaction(async (tx) => {
       
-      // A. Mise à jour du statut de la commande
-      await tx.order.update({
+      // A. Décrémentation du stock avec condition de sécurité (stock >= quantité)
+      if (order.postId) {
+        const quantityToReduce = order.quantity || 1;
+
+        const updatedPost = await tx.post.updateMany({
+          where: { 
+            id: order.postId,
+            stock: { gte: quantityToReduce } // La requête échoue si stock < quantité
+          },
+          data: {
+            stock: { decrement: quantityToReduce },
+          },
+        });
+
+        if (updatedPost.count === 0) {
+          throw new Error("Stock insuffisant pour valider cette livraison.");
+        }
+      }
+
+      // B. Mise à jour du statut de la commande
+      return await tx.order.update({
         where: { id: orderId },
         data: { 
           status: "DELIVERED",
           updatedAt: new Date()
         },
       });
-
-      // B. Décrémentation du stock du produit lié (Post)
-      if (order.postId) {
-        const quantityToReduce = order.quantity || 1;
-
-        const updatedPost = await tx.post.update({
-          where: { id: order.postId },
-          data: {
-            stock: {
-              decrement: quantityToReduce,
-            },
-          },
-        });
-
-        // Sécurité critique : Si le stock devient négatif, on annule tout !
-        if (updatedPost.stock < 0) {
-          throw new Error("Le stock disponible en base de données est insuffisant pour valider cette livraison.");
-        }
-      }
     });
 
-    console.log(`✅ Commande ${orderId} : Argent encaissé, colis livré et stock mis à jour.`);
+    console.log(`✅ Commande ${orderId} : Colis livré et stock mis à jour.`);
 
     return NextResponse.json({ 
       success: true, 
-      message: "Livraison confirmée, paiement encaissé et stock décrémenté." 
+      order: result 
     });
 
   } catch (error: any) {
     console.error("ERREUR_LIVREUR_UPDATE:", error);
     return NextResponse.json({ 
-      error: error.message || "Erreur lors de la mise à jour",
-      details: error.message 
+      error: error.message || "Erreur lors de la mise à jour"
     }, { status: 500 });
   }
 }
