@@ -3,7 +3,7 @@ import prisma from '@/lib/prisma';
 import crypto from 'crypto';
 
 const MONETBIL_SERVICE_KEY = process.env.MONETBIL_SERVICE_KEY || '';
-const DELIVERY_FEE = 10; 
+const DELIVERY_FEE = 1000; 
 
 export async function POST(req: NextRequest) {
   try {
