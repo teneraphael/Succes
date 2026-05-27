@@ -13,7 +13,7 @@ export function getSellerBadge(saleCount: number) {
     return { label: "Fiable", color: "bg-zinc-500" };
   }
   if (saleCount < 10) {
-    return { label: "Actif", color: "bg-amber-500" };
+    return { label: "debutant", color: "bg-amber-500" };
   }
   return null;
 }
