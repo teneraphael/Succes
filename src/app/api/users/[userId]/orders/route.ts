@@ -21,44 +21,44 @@ export async function GET(
         return NextResponse.json({ error: "Accès refusé" }, { status: 403 });
     }
 
-    // 2. RÉCUPÉRER LES COMMANDES (AJOUT DU STATUT PENDING)
+    // 2. RÉCUPÉRER LES COMMANDES
     const orders = await prisma.order.findMany({
       where: { 
         userId: userId,
-        // CORRECTION : On inclut PENDING pour que l'achat s'affiche dès la validation
         status: {
-          in: ["PENDING", "DELIVERED", "COMPLETED"]
+          // 🌟 AJOUT : On inclut PENDING_DELIVERY_FEE pour que le client puisse payer ses 1000 F depuis son historique !
+          in: ["PENDING_DELIVERY_FEE", "PENDING", "DELIVERED", "COMPLETED"]
         }
       },
       include: {
         post: {
           select: {
             content: true,
-            attachments: { 
-              where: { type: "IMAGE" }, 
-              take: 1 
-            }
+            attachments: true // 🌟 CORRECTION : On prend tout l'objet d'attachement sans filtre restrictif pour être sûr d'avoir l'URL
           }
         }
       },
       orderBy: { createdAt: "desc" }
     });
 
-    // 3. Formater pour le Frontend
+    // 3. Formater proprement pour correspondre EXACTEMENT aux besoins de ton OrderConfirmationList
     const formattedOrders = orders.map(order => {
       const orderAny = order as any;
       
-      // Extraction sécurisée de l'image
-      const firstImage = order.post?.attachments?.[0]?.url || null;
-
       return {
         id: order.id,
         status: order.status,
         createdAt: order.createdAt,
-        // Priorité au champ totalAmount utilisé dans ton API Checkout
-        price: orderAny.totalAmount || orderAny.total || 0,
-        productName: order.post?.content || "Article DealCity",
-        productImage: firstImage,
+        // On conserve la compatibilité avec order.price ou order.totalAmount
+        price: orderAny.totalAmount || orderAny.price || 0,
+        
+        // 🌟 RE-CONSTRUCTION DE L'OBJET POST POUR TON FRONTEND :
+        // Ton composant fait : order.post?.content et order.post?.attachments?.[0]?.url
+        post: {
+          content: order.post?.content || "Article DealCity",
+          attachments: order.post?.attachments || []
+        },
+        
         notes: orderAny.notes || "",
         customerAddress: orderAny.customerAddress,
       };
