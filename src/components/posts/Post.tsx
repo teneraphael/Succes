@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import VideoPost from "../VideoPost";
+import { getSellerBadge } from "@/lib/badge";
 import Link from "next/link";
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -24,9 +25,7 @@ import PostMoreButton from "./PostMoreButton";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { Drawer, DrawerContent, DrawerTrigger } from "@/components/ui/drawer";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import SellerBadge from "../SellerBadge";
 
-// CORRECTION : Supprimé le px-5 interne pour un alignement propre
 function ExpandableDescription({ text, limit = 120 }: { text: string; limit?: number }) {
   const [isExpanded, setIsExpanded] = useState(false);
   
@@ -136,7 +135,16 @@ export default function Post({ post }: PostProps) {
               <Link href={`/users/${post.user.username}`} className="font-black text-sm tracking-tight text-foreground hover:text-primary transition-colors">
                 {post.user.displayName}
               </Link>
-              <SellerBadge isSeller={post.user.isSeller} followerCount={post.user._count.followers} />
+              
+              {getSellerBadge(post.user._count.sales) && (
+                <span className={cn(
+                  "text-[9px] px-1.5 py-0.5 rounded-md font-black uppercase tracking-wider text-white",
+                  getSellerBadge(post.user._count.sales)?.color
+                )}>
+                  {getSellerBadge(post.user._count.sales)?.label}
+                </span>
+              )}
+
               {post.user.isVerified && <ShieldCheck className="size-4 text-[#4a90e2] fill-current" />}
             </div>
             <p className="text-[9px] text-muted-foreground font-black uppercase tracking-widest mt-0.5 opacity-80">
@@ -178,7 +186,6 @@ export default function Post({ post }: PostProps) {
         )}
       </div>
 
-      {/* CORRECTION : Ajout du px-5 ici pour l'alignement */}
       {cleanDescription && (
         <div className="px-5">
           <ExpandableDescription text={cleanDescription} />

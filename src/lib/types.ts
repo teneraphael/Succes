@@ -30,6 +30,7 @@ export function getUserDataSelect(loggedInUserId?: string) {
       select: {
         posts: true,
         followers: true,
+        sales: true, // ✅ AJOUTÉ : permet de compter les ventes du vendeur
       },
     },
   } satisfies Prisma.UserSelect;
@@ -75,7 +76,6 @@ export function getPostDataInclude(loggedInUserId?: string) {
   } satisfies Prisma.PostInclude;
 }
 
-// ✅ Le type PostData contiendra nativement le champ 'stock' suite à l'extension du modèle Prisma
 export type PostData = Prisma.PostGetPayload<{
   include: ReturnType<typeof getPostDataInclude>;
 }>;
@@ -144,7 +144,6 @@ export interface NotificationCountInfo {
   unreadCount: number;
 }
 
-// Conservé pour la compatibilité du MenuBar (Stream Chat nettoyé)
 export interface MessageCountInfo {
   unreadCount: number;
 }
