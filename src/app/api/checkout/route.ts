@@ -14,39 +14,66 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Panier vide" }, { status: 400 });
     }
 
-    // Utilisation de la version "callback" de $transaction
-    const results = await prisma.$transaction(async (tx) => {
+    const results = await prisma.$transaction(async (tx: any) => {
       const createdOrders = [];
 
       for (const item of items) {
         const idToFind = item.postId || item.id;
+        const qtyToDecrement = Number(item.quantity || 1);
         
-        // On effectue la recherche dans la transaction (tx)
+        // 1. Recherche du produit parent
         const post = await tx.post.findUnique({
           where: { id: idToFind },
-          select: { userId: true, price: true }
+          select: { userId: true, price: true, stock: true }
         });
 
         if (!post) throw new Error(`Produit ${idToFind} introuvable`);
 
-        const itemTotal = Number(item.price || post.price) * Number(item.quantity || 1);
+        let variantId = item.variantId ? String(item.variantId) : null;
+
+        // 2. Gestion et décrémentation des stocks
+        if (variantId) {
+          const variant = await tx.variant.findUnique({
+            where: { id: variantId },
+            select: { stock: true }
+          });
+
+          if (!variant) throw new Error(`Variante introuvable.`);
+          if (variant.stock < qtyToDecrement) throw new Error(`Stock insuffisant pour cette variante.`);
+
+          await tx.variant.update({
+            where: { id: variantId },
+            data: { stock: { decrement: qtyToDecrement } }
+          });
+        } else {
+          if (post.stock < qtyToDecrement) throw new Error(`Stock insuffisant pour : ${item.name || idToFind}.`);
+
+          await tx.post.update({
+            where: { id: idToFind },
+            data: { stock: { decrement: qtyToDecrement } }
+          });
+        }
+
+        // 3. Calculs financiers
+        const itemPrice = Number(item.price || post.price);
+        const itemTotal = itemPrice * qtyToDecrement;
         const commission = Math.round(itemTotal * 0.05);
         
-        // On crée la commande dans la transaction (tx)
+        // 4. Création de la commande
         const order = await tx.order.create({
           data: {
             userId: buyer.id,
             sellerId: post.userId,
             postId: idToFind,
+            variantId: variantId, // 🌟 AJOUT : Sauvegarde l'ID de la variante
             totalAmount: itemTotal,
-            quantity: Number(item.quantity || 1),
-            total: itemTotal,
+            quantity: qtyToDecrement,
             commission: commission,
             sellerEarnings: itemTotal - commission,
-            customerName: customerName || "Anonyme",
-            customerPhone: customerPhone || "",
-            customerAddress: customerAddress || "",
-            notes: `COULEUR: ${item.color || "Standard"} | NOTE: ${note || "Aucune"}`,
+            customerName: (customerName || "Anonyme").trim(),
+            customerPhone: (customerPhone || "").trim(),
+            customerAddress: (customerAddress || "").trim(),
+            notes: `Option: ${item.selectedOptions || item.color || "Standard"} | Note: ${note || "Aucune"}`,
             status: "PENDING",
           },
         });
@@ -59,6 +86,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: true, orders: results });
 
   } catch (error: any) {
+    console.error("Erreur API Order Save:", error.message);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

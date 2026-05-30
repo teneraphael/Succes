@@ -1,5 +1,9 @@
 import { Prisma } from "@prisma/client";
 
+/**
+ * Définit la sélection des champs pour les objets User.
+ * Inclut le comptage des relations et l'état de suivi par l'utilisateur connecté.
+ */
 export function getUserDataSelect(loggedInUserId?: string) {
   return {
     id: true,
@@ -23,14 +27,14 @@ export function getUserDataSelect(loggedInUserId?: string) {
       },
       select: {
         followerId: true,
-        followingId: true, 
+        followingId: true,
       },
     },
     _count: {
       select: {
         posts: true,
         followers: true,
-        sales: true, // ✅ AJOUTÉ : permet de compter les ventes du vendeur
+        sales: true,
       },
     },
   } satisfies Prisma.UserSelect;
@@ -40,13 +44,18 @@ export type UserData = Prisma.UserGetPayload<{
   select: ReturnType<typeof getUserDataSelect>;
 }>;
 
+/**
+ * Définit les relations incluses pour les objets Post.
+ * Assurez-vous que 'attributes' et 'variants' existent dans votre schema.prisma.
+ */
 export function getPostDataInclude(loggedInUserId?: string) {
   return {
     user: {
       select: getUserDataSelect(loggedInUserId),
     },
-    // ✅ Inclusion des médias liés au produit
     attachments: true,
+    attributes: true, // Doit correspondre à la relation dans schema.prisma
+    variants: true,   // Doit correspondre à la relation dans schema.prisma
     likes: {
       where: {
         userId: loggedInUserId || "ANONYMOUS_USER",
@@ -61,7 +70,7 @@ export function getPostDataInclude(loggedInUserId?: string) {
         userId: loggedInUserId || "ANONYMOUS_USER",
       },
       select: {
-        id: true, 
+        id: true,
         userId: true,
         postId: true,
         createdAt: true,

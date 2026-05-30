@@ -7,54 +7,58 @@ export async function POST(req: Request) {
     const { user } = await validateRequest();
     const { id, type, itemType } = await req.json();
 
-    if (!id) {
-      return NextResponse.json({ error: "ID manquant" }, { status: 400 });
+    if (!id || typeof id !== "string") {
+      return NextResponse.json({ error: "ID invalide" }, { status: 400 });
     }
 
     // ✅ LOGIQUE DE TRACKING STABLE
     if (itemType === "POST" && type === "VIEW") {
       
-      // 🛡️ SÉCURITÉ : On vérifie d'abord que le Post existe en BDD
+      // 1. Vérification de l'existence du post
       const postExists = await prisma.post.findUnique({
-        where: { id: id },
-        select: { id: true }, // Version ultra-légère juste pour la vérification
+        where: { id },
+        select: { id: true },
       });
 
       if (!postExists) {
-        console.warn(`[TRACKING_DEALCITY] Tentative de vue sur un post inexistant ou supprimé ID: ${id}`);
         return NextResponse.json({ error: "Post introuvable" }, { status: 404 });
       }
 
-      // Utilisation d'une transaction pour garantir l'intégrité
-      await prisma.$transaction([
-        // 1. Incrémenter le compteur global de vues
+      // 2. Préparation de la transaction
+      const operations = [];
+
+      // Incrémenter le compteur de vues
+      operations.push(
         prisma.post.update({
-          where: { id: id },
+          where: { id },
           data: { views: { increment: 1 } },
-        }),
-        
-        // 2. Si l'utilisateur est connecté, on enregistre l'interaction
-        ...(user 
-          ? [
-              prisma.userInteraction.create({
-                data: {
-                  userId: user.id,
-                  postId: id,
-                  type: "VIEW",
-                  // 🔥 CORRECTION : On retire totalement dealId ou on le met explicitement à null 
-                  // pour éviter que Prisma ne cherche une clé étrangère vide ""
-                  dealId: null, 
-                },
-              }),
-            ] 
-          : []),
-      ]);
+        })
+      );
+
+      // 3. Si l'utilisateur est connecté, on enregistre l'interaction
+      // OPTIMISATION : Utiliser upsert ou vérifier si l'interaction n'existe pas déjà 
+      // pour éviter les doublons sur une même session/IP (facultatif selon votre besoin)
+      if (user) {
+        operations.push(
+          prisma.userInteraction.create({
+            data: {
+              userId: user.id,
+              postId: id,
+              type: "VIEW",
+              // dealId est null par défaut dans le modèle, pas besoin de le forcer s'il n'est pas requis
+            },
+          })
+        );
+      }
+
+      // Exécution atomique
+      await prisma.$transaction(operations);
     }
 
-    // On renvoie une réponse légère pour ne pas ralentir le front-end
     return NextResponse.json({ success: true });
   } catch (error: any) {
     console.error("ERREUR_TRACKING_DEALCITY:", error);
+    // Retourner 500 ici est correct car il s'agit d'une erreur serveur imprévue
     return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });
   }
 }

@@ -10,7 +10,7 @@ import StarterKit from "@tiptap/starter-kit";
 import { useDropzone } from "@uploadthing/react";
 import { 
   Camera, Loader2, X, Tag, Banknote, 
-  Sparkles, Zap, SlidersHorizontal, Check, Type, Palette, Layers
+  Sparkles, Zap, SlidersHorizontal, Check, Type, Palette, Layers, Plus
 } from "lucide-react";
 import { useRef, useState, useEffect } from "react";
 import { useSubmitPostMutation } from "./mutations";
@@ -30,6 +30,12 @@ interface TrendsSidebarProps {
   className?: string;
 }
 
+// Interface locale pour structurer les attributs dynamiques
+interface DynamicAttribute {
+  name: string;   // ex: "Taille" ou "Motif"
+  values: string; // ex: "M, L, XL" ou "Floral, Uni"
+}
+
 export default function PostEditor() {
   const { user } = useSession();
   const mutation = useSubmitPostMutation();
@@ -39,9 +45,13 @@ export default function PostEditor() {
   // ÉTATS DU PRODUIT
   const [productName, setProductName] = useState("");
   const [price, setPrice] = useState("");
-  const [colors, setColors] = useState(""); 
-  const [stock, setStock] = useState("1"); // 📦 État du stock initialisé à 1
+  const [stock, setStock] = useState("1"); 
   const [targetUserId, setTargetUserId] = useState("me");
+  
+  // 🌟 NOUVEAL ÉTAT : Liste d'attributs dynamiques au lieu de la simple chaîne "colors"
+  const [attributes, setAttributes] = useState<DynamicAttribute[]>([
+    { name: "Couleur", values: "" } // Un axe par défaut pour guider le vendeur
+  ]);
   
   const [pioneers, setPioneers] = useState<{ id: string; displayName: string; username: string }[]>([]);
 
@@ -87,32 +97,63 @@ export default function PostEditor() {
 
   const description = editor?.getText({ blockSeparator: "\n" }) || "";
   
-  // Validation stricte du formulaire incluant le stock
+  // Validation stricte du formulaire
   const isFormValid = productName.trim() !== "" && price.trim() !== "" && stock.trim() !== "" && parseInt(stock) >= 0;
+
+  // Fonctions pour gérer les lignes d'attributs dynamiques
+  const addAttributeAxis = () => {
+    setAttributes([...attributes, { name: "", values: "" }]);
+  };
+
+  const removeAttributeAxis = (index: number) => {
+    setAttributes(attributes.filter((_, i) => i !== index));
+  };
+
+  const updateAttribute = (index: number, key: "name" | "values", value: string) => {
+    const updated = [...attributes];
+    updated[index][key] = value;
+    setAttributes(updated);
+  };
 
   function onSubmit() {
     if (!isFormValid) return;
 
-    const colorsInfo = colors.trim() ? `\n🎨 COULEURS : ${colors}` : "";
-    const stockInfo = `\n📦 QUANTITÉ : ${stock}`; // Formatage texte pour l'affichage/extracteur
+    // Formater les attributs textuels saisis en listes nettoyées pour l'API
+    const formattedAttributes = attributes
+      .filter(attr => attr.name.trim() !== "" && attr.values.trim() !== "")
+      .map(attr => ({
+        name: attr.name.trim(),
+        // Transforme "Rouge, Bleu" en ["Rouge", "Bleu"]
+        values: attr.values.split(",").map(v => v.trim()).filter(v => v !== "")
+      }));
+
+    // Construction descriptive textuelle pour l'historique et la rétrocompatibilité
+    let attributesText = "";
+    formattedAttributes.forEach(attr => {
+      attributesText += `\n⚙️ ${attr.name.toUpperCase()}S : ${attr.values.join(", ")}`;
+    });
+
+    const stockInfo = `\n📦 QUANTITÉ GLOBALE : ${stock}`; 
 
     mutation.mutate(
       {
-        content: `🛍️ PRODUIT : ${productName}\n💰 PRIX : ${price} FCFA${colorsInfo}${stockInfo}\n\n📝 DESCRIPTION :\n${description}`,
+        content: `🛍️ PRODUIT : ${productName}\n💰 PRIX : ${price} FCFA${attributesText}${stockInfo}\n\n📝 DESCRIPTION :\n${description}`,
         mediaIds: attachments.map((a) => a.mediaId).filter(Boolean) as string[],
-        stock: parseInt(stock), // 👈 Injection de la valeur numérique typée pour Prisma
+        stock: parseInt(stock), 
         targetUserId: isAdmin && targetUserId !== "me" ? targetUserId : undefined,
+        // 🌟 ENVOI DES VARIANTES : Injecté directement pour ton API Prisma réceptrice
+        attributes: formattedAttributes,
       },
       {
         onSuccess: () => {
           editor?.commands.clearContent();
           setProductName("");
           setPrice("");
-          setColors(""); 
-          setStock("1"); // Reset de la quantité à sa valeur par défaut
+          setAttributes([{ name: "Couleur", values: "" }]); 
+          setStock("1"); 
           setTargetUserId("me");
           resetMediaUploads();
-          toast({ description: "Produit publié avec son stock !" });
+          toast({ description: "Produit publié avec ses variantes dynamiques !" });
           router.refresh();
         },
       },
@@ -131,7 +172,7 @@ export default function PostEditor() {
             </div>
             <div>
                <h2 className="text-[11px] font-black uppercase tracking-widest text-muted-foreground italic">Studio de Vente</h2>
-               <p className="text-[10px] font-bold text-[#00b272] uppercase italic tracking-tight">Gestion des Stocks</p>
+               <p className="text-[10px] font-bold text-[#00b272] uppercase italic tracking-tight">Gestion des Stocks & Variantes</p>
             </div>
         </div>
 
@@ -175,11 +216,11 @@ export default function PostEditor() {
           />
         </div>
 
-        {/* 📦 Saisie numérique de la quantité disponible */}
+        {/* Saisie numérique de la quantité disponible */}
         <div className="relative">
           <Layers className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
           <input
-            placeholder="Quantité"
+            placeholder="Quantité globale"
             type="number"
             min="0"
             value={stock}
@@ -189,15 +230,52 @@ export default function PostEditor() {
         </div>
       </div>
 
-      {/* INPUT COULEURS */}
-      <div className="relative">
-        <Palette className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
-        <input
-          placeholder="Couleurs disponibles (Ex: Noir, Bogolan, Ndop)"
-          value={colors}
-          onChange={(e) => setColors(e.target.value)}
-          className="w-full h-12 pl-12 rounded-xl bg-muted/50 border border-transparent focus:border-slate-200 dark:focus:border-zinc-800 focus:bg-background outline-none transition-all text-[11px] font-bold uppercase text-slate-900 dark:text-white"
-        />
+      {/* 🌟 ZONE DYNAMIQUE DES ATTRIBUTS DE VARIANTES */}
+      <div className="space-y-3 p-4 bg-muted/20 border border-dashed border-slate-200 dark:border-zinc-800 rounded-xl">
+        <div className="flex items-center justify-between">
+          <span className="text-[10px] font-black uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+            <Palette size={12} className="text-slate-400" /> Options et Axes de Variations (Tailles, Motifs...)
+          </span>
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={addAttributeAxis}
+            className="h-7 px-2.5 text-[9px] font-black uppercase italic tracking-wider text-[#00b272] hover:bg-emerald-500/5 rounded-lg flex items-center gap-1"
+          >
+            <Plus size={12} /> Ajouter un axe
+          </Button>
+        </div>
+
+        {attributes.map((attr, index) => (
+          <div key={index} className="flex items-center gap-2 animate-in fade-in duration-200">
+            {/* Nom de l'attribut (ex: Motif) */}
+            <input
+              placeholder="Ex: Taille, Motif, Couleur"
+              value={attr.name}
+              onChange={(e) => updateAttribute(index, "name", e.target.value)}
+              className="w-1/3 h-10 px-3 rounded-lg bg-background border text-xs font-bold uppercase text-slate-900 dark:text-white outline-none focus:border-slate-300 dark:focus:border-zinc-700"
+            />
+            {/* Valeurs de l'attribut séparées par des virgules */}
+            <input
+              placeholder="Valeurs séparées par des virgules (Ex: M, L, XL)"
+              value={attr.values}
+              onChange={(e) => updateAttribute(index, "values", e.target.value)}
+              className="flex-1 h-10 px-3 rounded-lg bg-background border text-xs font-bold text-slate-900 dark:text-white outline-none focus:border-slate-300 dark:focus:border-zinc-700"
+            />
+            {/* Bouton de suppression d'un axe */}
+            {attributes.length > 1 && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={() => removeAttributeAxis(index)}
+                className="h-10 w-10 text-red-400 hover:text-red-500 hover:bg-red-500/5 rounded-lg shrink-0"
+              >
+                <X size={14} />
+              </Button>
+            )}
+          </div>
+        ))}
       </div>
 
       {/* TEXT EDITOR / DROPZONE */}

@@ -46,19 +46,17 @@ function ExpandableDescription({ text, limit = 120 }: { text: string; limit?: nu
   );
 }
 
-interface PostProps { post: PostData; }
+interface PostProps { post: any; }
 
 const extractInfo = (content: string) => {
   const productMatch = content.match(/🛍️\s*PRODUIT\s*:\s*(.*)/i);
   const priceMatch = content.match(/💰\s*PRIX\s*:\s*(.*?)\s*FCFA/i);
-  const colorsMatch = content.match(/🎨\s*COULEURS\s*:\s*(.*)/i);
   const descMatch = content.match(/📝\s*DESCRIPTION\s*:\s*\n?([\s\S]*?)(?=\n\n🎵|$)/i);
   
   return {
     productName: productMatch ? productMatch[1].trim() : null,
     price: priceMatch ? priceMatch[1].trim() : null,
-    availableColors: colorsMatch ? colorsMatch[1].split(',').map(c => c.trim()).filter(c => c !== "") : [],
-    cleanDescription: descMatch ? descMatch[1].trim() : null,
+    cleanDescription: descMatch ? descMatch[1].trim() : content,
   };
 };
 
@@ -69,60 +67,103 @@ export default function Post({ post }: PostProps) {
   const { addToCart } = useCart();
   const isDesktop = useMediaQuery("(min-width: 768px)");
 
-  const { productName, price, availableColors, cleanDescription } = extractInfo(post.content);
-  const [selectedColor, setSelectedColor] = useState<string | null>(null);
+  const { productName, price: defaultPrice, cleanDescription } = extractInfo(post.content);
 
-  const isAvailable = post.stock !== undefined ? post.stock > 0 : true;
+  const [selectedAttributes, setSelectedAttributes] = useState<Record<string, string>>({});
+  const [activeVariant, setActiveVariant] = useState<any>(null);
 
+  // Initialiser les attributs sélectionnés par défaut avec la première valeur de chaque axe
   useEffect(() => {
-    if (availableColors.length > 0 && !selectedColor) {
-      setSelectedColor(availableColors[0]);
+    if (post.attributes && post.attributes.length > 0) {
+      const initialSelection: Record<string, string> = {};
+      post.attributes.forEach((attr: any) => {
+        if (attr.values && attr.values.length > 0) {
+          initialSelection[attr.name] = attr.values[0];
+        }
+      });
+      setSelectedAttributes(initialSelection);
     }
-  }, [availableColors, selectedColor]);
+  }, [post.attributes]);
 
-  const audioMedia = post.attachments.find(m => m.type === "AUDIO");
-  const visualAttachments = post.attachments.filter(m => m.type !== "AUDIO");
+  // Trouver la variante correspondante dès que la sélection d'un attribut change
+  useEffect(() => {
+    if (post.variants && post.variants.length > 0 && Object.keys(selectedAttributes).length > 0) {
+      const matched = post.variants.find((variant: any) => {
+        const combo = variant.combinations as Record<string, string>;
+        return Object.entries(selectedAttributes).every(([key, value]) => combo[key] === value);
+      });
+      setActiveVariant(matched || null);
+    }
+  }, [selectedAttributes, post.variants]);
+
+  const currentStock = activeVariant !== null ? activeVariant.stock : (post.stock ?? 0);
+  const currentPrice = activeVariant !== null ? activeVariant.price.toLocaleString() : (defaultPrice || "0");
+  const isAvailable = currentStock > 0;
+
+  const audioMedia = post.attachments.find((m: any) => m.type === "AUDIO");
+  const visualAttachments = post.attachments.filter((m: any) => m.type !== "AUDIO");
   const finalAudioUrl = post.audioUrl || audioMedia?.url;
   const finalAudioTitle = post.audioTitle || "Son original";
 
-  const handleAddToCart = async (isPrePayment = false) => {
-    if (!isAvailable) {
-      toast({ variant: "destructive", description: "Article indisponible !", duration: 2000 });
-      return;
-    }
+const handleAddToCart = async (isPrePayment = false) => {
+  if (!isAvailable) {
+    toast({ variant: "destructive", description: "Indisponible !", duration: 2000 });
+    return;
+  }
 
-    const numericPrice = price ? parseInt(price.replace(/\D/g, '')) : 0;
-    const firstImage = visualAttachments.find(m => m.type === "IMAGE")?.url || visualAttachments[0]?.url || "";
+  const numericPrice = parseInt(currentPrice.replace(/\D/g, ''));
+  const firstImage = visualAttachments.find((m: any) => m.type === "IMAGE")?.url || visualAttachments[0]?.url || "";
 
-    const product = {
-      id: post.id,
-      name: productName || "Article DealCity",
-      price: numericPrice,
-      image: firstImage,
-      quantity: 1,
-      color: selectedColor ?? undefined,
-    };
+  // 1. Génération propre du libellé des options
+  const choiceLabel = Object.entries(selectedAttributes)
+    .map(([key, val]) => `${key}: ${val}`)
+    .join(" • ");
+
+  // 2. Identification dynamique de la couleur
+  // On cherche une clé qui contient "Couleur" (insensible à la casse)
+  const colorKey = Object.keys(selectedAttributes).find(k => k.toLowerCase().includes("couleur"));
+  const detectedColor = colorKey ? selectedAttributes[colorKey] : "Standard";
+
+  const product = {
+    id: post.id, 
+    postId: post.id,
+    name: productName ? productName : "Article DealCity",
+    price: numericPrice,
+    image: firstImage,
+    quantity: 1,
+    color: detectedColor, 
+    variantId: activeVariant?.id || undefined,
+    selectedOptions: choiceLabel || "Aucune option" // On force le texte ici
+  };
 
     if (isPrePayment) {
+      // Nettoyer l'ancien état pour éviter les chevauchements de produits
+      sessionStorage.removeItem("current_product");
       sessionStorage.setItem("current_product", JSON.stringify(product));
+      
       const params = new URLSearchParams({
-        directId: product.id,
+        id: post.id,
+        variantId: activeVariant?.id || "",
         productName: product.name,
         price: product.price.toString(),
         image: product.image,
         qty: "1",
-        color: product.color || ""
+        selectedOptions: product.selectedOptions
       });
       router.push(`/pre-payment?${params.toString()}`);
     } else {
-      addToCart({ ...product, availableColors });
-      toast({ description: `🛒 ${product.name} ajouté !`, duration: 2000 });
+      addToCart({ 
+        ...product, 
+        availableColors: post.attributes?.find((a: any) => a.name === "Couleur")?.values || [] 
+      });
+      toast({ description: `🛒 Ajouté au panier avec succès !`, duration: 2000 });
     }
   };
 
   return (
     <article className="group/post w-full space-y-4 bg-card py-4 md:py-5 md:rounded-3xl border-b md:border border-border/70 shadow-sm transition-all duration-200 hover:shadow-md max-w-xl mx-auto mb-5 overflow-hidden">
       
+      {/* SELLER HEADER */}
       <div className="flex justify-between items-center gap-3 px-5">
         <div className="flex flex-wrap items-center gap-3">
           <UserTooltip user={post.user}>
@@ -155,6 +196,7 @@ export default function Post({ post }: PostProps) {
         <PostMoreButton post={post} />
       </div>
 
+      {/* TITRE, STOCK ET PRIX DYNAMIQUES */}
       <div className="px-5 flex items-start justify-between gap-4">
         <div className="space-y-1.5 flex-1">
           {productName && (
@@ -165,7 +207,7 @@ export default function Post({ post }: PostProps) {
           
           {isAvailable ? (
             <span className="inline-flex text-[9px] font-black uppercase tracking-widest text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-500/10">
-              Disponible en stock ({post.stock})
+              Disponible en stock ({currentStock})
             </span>
           ) : (
             <span className="inline-flex text-[9px] font-black uppercase tracking-widest text-red-600 bg-red-50 px-2 py-0.5 rounded-md border border-red-500/10 animate-pulse">
@@ -174,13 +216,13 @@ export default function Post({ post }: PostProps) {
           )}
         </div>
         
-        {price && (
+        {currentPrice && (
           <div className="text-right whitespace-nowrap">
             <span className={cn(
               "text-2xl font-black tracking-tighter bg-emerald-50/70 border-2 border-emerald-500/10 px-3.5 py-1 rounded-2xl block shadow-sm transform -rotate-1",
               isAvailable ? "text-emerald-600" : "text-muted-foreground bg-neutral-100 border-neutral-200 line-through opacity-60"
             )}>
-              {price} <span className="text-xs font-bold tracking-normal">FCFA</span>
+              {currentPrice} <span className="text-xs font-bold tracking-normal">FCFA</span>
             </span>
           </div>
         )}
@@ -192,19 +234,21 @@ export default function Post({ post }: PostProps) {
         </div>
       )}
 
+      {/* VISUELS ET SELECTIONNEUR D'ATTRIBUTS DYNAMIQUES */}
       <div className="w-full overflow-hidden border-y border-border/40">
         <MediaPreviews 
           attachments={visualAttachments} 
           userAvatar={post.user.avatarUrl}
           audioUrl={finalAudioUrl}
           audioTitle={finalAudioTitle}
-          availableColors={availableColors}
-          selectedColor={selectedColor}
-          setSelectedColor={setSelectedColor}
           postId={post.id}
+          attributes={post.attributes || []}
+          selectedAttributes={selectedAttributes}
+          setSelectedAttributes={setSelectedAttributes}
         />
       </div>
 
+      {/* BOUTONS D'ACHAT */}
       <div className="px-5 pt-1">
         <div className="flex gap-2 w-full">
           <button 
@@ -231,116 +275,135 @@ export default function Post({ post }: PostProps) {
         </div>
       </div>
 
+      {/* FEEDBACK ACTIONS FOOTER */}
       <div className="flex items-center justify-between px-5 pt-3 border-t border-border/40">
         <div className="flex items-center gap-6">
-          <LikeButton postId={post.id} initialState={{ likes: post._count.likes, isLikedByUser: post.likes.some(l => l.userId === loggedInUser?.id) }} />
+          <LikeButton postId={post.id} initialState={{ likes: post._count.likes, isLikedByUser: post.likes.some((l: { userId: string | undefined; }) => l.userId === loggedInUser?.id) }} />
           <div className="flex items-center gap-1.5">
             {isDesktop ? (
               <Sheet>
                 <SheetTrigger asChild>
                   <button className="flex items-center gap-1.5 outline-none group/btn transition-transform active:scale-95">
                     <MessageSquare className="size-5 text-muted-foreground group-hover/btn:text-primary transition-colors" />
-                    <span className="text-xs font-black text-muted-foreground group-hover/btn:text-foreground">{post._count.comments}</span>
+                    <span className="text-xs font-black text-muted-foreground group-hover/btn:text-foreground">
+                      {post._count.comments}
+                    </span>
                   </button>
                 </SheetTrigger>
-                <SheetContent side="right" className="p-0 sm:max-w-[450px]"><Comments post={post} /></SheetContent>
+                <SheetTrigger asChild>
+                  <SheetContent side="right" className="p-0 sm:max-w-[450px]">
+                    <Comments post={post} />
+                  </SheetContent>
+                </SheetTrigger>
               </Sheet>
             ) : (
               <Drawer>
                 <DrawerTrigger asChild>
                   <button className="flex items-center gap-1.5 outline-none transition-transform active:scale-95">
                     <MessageSquare className="size-5 text-muted-foreground" />
-                    <span className="text-xs font-black text-muted-foreground">{post._count.comments}</span>
+                    <span className="text-xs font-black text-muted-foreground">
+                      {post._count.comments}
+                    </span>
                   </button>
                 </DrawerTrigger>
-                <DrawerContent className="max-h-[85vh]"><Comments post={post} /></DrawerContent>
+                <DrawerContent className="max-h-[85vh]">
+                  <Comments post={post} />
+                </DrawerContent>
               </Drawer>
             )}
           </div>
         </div>
-        <BookmarkButton postId={post.id} initialState={{ isBookmarkedByUser: post.bookmarks.some(b => b.userId === loggedInUser?.id) }} />
+        <BookmarkButton postId={post.id} initialState={{ isBookmarkedByUser: post.bookmarks.some((b: { userId: string | undefined; }) => b.userId === loggedInUser?.id) }} />
       </div>
     </article>
   );
 }
 
-function MediaPreviews({ attachments, audioUrl, availableColors, selectedColor, setSelectedColor, postId }: any) {
+function MediaPreviews({ 
+  attachments, audioUrl, postId, 
+  attributes, selectedAttributes, setSelectedAttributes 
+}: any) {
   const router = useRouter();
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const count = attachments?.length || 0;
   const displayedMedia = attachments?.slice(0, 4) || [];
 
-  if (count === 0) return null;
-
   return (
-    <div className="w-full space-y-3">
-      <div className="relative w-full bg-zinc-950 group/media overflow-hidden">
-        {audioUrl && <audio ref={audioRef} src={audioUrl} loop className="hidden" />}
-        <div 
-          onClick={() => router.push(`/posts/${postId}/photos`, { scroll: false })}
-          className={cn(
-            "grid gap-[2px] w-full cursor-pointer hover:opacity-95 transition-opacity",
-            count === 1 ? "grid-cols-1" : "grid-cols-2",
-            count >= 3 ? "aspect-square" : "aspect-video"
-          )}
-        >
-          {displayedMedia.map((m: any, i: number) => (
-            <motion.div 
-              key={m.id || i} 
-              layoutId={`post-image-${m.id}`} 
-              className={cn(
-                "relative overflow-hidden bg-zinc-900",
-                count === 3 && i === 0 ? "row-span-2" : "",
-                count === 1 ? "h-[480px] md:h-[520px]" : "h-full"
-              )}
-            >
-              {m.type === "IMAGE" ? (
-                <Image 
-                  src={m.url} 
-                  alt="DealCity Product" 
-                  fill 
-                  sizes={count === 1 ? "(max-width: 768px) 100vw, 600px" : "(max-width: 768px) 50vw, 300px"}
-                  className="object-cover transition-transform duration-300 group-hover/media:scale-[1.02]" 
-                  priority={i === 0}
-                />
-              ) : (
-                <VideoPost src={m.url} />
-              )}
-              {count > 4 && i === 3 && (
-                <div className="absolute inset-0 bg-black/70 flex items-center justify-center z-10 backdrop-blur-[2px]">
-                  <span className="text-white text-2xl font-black">+{count - 3}</span>
-                </div>
-              )}
-            </motion.div>
-          ))}
-        </div>
-      </div>
-
-      {availableColors?.length > 0 && (
-        <div className="px-5 pt-1">
-          <p className="text-[9px] font-black uppercase text-muted-foreground/60 mb-2 tracking-widest">
-            Sélectionner une couleur :
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {availableColors.map((color: string) => (
-              <button
-                key={color}
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setSelectedColor(color);
-                }}
-                className={cn(
-                  "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all border",
-                  selectedColor === color 
-                    ? "bg-primary text-primary-foreground border-primary shadow-sm scale-105" 
-                    : "bg-muted text-muted-foreground border-border/40 hover:bg-muted/80"
-                )}
+    <div className="w-full space-y-0">
+      {/* GRILLE MULTIMÉDIA PREVIEW - Inchangée pour la structure */}
+      {count > 0 && (
+        <div className="relative w-full bg-zinc-950 overflow-hidden">
+          {audioUrl && <audio ref={audioRef} src={audioUrl} loop className="hidden" />}
+          <div 
+            onClick={() => router.push(`/posts/${postId}/photos`, { scroll: false })}
+            className={cn(
+              "grid gap-[2px] w-full cursor-pointer hover:opacity-95 transition-opacity",
+              count === 1 ? "grid-cols-1" : "grid-cols-2",
+              count >= 3 ? "aspect-square" : "aspect-video"
+            )}
+          >
+            {displayedMedia.map((m: any, i: number) => (
+              <motion.div 
+                key={m.id || i} 
+                layoutId={`post-image-${m.id}`} 
+                className={cn("relative overflow-hidden bg-zinc-900", count === 3 && i === 0 ? "row-span-2" : "", count === 1 ? "h-[480px]" : "h-full")}
               >
-                {color}
-              </button>
+                {m.type === "IMAGE" ? (
+                  <Image src={m.url} alt="Product" fill sizes="(max-width: 768px) 100vw, 600px" className="object-cover transition-transform duration-500 hover:scale-105" priority={i === 0} />
+                ) : (
+                  <VideoPost src={m.url} />
+                )}
+                {count > 4 && i === 3 && (
+                  <div className="absolute inset-0 bg-black/70 flex items-center justify-center z-10 backdrop-blur-[2px]">
+                    <span className="text-white text-2xl font-black italic">+{count - 3}</span>
+                  </div>
+                )}
+              </motion.div>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* SÉLECTEUR D'OPTIONS STYLISÉ */}
+      {attributes && attributes.length > 0 && (
+        <div className="px-5 py-6 space-y-5 bg-card">
+          {attributes.map((attr: any) => (
+            <div key={attr.id || attr.name} className="space-y-3">
+              <div className="flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/50">
+                  {attr.name}
+                </p>
+              </div>
+              
+              <div className="flex flex-wrap gap-2.5">
+                {attr.values.map((val: string) => {
+                  const isSelected = selectedAttributes[attr.name] === val;
+                  return (
+                    <button
+                      key={val}
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedAttributes((prev: any) => ({
+                          ...prev,
+                          [attr.name]: val,
+                        }));
+                      }}
+                      className={cn(
+                        "relative px-5 py-2.5 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all duration-200 border-2",
+                        isSelected 
+                          ? "bg-primary text-primary-foreground border-primary shadow-lg shadow-primary/20 scale-105" 
+                          : "bg-transparent text-muted-foreground border-border hover:border-primary/50 hover:text-primary"
+                      )}
+                    >
+                      {val}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </div>
       )}
     </div>

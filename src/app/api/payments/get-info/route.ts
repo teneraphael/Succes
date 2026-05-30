@@ -5,30 +5,39 @@ export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
     const ref = searchParams.get('ref');
+    const p_data_url = searchParams.get('p_data'); // On récupère le p_data depuis l'URL
 
-    if (!ref || ref === 'null') {
-      return NextResponse.json({ error: "Référence invalide" }, { status: 400 });
+    // 1. PRIORITÉ : Si p_data est dans l'URL, on l'utilise directement
+    if (p_data_url) {
+      try {
+        const decoded = JSON.parse(Buffer.from(p_data_url, 'base64').toString('utf-8'));
+        return NextResponse.json({ 
+          name: "ok", 
+          product: decoded, 
+          source: "url_param",
+          timestamp: Date.now() 
+        }, { status: 200 });
+      } catch (e) {
+        console.error("Erreur décodage p_data URL:", e);
+      }
     }
 
-    // Récupération sécurisée avec gestion d'erreurs Prisma
+    // 2. FALLBACK : Si pas de p_data dans l'URL, on cherche dans la BDD
+    if (!ref) {
+      return NextResponse.json({ error: "Référence manquante" }, { status: 400 });
+    }
+
     const payment = await prisma.payment.findUnique({ 
       where: { id: ref },
-      select: { note: true, status: true } // Ne sélectionnez que ce dont vous avez besoin
+      select: { note: true, createdAt: true } 
     });
 
     if (!payment) {
       return NextResponse.json({ error: "Paiement introuvable" }, { status: 404 });
     }
 
-    // Sécurisation du parsing : on traite la note uniquement si elle existe
     const note = payment.note || "";
-    
-    // Suggestion : Pour éviter le split('|'), si vous avez le contrôle,
-    // préférez stocker directement un JSON dans le champ 'note'.
     const parts = note.split('|');
-    
-    const name = parts.find(p => p.startsWith('Client:'))?.split('Client:')[1] || "";
-    const phone = parts.find(p => p.startsWith('Tel:'))?.split('Tel:')[1] || "";
     const productBase64 = parts.find(p => p.startsWith('Product:'))?.split('Product:')[1];
 
     let productData = null;
@@ -37,18 +46,22 @@ export async function GET(req: Request) {
         const jsonString = Buffer.from(productBase64, 'base64').toString('utf-8');
         productData = JSON.parse(jsonString);
       } catch (e) {
-        console.error("Format de produit corrompu:", e);
+        console.error("Erreur parsing Base64 BDD:", e);
       }
     }
 
     return NextResponse.json({ 
-      name, 
-      phone, 
-      product: productData 
+      name: "ok", 
+      product: productData, 
+      source: "database",
+      timestamp: Date.now() 
+    }, { 
+      status: 200,
+      headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0' }
     });
 
   } catch (error) {
     console.error("Erreur API get-info:", error);
-    return NextResponse.json({ error: "Erreur serveur interne" }, { status: 500 });
+    return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });
   }
 }

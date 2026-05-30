@@ -71,11 +71,11 @@ model User {
   // RELATION AJOUTÉE POUR LES SIGNALEMENTS
   reports Report[]
 
-  isSeller              Boolean        @default(false)
-  businessName          String?
-  businessDomain        String?
-  businessEmail         String?
-  businessProducts      String?
+  isSeller            Boolean        @default(false)
+  businessName        String?
+  businessDomain      String?
+  businessEmail       String?
+  businessProducts    String?
   receivedNotifications Notification[] @relation("Recipient")
   issuedNotifications   Notification[] @relation("Issuer")
   fcmToken              String?        @map("fcm_token")
@@ -88,11 +88,11 @@ model User {
 }
 
 model Order {
-  id             String  @id @default(cuid())
-  quantity       Int     @default(1)
+  id             String      @id @default(cuid())
+  quantity       Int         @default(1)
   // Informations de paiement
   total          Int // Prix total en XAF
-  paymentId      String? @unique // ID de transaction Monetbil
+  paymentId      String?     @unique // ID de transaction Monetbil
   totalAmount    Int // Prix total payé par le client
   commission     Int // Les 5% que tu gardes (totalAmount * 0.05)
   sellerEarnings Int
@@ -131,6 +131,12 @@ model OrderItem {
   color     String?
   price     Int
   order     Order   @relation(fields: [orderId], references: [id])
+  post      Post     @relation(fields: [productId], references: [id])
+  optionsLabel String?
+
+  // LIEN OPTIONNEL AVEC LA VARIANTE FINALE CHOISIE LORS DE LA COMMANDE
+  variantId String?
+  variant   ProductVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
 }
 
 model DeliveryRequest {
@@ -254,6 +260,10 @@ model Post {
   videoFilter         String? // Pour stocker le nom du filtre appliqué
   thumbnailUrl        String?
   stock               Int               @default(0)
+  orderItems          OrderItem[]
+  // 🌟 RELATIONS INTACTES & AJOUTÉES POUR LES VARIANTES DYNAMIQUES
+  attributes          ProductAttribute[]
+  variants            ProductVariant[]
 
   // RELATION AJOUTÉE POUR LES SIGNALEMENTS
   reports Report[]
@@ -262,6 +272,31 @@ model Post {
 
   @@index([category])
   @@map("posts")
+}
+
+// 🌟 NOUVEAU MODÈLE 1 : DÉFINITION DES ATTRIBUTS CHOISIS PAR LE VENDEUR (Motif, Couleur, Taille...)
+model ProductAttribute {
+  id        String   @id @default(cuid())
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  name      String   // ex: "Motif", "Couleur", "Taille"
+  values    String[] // ex: ["Floral", "Uni", "Rayé"]
+}
+
+// 🌟 NOUVEAU MODÈLE 2 : LES COMBINAISONS FINALES GÉNÉRÉES AVEC LEUR PROPRE STOCK & CONFIGURATION
+model ProductVariant {
+  id           String      @id @default(cuid())
+  postId       String
+  post         Post        @relation(fields: [postId], references: [id], onDelete: Cascade)
+  
+  // Stocke la combinaison (ex: {"Motif": "Floral", "Couleur": "Bleu"})
+  combinations Json        
+  
+  price        Int?        // Optionnel : Si une variante est plus chère que le prix de base globale
+  stock        Int         @default(0) // Le stock dédié uniquement à cette variante précise
+  sku          String?     // Code inventaire optionnel
+  
+  orderItems   OrderItem[] // Relation inverse vers les paniers commandés
 }
 
 model Media {

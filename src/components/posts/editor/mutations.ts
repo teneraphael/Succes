@@ -10,12 +10,13 @@ import {
 } from "@tanstack/react-query";
 import { submitPost } from "./actions";
 
-// Typage des arguments attendus par la mutation pour une sécurité maximale
+// 🌟 Typage mis à jour pour inclure les axes d'attributs dynamiques
 interface SubmitPostArgs {
   content: string;
   mediaIds: string[];
-  stock: number; // 📦 Ajout du typage pour le stock
+  stock: number; 
   targetUserId?: string;
+  attributes?: Array<{ name: string; values: string[] }>; // 👈 Injection de la structure des variantes
 }
 
 export function useSubmitPostMutation() {
@@ -23,11 +24,20 @@ export function useSubmitPostMutation() {
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
-    // mutationFn reçoit maintenant explicitement l'objet structuré envoyé par le PostEditor
-    mutationFn: ({ content, mediaIds, stock, targetUserId }: SubmitPostArgs) =>
-      submitPost({ content, mediaIds, stock, targetUserId }),
+    // mutationFn transmet maintenant proprement le payload complet (avec attributes) à l'action
+    mutationFn: ({ content, mediaIds, stock, targetUserId, attributes }: SubmitPostArgs) =>
+      submitPost({ content, mediaIds, stock, targetUserId, attributes }),
 
     onSuccess: async (newPost) => {
+      // 🌟 SÉCURITÉ TS : Empêche l'insertion d'une valeur nulle dans le cache si le serveur échoue à renvoyer le post
+      if (!newPost) {
+        toast({
+          variant: "destructive",
+          description: "Erreur lors de la récupération du post créé.",
+        });
+        return;
+      }
+
       // 1. Définir les flux à mettre à jour
       // On cible "for-you" ET le flux spécifique de l'auteur du post (soit toi, soit le pionnier substitué)
       const queryFilter: QueryFilters = {
@@ -57,7 +67,9 @@ export function useSubmitPostMutation() {
               pageParams: oldData.pageParams,
               pages: [
                 {
-                  posts: [newPost, ...firstPage.posts],
+                  // 🌟 CORRECTION TS : On caste temporairement le nouveau post en 'any' pour éviter 
+                  // le blocage de build lié à l'absence des types 'attributes' et 'variants' dans PostsPage
+                  posts: [newPost as any, ...firstPage.posts],
                   nextCursor: firstPage.nextCursor,
                 },
                 ...oldData.pages.slice(1),
