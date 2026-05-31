@@ -4,7 +4,6 @@ import { usePost } from "@/hooks/use-post";
 import { X, ShoppingBag } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useCart } from "@/context/cart-context";
 import { use, useEffect } from "react";
 import { motion, LayoutGroup } from "framer-motion";
 
@@ -14,7 +13,6 @@ interface PageProps {
 
 export default function PostPhotosPage({ params }: PageProps) {
   const router = useRouter();
-  const { addToCart } = useCart();
 
   const { postId } = use(params);
   const { data: post, isLoading, error } = usePost(postId);

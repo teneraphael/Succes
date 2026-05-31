@@ -4,7 +4,6 @@ import { usePost } from "@/hooks/use-post";
 import { X, ShoppingBag } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useCart } from "@/context/cart-context";
 import { useToast } from "@/components/ui/use-toast";
 import { use, useEffect } from "react";
 import { motion, LayoutGroup } from "framer-motion";
@@ -16,7 +15,6 @@ interface PageProps {
 export default function InterceptedPostPhotosPage({ params }: PageProps) {
   const router = useRouter();
   const { toast } = useToast();
-  const { addToCart } = useCart();
 
   const { postId } = use(params);
   const { data: post, isLoading, error } = usePost(postId);
@@ -162,25 +160,6 @@ export default function InterceptedPostPhotosPage({ params }: PageProps) {
                   : postData.content}
               </p>
             </div>
-          </div>
-
-          <div className="mt-10">
-            <button
-              onClick={() => {
-                addToCart({
-                  id: postData.id,
-                  name: postData.productName || "Article DealCity",
-                  price: postData.price || 0,
-                  image: visualAttachments[0]?.url || "",
-                  quantity: 1,
-                });
-                toast({ description: "Ajouté au panier DealCity" });
-              }}
-              className="w-full py-6 bg-white text-black rounded-3xl font-black uppercase text-sm shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:scale-[1.02] transition-all active:scale-95 flex items-center justify-center gap-3"
-            >
-              <ShoppingBag className="size-6" />
-              Ajouter au panier
-            </button>
           </div>
         </motion.div>
       </motion.div>
