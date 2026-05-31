@@ -19,6 +19,11 @@ const config = {
       },
     },
     extend: {
+      // Les polices doivent être ici, au même niveau que colors
+      fontFamily: {
+        sans: ['Inter', 'sans-serif'],
+        heading: ['Montserrat', 'sans-serif'],
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",

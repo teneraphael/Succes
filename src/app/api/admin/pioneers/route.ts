@@ -6,7 +6,7 @@ export async function GET() {
     const { user: loggedInUser } = await validateRequest();
     
     // Sécurité : Vérification via l'ID Admin (plus robuste que le pseudo)
-    if (!loggedInUser || loggedInUser.id !== "22lmc64bcqwsqybu") {
+    if (!loggedInUser || loggedInUser.id !== "dgd2ohqrx3tqezng") {
       return Response.json({ error: "Accès refusé" }, { status: 401 });
     }
 

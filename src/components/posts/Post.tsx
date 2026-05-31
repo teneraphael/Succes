@@ -1,21 +1,16 @@
 "use client";
 
 import { useSession } from "@/app/(main)/SessionProvider";
-import { PostData } from "@/lib/types";
 import { cn, formatRelativeDate } from "@/lib/utils";
-import { 
-  MessageSquare, ShieldCheck, ShoppingBag, 
-  CreditCard 
-} from "lucide-react";
+import { MessageSquare, ShieldCheck } from "lucide-react";
 import Image from "next/image";
 import VideoPost from "../VideoPost";
 import { getSellerBadge } from "@/lib/badge";
 import Link from "next/link";
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/use-toast";
-import { useCart } from "@/context/cart-context";
-import { motion } from "framer-motion"; 
+import { motion } from "framer-motion";
 import Comments from "../comments/Comments";
 import UserAvatar from "../UserAvatar";
 import UserTooltip from "../UserTooltip";
@@ -26,37 +21,54 @@ import { useMediaQuery } from "@/hooks/use-media-query";
 import { Drawer, DrawerContent, DrawerTrigger } from "@/components/ui/drawer";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
+// ✅ CORRECTION 1 : La description respecte les sauts de ligne
 function ExpandableDescription({ text, limit = 120 }: { text: string; limit?: number }) {
   const [isExpanded, setIsExpanded] = useState(false);
-  
-  if (text.length <= limit) return <p className="text-[10px] uppercase tracking-widest text-muted-foreground/80 italic font-bold leading-relaxed">{text}</p>;
-  
+
+  if (text.length <= limit) {
+    return (
+      <p
+        className="text-[11px] font-semibold leading-relaxed text-muted-foreground"
+        style={{ whiteSpace: "pre-wrap" }}
+      >
+        {text}
+      </p>
+    );
+  }
+
   return (
     <div>
-      <p className="text-[10px] uppercase tracking-widest text-muted-foreground/80 italic font-bold leading-relaxed">
+      <p
+        className="text-[11px] font-semibold leading-relaxed text-muted-foreground"
+        style={{ whiteSpace: "pre-wrap" }}
+      >
         {isExpanded ? text : `${text.slice(0, limit)}...`}
       </p>
-      <button 
+      <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="text-[10px] font-black uppercase text-blue-600 mt-1 hover:underline"
+        className="text-[10px] font-black uppercase text-blue-600 mt-1 hover:underline tracking-wide"
       >
-        {isExpanded ? "Voir moins" : "Voir plus"}
+        {isExpanded ? "Voir moins ▲" : "Voir plus ▼"}
       </button>
     </div>
   );
 }
 
-interface PostProps { post: any; }
+interface PostProps {
+  post: any;
+}
 
 const extractInfo = (content: string) => {
   const productMatch = content.match(/🛍️\s*PRODUIT\s*:\s*(.*)/i);
   const priceMatch = content.match(/💰\s*PRIX\s*:\s*(.*?)\s*FCFA/i);
   const descMatch = content.match(/📝\s*DESCRIPTION\s*:\s*\n?([\s\S]*?)(?=\n\n🎵|$)/i);
-  
+  const whatsappMatch = content.match(/📞\s*WHATSAPP\s*:\s*(.*)/i);
+
   return {
     productName: productMatch ? productMatch[1].trim() : null,
     price: priceMatch ? priceMatch[1].trim() : null,
     cleanDescription: descMatch ? descMatch[1].trim() : content,
+    whatsappNumber: whatsappMatch ? whatsappMatch[1].trim() : null,
   };
 };
 
@@ -64,15 +76,13 @@ export default function Post({ post }: PostProps) {
   const { user: loggedInUser } = useSession();
   const router = useRouter();
   const { toast } = useToast();
-  const { addToCart } = useCart();
   const isDesktop = useMediaQuery("(min-width: 768px)");
 
-  const { productName, price: defaultPrice, cleanDescription } = extractInfo(post.content);
+  const { productName, price: defaultPrice, cleanDescription, whatsappNumber } = extractInfo(post.content);
 
   const [selectedAttributes, setSelectedAttributes] = useState<Record<string, string>>({});
   const [activeVariant, setActiveVariant] = useState<any>(null);
 
-  // Initialiser les attributs sélectionnés par défaut avec la première valeur de chaque axe
   useEffect(() => {
     if (post.attributes && post.attributes.length > 0) {
       const initialSelection: Record<string, string> = {};
@@ -85,7 +95,6 @@ export default function Post({ post }: PostProps) {
     }
   }, [post.attributes]);
 
-  // Trouver la variante correspondante dès que la sélection d'un attribut change
   useEffect(() => {
     if (post.variants && post.variants.length > 0 && Object.keys(selectedAttributes).length > 0) {
       const matched = post.variants.find((variant: any) => {
@@ -103,67 +112,69 @@ export default function Post({ post }: PostProps) {
   const audioMedia = post.attachments.find((m: any) => m.type === "AUDIO");
   const visualAttachments = post.attachments.filter((m: any) => m.type !== "AUDIO");
   const finalAudioUrl = post.audioUrl || audioMedia?.url;
-  const finalAudioTitle = post.audioTitle || "Son original";
 
-const handleAddToCart = async (isPrePayment = false) => {
-  if (!isAvailable) {
-    toast({ variant: "destructive", description: "Indisponible !", duration: 2000 });
-    return;
-  }
+  // ✅ NOUVEAU: choisir une image pour WhatsApp (la première IMAGE)
+  const firstImageUrl =
+    visualAttachments?.find((m: any) => m.type === "IMAGE")?.url ||
+    visualAttachments?.[0]?.url ||
+    null;
 
-  const numericPrice = parseInt(currentPrice.replace(/\D/g, ''));
-  const firstImage = visualAttachments.find((m: any) => m.type === "IMAGE")?.url || visualAttachments[0]?.url || "";
-
-  // 1. Génération propre du libellé des options
-  const choiceLabel = Object.entries(selectedAttributes)
-    .map(([key, val]) => `${key}: ${val}`)
-    .join(" • ");
-
-  // 2. Identification dynamique de la couleur
-  // On cherche une clé qui contient "Couleur" (insensible à la casse)
-  const colorKey = Object.keys(selectedAttributes).find(k => k.toLowerCase().includes("couleur"));
-  const detectedColor = colorKey ? selectedAttributes[colorKey] : "Standard";
-
-  const product = {
-    id: post.id, 
-    postId: post.id,
-    name: productName ? productName : "Article DealCity",
-    price: numericPrice,
-    image: firstImage,
-    quantity: 1,
-    color: detectedColor, 
-    variantId: activeVariant?.id || undefined,
-    selectedOptions: choiceLabel || "Aucune option" // On force le texte ici
-  };
-
-    if (isPrePayment) {
-      // Nettoyer l'ancien état pour éviter les chevauchements de produits
-      sessionStorage.removeItem("current_product");
-      sessionStorage.setItem("current_product", JSON.stringify(product));
-      
-      const params = new URLSearchParams({
-        id: post.id,
-        variantId: activeVariant?.id || "",
-        productName: product.name,
-        price: product.price.toString(),
-        image: product.image,
-        qty: "1",
-        selectedOptions: product.selectedOptions
-      });
-      router.push(`/pre-payment?${params.toString()}`);
-    } else {
-      addToCart({ 
-        ...product, 
-        availableColors: post.attributes?.find((a: any) => a.name === "Couleur")?.values || [] 
-      });
-      toast({ description: `🛒 Ajouté au panier avec succès !`, duration: 2000 });
+  // ✅ CORRECTION SÉCURISÉE : Encodage des Emojis + Placement du lien au début pour forcer l'aperçu image
+  const handleWhatsApp = () => {
+    if (!isAvailable) {
+      toast({ variant: "destructive", description: "Ce produit est indisponible !", duration: 2000 });
+      return;
     }
+
+    const number = whatsappNumber || post.user?.phone || "";
+    if (!number) {
+      toast({ variant: "destructive", description: "Numéro WhatsApp non disponible", duration: 2000 });
+      return;
+    }
+
+    const choiceLabel = Object.entries(selectedAttributes)
+      .map(([key, val]) => `${key}: ${val}`)
+      .join(", ");
+
+    // Déclaration sécurisée des emojis pour éviter les conflits d'encodage (les fameux )
+    const emojiProduct = String.fromCodePoint(0x1F6CD); // 🛍️
+    const emojiPrice = String.fromCodePoint(0x1F4B0);   // 💰
+    const emojiGear = String.fromCodePoint(0x2699);    // ⚙️
+    const emojiCamera = String.fromCodePoint(0x1F4F7);  // 📷
+
+    // S'assurer que l'URL est absolue
+    let fullImageUrl = firstImageUrl;
+    if (fullImageUrl && fullImageUrl.startsWith("/")) {
+      const origin = typeof window !== "undefined" ? window.location.origin : "";
+      fullImageUrl = `${origin}${fullImageUrl}`;
+    }
+
+    // Reconstruction stratégique du texte :
+    // On positionne l'URL de l'image TOUT EN HAUT. WhatsApp cible le premier lien valide pour générer la carte d'aperçu visuel.
+    let textWithImage = "";
+    if (fullImageUrl) {
+      textWithImage += `${fullImageUrl}\n\n`;
+    }
+
+    textWithImage += 
+      `Bonjour ! Je suis intéressé(e) par votre produit :\n\n` +
+      `${emojiProduct} *${productName || "Article"}*\n` +
+      `${emojiPrice} *${currentPrice} FCFA*\n` +
+      (choiceLabel ? `${emojiGear} Options : ${choiceLabel}\n` : "");
+
+    if (fullImageUrl) {
+      textWithImage += `\n${emojiCamera} Photo du produit ci-dessus.`;
+    }
+
+    const message = encodeURIComponent(textWithImage);
+    const cleanNumber = number.replace(/\D/g, ""); // Nettoyage du numéro de téléphone
+    
+    window.open(`https://wa.me/${cleanNumber}?text=${message}`, "_blank");
   };
 
   return (
     <article className="group/post w-full space-y-4 bg-card py-4 md:py-5 md:rounded-3xl border-b md:border border-border/70 shadow-sm transition-all duration-200 hover:shadow-md max-w-xl mx-auto mb-5 overflow-hidden">
-      
-      {/* SELLER HEADER */}
+      {/* En-tête : avatar + nom + date */}
       <div className="flex justify-between items-center gap-3 px-5">
         <div className="flex flex-wrap items-center gap-3">
           <UserTooltip user={post.user}>
@@ -173,22 +184,26 @@ const handleAddToCart = async (isPrePayment = false) => {
           </UserTooltip>
           <div>
             <div className="flex items-center gap-1.5">
-              <Link href={`/users/${post.user.username}`} className="font-black text-sm tracking-tight text-foreground hover:text-primary transition-colors">
+              <Link
+                href={`/users/${post.user.username}`}
+                className="font-extrabold text-sm tracking-tight text-foreground hover:text-primary transition-colors"
+                style={{ fontFamily: "'Geist', 'Inter', sans-serif" }}
+              >
                 {post.user.displayName}
               </Link>
-              
               {getSellerBadge(post.user._count.sales) && (
-                <span className={cn(
-                  "text-[9px] px-1.5 py-0.5 rounded-md font-black uppercase tracking-wider text-white",
-                  getSellerBadge(post.user._count.sales)?.color
-                )}>
+                <span
+                  className={cn(
+                    "text-[9px] px-1.5 py-0.5 rounded-md font-black uppercase tracking-wider text-white",
+                    getSellerBadge(post.user._count.sales)?.color
+                  )}
+                >
                   {getSellerBadge(post.user._count.sales)?.label}
                 </span>
               )}
-
               {post.user.isVerified && <ShieldCheck className="size-4 text-[#4a90e2] fill-current" />}
             </div>
-            <p className="text-[9px] text-muted-foreground font-black uppercase tracking-widest mt-0.5 opacity-80">
+            <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-widest mt-0.5 opacity-80">
               {formatRelativeDate(new Date(post.createdAt))}
             </p>
           </div>
@@ -196,15 +211,17 @@ const handleAddToCart = async (isPrePayment = false) => {
         <PostMoreButton post={post} />
       </div>
 
-      {/* TITRE, STOCK ET PRIX DYNAMIQUES */}
+      {/* Nom du produit + stock + prix */}
       <div className="px-5 flex items-start justify-between gap-4">
         <div className="space-y-1.5 flex-1">
           {productName && (
-            <h3 className="font-black text-xl italic uppercase tracking-tighter text-foreground leading-none line-clamp-2">
+            <h3
+              className="font-black text-xl uppercase tracking-tight text-foreground leading-none line-clamp-2"
+              style={{ fontFamily: "'Geist', 'Inter', sans-serif", letterSpacing: "-0.02em" }}
+            >
               {productName}
             </h3>
           )}
-          
           {isAvailable ? (
             <span className="inline-flex text-[9px] font-black uppercase tracking-widest text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-500/10">
               Disponible en stock ({currentStock})
@@ -215,32 +232,35 @@ const handleAddToCart = async (isPrePayment = false) => {
             </span>
           )}
         </div>
-        
         {currentPrice && (
           <div className="text-right whitespace-nowrap">
-            <span className={cn(
-              "text-2xl font-black tracking-tighter bg-emerald-50/70 border-2 border-emerald-500/10 px-3.5 py-1 rounded-2xl block shadow-sm transform -rotate-1",
-              isAvailable ? "text-emerald-600" : "text-muted-foreground bg-neutral-100 border-neutral-200 line-through opacity-60"
-            )}>
+            <span
+              className={cn(
+                "text-2xl font-black tracking-tighter bg-emerald-50/70 border-2 border-emerald-500/10 px-3.5 py-1 rounded-2xl block shadow-sm transform -rotate-1",
+                isAvailable
+                  ? "text-emerald-600"
+                  : "text-muted-foreground bg-neutral-100 border-neutral-200 line-through opacity-60"
+              )}
+              style={{ fontFamily: "'Geist Mono', 'Courier New', monospace" }}
+            >
               {currentPrice} <span className="text-xs font-bold tracking-normal">FCFA</span>
             </span>
           </div>
         )}
       </div>
 
+      {/* Description */}
       {cleanDescription && (
         <div className="px-5">
           <ExpandableDescription text={cleanDescription} />
         </div>
       )}
 
-      {/* VISUELS ET SELECTIONNEUR D'ATTRIBUTS DYNAMIQUES */}
+      {/* Médias */}
       <div className="w-full overflow-hidden border-y border-border/40">
-        <MediaPreviews 
-          attachments={visualAttachments} 
-          userAvatar={post.user.avatarUrl}
+        <MediaPreviews
+          attachments={visualAttachments}
           audioUrl={finalAudioUrl}
-          audioTitle={finalAudioTitle}
           postId={post.id}
           attributes={post.attributes || []}
           selectedAttributes={selectedAttributes}
@@ -248,37 +268,39 @@ const handleAddToCart = async (isPrePayment = false) => {
         />
       </div>
 
-      {/* BOUTONS D'ACHAT */}
+      {/* Bouton WhatsApp */}
       <div className="px-5 pt-1">
-        <div className="flex gap-2 w-full">
-          <button 
-            disabled={!isAvailable}
-            onClick={() => handleAddToCart(false)} 
-            className={cn(
-              "flex-1 py-4 rounded-xl font-black uppercase text-[10px] tracking-widest text-secondary-foreground border border-border/80 transition-all flex items-center justify-center gap-2",
-              isAvailable ? "bg-secondary hover:bg-secondary/80 active:scale-[0.97]" : "bg-neutral-100 text-neutral-400 border-neutral-200 cursor-not-allowed opacity-50"
-            )}
+        <button
+          onClick={handleWhatsApp}
+          disabled={!isAvailable}
+          className={cn(
+            "w-full py-4 rounded-2xl font-black uppercase text-[11px] tracking-widest transition-all flex items-center justify-center gap-3 shadow-md",
+            isAvailable
+              ? "bg-[#25D366] hover:bg-[#20b858] text-white shadow-[#25D366]/25 active:scale-[0.97]"
+              : "bg-neutral-200 text-neutral-400 shadow-none cursor-not-allowed opacity-50"
+          )}
+        >
+          <svg
+            viewBox="0 0 24 24"
+            className="size-5 fill-current"
+            xmlns="http://www.w3.org/2000/svg"
           >
-            <ShoppingBag className="size-4" /> Panier
-          </button>
-          <button 
-            disabled={!isAvailable}
-            onClick={() => handleAddToCart(true)} 
-            className={cn(
-              "flex-[2.5] py-4 rounded-xl font-black uppercase italic text-xs tracking-widest shadow-md transition-all flex items-center justify-center gap-2",
-              isAvailable ? "bg-primary text-primary-foreground shadow-primary/20 hover:opacity-95 active:scale-[0.97]" : "bg-neutral-200 text-neutral-400 shadow-none cursor-not-allowed opacity-50"
-            )}
-          >
-            <CreditCard className={cn("size-4 text-orange-400", isAvailable && "animate-pulse")} /> 
-            {isAvailable ? "Achat Sécurisé" : "Indisponible"}
-          </button>
-        </div>
+            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+          </svg>
+          {isAvailable ? "Commander via WhatsApp" : "Indisponible"}
+        </button>
       </div>
 
-      {/* FEEDBACK ACTIONS FOOTER */}
+      {/* Likes, commentaires, bookmark */}
       <div className="flex items-center justify-between px-5 pt-3 border-t border-border/40">
         <div className="flex items-center gap-6">
-          <LikeButton postId={post.id} initialState={{ likes: post._count.likes, isLikedByUser: post.likes.some((l: { userId: string | undefined; }) => l.userId === loggedInUser?.id) }} />
+          <LikeButton
+            postId={post.id}
+            initialState={{
+              likes: post._count.likes,
+              isLikedByUser: post.likes.some((l: { userId: string | undefined }) => l.userId === loggedInUser?.id),
+            }}
+          />
           <div className="flex items-center gap-1.5">
             {isDesktop ? (
               <Sheet>
@@ -290,11 +312,9 @@ const handleAddToCart = async (isPrePayment = false) => {
                     </span>
                   </button>
                 </SheetTrigger>
-                <SheetTrigger asChild>
-                  <SheetContent side="right" className="p-0 sm:max-w-[450px]">
-                    <Comments post={post} />
-                  </SheetContent>
-                </SheetTrigger>
+                <SheetContent side="right" className="p-0 sm:max-w-[450px]">
+                  <Comments post={post} />
+                </SheetContent>
               </Sheet>
             ) : (
               <Drawer>
@@ -313,28 +333,35 @@ const handleAddToCart = async (isPrePayment = false) => {
             )}
           </div>
         </div>
-        <BookmarkButton postId={post.id} initialState={{ isBookmarkedByUser: post.bookmarks.some((b: { userId: string | undefined; }) => b.userId === loggedInUser?.id) }} />
+        <BookmarkButton
+          postId={post.id}
+          initialState={{
+            isBookmarkedByUser: post.bookmarks.some((b: { userId: string | undefined }) => b.userId === loggedInUser?.id),
+          }}
+        />
       </div>
     </article>
   );
 }
 
-function MediaPreviews({ 
-  attachments, audioUrl, postId, 
-  attributes, selectedAttributes, setSelectedAttributes 
+function MediaPreviews({
+  attachments,
+  audioUrl,
+  postId,
+  attributes,
+  selectedAttributes,
+  setSelectedAttributes,
 }: any) {
   const router = useRouter();
-  const audioRef = useRef<HTMLAudioElement | null>(null);
   const count = attachments?.length || 0;
   const displayedMedia = attachments?.slice(0, 4) || [];
 
   return (
     <div className="w-full space-y-0">
-      {/* GRILLE MULTIMÉDIA PREVIEW - Inchangée pour la structure */}
       {count > 0 && (
         <div className="relative w-full bg-zinc-950 overflow-hidden">
-          {audioUrl && <audio ref={audioRef} src={audioUrl} loop className="hidden" />}
-          <div 
+          {audioUrl && <audio src={audioUrl} loop className="hidden" />}
+          <div
             onClick={() => router.push(`/posts/${postId}/photos`, { scroll: false })}
             className={cn(
               "grid gap-[2px] w-full cursor-pointer hover:opacity-95 transition-opacity",
@@ -343,13 +370,24 @@ function MediaPreviews({
             )}
           >
             {displayedMedia.map((m: any, i: number) => (
-              <motion.div 
-                key={m.id || i} 
-                layoutId={`post-image-${m.id}`} 
-                className={cn("relative overflow-hidden bg-zinc-900", count === 3 && i === 0 ? "row-span-2" : "", count === 1 ? "h-[480px]" : "h-full")}
+              <motion.div
+                key={m.id || i}
+                layoutId={`post-image-${m.id}`}
+                className={cn(
+                  "relative overflow-hidden bg-zinc-900",
+                  count === 3 && i === 0 ? "row-span-2" : "",
+                  count === 1 ? "h-[480px]" : "h-full"
+                )}
               >
                 {m.type === "IMAGE" ? (
-                  <Image src={m.url} alt="Product" fill sizes="(max-width: 768px) 100vw, 600px" className="object-cover transition-transform duration-500 hover:scale-105" priority={i === 0} />
+                  <Image
+                    src={m.url}
+                    alt="Product"
+                    fill
+                    sizes="(max-width: 768px) 100vw, 600px"
+                    className="object-cover transition-transform duration-500 hover:scale-105"
+                    priority={i === 0}
+                  />
                 ) : (
                   <VideoPost src={m.url} />
                 )}
@@ -364,7 +402,6 @@ function MediaPreviews({
         </div>
       )}
 
-      {/* SÉLECTEUR D'OPTIONS STYLISÉ */}
       {attributes && attributes.length > 0 && (
         <div className="px-5 py-6 space-y-5 bg-card">
           {attributes.map((attr: any) => (
@@ -375,7 +412,6 @@ function MediaPreviews({
                   {attr.name}
                 </p>
               </div>
-              
               <div className="flex flex-wrap gap-2.5">
                 {attr.values.map((val: string) => {
                   const isSelected = selectedAttributes[attr.name] === val;
@@ -385,15 +421,12 @@ function MediaPreviews({
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
-                        setSelectedAttributes((prev: any) => ({
-                          ...prev,
-                          [attr.name]: val,
-                        }));
+                        setSelectedAttributes((prev: any) => ({ ...prev, [attr.name]: val }));
                       }}
                       className={cn(
                         "relative px-5 py-2.5 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all duration-200 border-2",
-                        isSelected 
-                          ? "bg-primary text-primary-foreground border-primary shadow-lg shadow-primary/20 scale-105" 
+                        isSelected
+                          ? "bg-primary text-primary-foreground border-primary shadow-lg shadow-primary/20 scale-105"
                           : "bg-transparent text-muted-foreground border-border hover:border-primary/50 hover:text-primary"
                       )}
                     >

@@ -3,7 +3,7 @@ import prisma from '@/lib/prisma';
 import crypto from 'crypto';
 
 const MONETBIL_SERVICE_KEY = process.env.MONETBIL_SERVICE_KEY || '';
-const DELIVERY_FEE = 10; // 🌟 Corrigé à 1000 FCFA
+const FEE = 10; 
 
 export async function POST(req: NextRequest) {
   try {
@@ -11,74 +11,67 @@ export async function POST(req: NextRequest) {
     const host = req.headers.get('host');
     const baseUrl = `${protocol}://${host}`;
 
-    // On récupère le corps de la requête
     const body = await req.json();
-    const { phone, name, product } = body;
+    const { businessName, phoneNumber } = body;
 
-    // Validation stricte
-    if (!phone || !name || !product) {
-      console.error("Données manquantes reçues :", body);
+    if (!phoneNumber || !businessName) {
       return NextResponse.json({ error: 'Données manquantes' }, { status: 400 });
     }
 
-    const paymentRef = `DELIV-${Date.now()}-${crypto.randomBytes(3).toString('hex').toUpperCase()}`;
+    const paymentRef = `PRO-${Date.now()}-${crypto.randomBytes(3).toString('hex').toUpperCase()}`;
 
-    // 1. Normalisation : On s'assure que 'product' est bien un tableau
-    const productList = Array.isArray(product) ? product : [product];
-
-    // 2. Encodage sécurisé des données
-    const p_data = Buffer.from(JSON.stringify(productList)).toString('base64');
-
-    // 3. Création de la trace en BDD
     await prisma.payment.create({
       data: {
         id: paymentRef,
-        amount: DELIVERY_FEE,
+        amount: FEE,
         status: 'pending',
-        note: `Client:${name.trim()}|Tel:${phone.trim()}|Data:${p_data}`
+        note: `Business:${businessName}|Tel:${phoneNumber}`
       },
     });
 
-    // 4. Construction de l'URL de retour
-    const returnUrl = `${baseUrl}/api/payments/monetbil/handle-redirect?ref=${paymentRef}&p_data=${encodeURIComponent(p_data)}`;
+    const returnUrl = `${baseUrl}/become-seller?ref=${paymentRef}`;
 
-    // Mode test ou production
-    if (!MONETBIL_SERVICE_KEY) {
-      return NextResponse.json({
-        payment_url: `${returnUrl}&status=success`,
-        payment_ref: paymentRef,
-        demo: true,
-      });
-    }
-
-    // Appel à l'API Monetbil
+    // APPEL VERSION V2.1
+    // La clé est dans l'URL et les paramètres dans le body
     const response = await fetch(`https://api.monetbil.com/widget/v2.1/${MONETBIL_SERVICE_KEY}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams({
-        amount: String(DELIVERY_FEE),
-        phone: phone.trim(),
+        amount: String(FEE),
+        phone: phoneNumber.replace(/\s+/g, '').trim(),
         currency: 'XAF',
         payment_ref: paymentRef,
         notify_url: `${baseUrl}/api/payments/monetbil/notify`,
         return_url: returnUrl,
-        cancel_url: `${baseUrl}/pre-payment`,
-        item_ref: 'delivery_fee',
+        cancel_url: `${baseUrl}/seller/become`,
+        item_ref: 'seller_activation',
       }).toString(),
     });
 
-    const data = await response.json().catch(() => ({}));
+    const textResponse = await response.text();
+    
+    // Log pour voir ce que Monetbil répond vraiment
+    console.log("Réponse v2.1:", textResponse);
 
-    if (data.payment_url || data.url) {
-        return NextResponse.json({ 
-          payment_url: data.payment_url || data.url, 
-          payment_ref: paymentRef 
-        });
+    let data;
+    try {
+      data = JSON.parse(textResponse);
+    } catch (e) {
+      return NextResponse.json({ error: "Réponse invalide de Monetbil v2.1", details: textResponse }, { status: 502 });
     }
 
-    return NextResponse.json({ error: "Échec initialisation Monetbil" }, { status: 500 });
+    // Dans la v2.1, l'URL est souvent dans 'payment_url' ou 'url'
+    if (data.payment_url || data.url) {
+      return NextResponse.json({ 
+        payment_url: data.payment_url || data.url, 
+        payment_ref: paymentRef 
+      });
+    }
+
+    return NextResponse.json({ error: data.message || "Échec initialisation v2.1", details: data }, { status: 500 });
+
   } catch (err: any) {
-    console.error('[Monetbil Error]:', err);
-    return NextResponse.json({ error: "Erreur serveur interne" }, { status: 500 });
+    console.error('[Monetbil v2.1 Error]:', err);
+    return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });
   }
 }

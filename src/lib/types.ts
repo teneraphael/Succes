@@ -2,7 +2,6 @@ import { Prisma } from "@prisma/client";
 
 /**
  * Définit la sélection des champs pour les objets User.
- * Inclut le comptage des relations et l'état de suivi par l'utilisateur connecté.
  */
 export function getUserDataSelect(loggedInUserId?: string) {
   return {
@@ -46,7 +45,6 @@ export type UserData = Prisma.UserGetPayload<{
 
 /**
  * Définit les relations incluses pour les objets Post.
- * Assurez-vous que 'attributes' et 'variants' existent dans votre schema.prisma.
  */
 export function getPostDataInclude(loggedInUserId?: string) {
   return {
@@ -54,8 +52,6 @@ export function getPostDataInclude(loggedInUserId?: string) {
       select: getUserDataSelect(loggedInUserId),
     },
     attachments: true,
-    attributes: true, // Doit correspondre à la relation dans schema.prisma
-    variants: true,   // Doit correspondre à la relation dans schema.prisma
     likes: {
       where: {
         userId: loggedInUserId || "ANONYMOUS_USER",
@@ -80,6 +76,7 @@ export function getPostDataInclude(loggedInUserId?: string) {
       select: {
         likes: true,
         comments: true,
+        orders: true,
       },
     },
   } satisfies Prisma.PostInclude;
@@ -94,6 +91,9 @@ export interface PostsPage {
   nextCursor: string | null;
 }
 
+/**
+ * Gestion des commentaires
+ */
 export function getCommentDataInclude(loggedInUserId?: string) {
   return {
     user: {
@@ -111,6 +111,9 @@ export interface CommentsPage {
   previousCursor: string | null;
 }
 
+/**
+ * Notifications
+ */
 export const notificationsInclude = {
   issuer: {
     select: {
@@ -135,6 +138,7 @@ export interface NotificationsPage {
   nextCursor: string | null;
 }
 
+// Interfaces utilitaires pour le Frontend
 export interface FollowerInfo {
   followers: number;
   isFollowedByUser: boolean;

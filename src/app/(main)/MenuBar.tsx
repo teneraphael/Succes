@@ -79,21 +79,6 @@ export default async function MenuBar({ className }: MenuBarProps) {
         </Button>
       )}
 
-      {/* 4. MES COMMANDES */}
-      {user && (
-        <Button
-          variant="ghost"
-          className="flex flex-1 flex-col lg:flex-row items-center justify-center lg:justify-start gap-1 lg:gap-3 transition-all hover:bg-primary/10 group h-auto py-2 px-1"
-          title="Mes commandes"
-          asChild
-        >
-          <Link href="/orders" className="w-full flex flex-col lg:flex-row items-center justify-center lg:justify-start overflow-hidden">
-            <ShoppingBag className="size-6 lg:size-5 shrink-0 group-hover:text-primary transition-colors" />
-            <span className="text-[10px] lg:text-base font-medium group-hover:text-primary truncate">Commandes</span>
-          </Link>
-        </Button>
-      )}
-
       {/* 5. PROFIL */}
       {user && (
         <Button

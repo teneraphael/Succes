@@ -14,7 +14,6 @@ import SessionProvider from "./(main)/SessionProvider";
 import { validateRequest } from "@/auth"; 
 import { LanguageProvider } from "@/components/LanguageProvider";
 import LanguageSync from "@/components/LanguageSync";
-import { CartProvider } from "@/context/cart-context";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -49,10 +48,6 @@ export default async function RootLayout({
 
   return (
     <html lang="fr" suppressHydrationWarning>
-      {/* CORRECTION : Suppression de toute classe de hauteur fixe sur le body.
-        Le 'sticky' a besoin que le scroll soit géré par le navigateur (body) 
-        et non par un conteneur interne pour fonctionner correctement. 
-      */}
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen bg-background text-foreground`}>
         <ThemeProvider
           attribute="class"
@@ -68,9 +63,7 @@ export default async function RootLayout({
                   
                   {sessionValues.user && <NotificationHandler />}
                   
-                  <CartProvider>
-                    {children}
-                  </CartProvider>
+                  {children}
                   
                   <CookieBanner />
                   <SonnerToaster richColors position="top-center" />

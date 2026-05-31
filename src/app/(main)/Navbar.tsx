@@ -5,7 +5,6 @@ import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { LogIn, Bell } from "lucide-react";
-import NavbarCartCounter from "./NavbarCartCounter"; // 👈 Importation du composant client séparé
 
 export default async function Navbar() {
   const { user } = await validateRequest();
@@ -18,6 +17,7 @@ export default async function Navbar() {
         <Link 
           href="/" 
           className="text-2xl font-black text-primary italic tracking-tighter transition-transform active:scale-95"
+          aria-label="Retour à l'accueil"
         >
           DealCity
         </Link>
@@ -27,12 +27,9 @@ export default async function Navbar() {
           <SearchField />
         </div>
 
-        {/* ACTIONS (PANIER + NOTIFICATIONS + PROFIL OU CONNEXION) */}
-        <div className="flex items-center gap-1.5 sm:gap-3">
+        {/* ACTIONS (NOTIFICATIONS + PROFIL OU CONNEXION) */}
+        <nav className="flex items-center gap-1.5 sm:gap-3" aria-label="Menu principal">
           
-          {/* 🛒 ACCÈS DIRECT AU PANIER AVEC COMPTEUR DYNAMIQUE */}
-          <NavbarCartCounter />
-
           {/* ICÔNE DE NOTIFICATIONS */}
           <Link 
             href="/notifications" 
@@ -45,7 +42,10 @@ export default async function Navbar() {
 
           {/* Profil de l'utilisateur ou Connexion */}
           {user ? (
-            <UserButton user={user} className="shadow-sm border border-primary/10 transition-transform active:scale-95" />
+            <UserButton 
+              user={user} 
+              className="shadow-sm border border-primary/10 transition-transform active:scale-95" 
+            />
           ) : (
             <Link
               href="/login"
@@ -54,11 +54,11 @@ export default async function Navbar() {
                 "rounded-full bg-primary px-4 sm:px-6 h-9 font-black uppercase italic text-[10px] sm:text-xs tracking-widest shadow-lg shadow-primary/20 transition-all hover:scale-105 active:scale-95 flex items-center gap-1.5"
               )}
             >
-              <LogIn size={14} />
+              <LogIn size={14} aria-hidden="true" />
               <span className="hidden xs:inline">Se connecter</span>
             </Link>
           )}
-        </div>
+        </nav>
 
       </div>
     </header>

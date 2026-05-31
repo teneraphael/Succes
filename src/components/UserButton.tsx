@@ -51,7 +51,7 @@ export default function UserButton({ className, user: propUser }: UserButtonProp
   if (!user) return null;
 
   // Ton ID unique pour l'accès Admin et Livreur
-  const MY_ADMIN_ID = "22lmc64bcqwsqybu"; 
+  const MY_ADMIN_ID = "dgd2ohqrx3tqezng"; 
   const isAdmin = user.id === MY_ADMIN_ID;
 
   return (
@@ -112,7 +112,7 @@ export default function UserButton({ className, user: propUser }: UserButtonProp
           </DropdownMenuItem>
         ) : (
           <DropdownMenuItem asChild className="rounded-xl py-3 cursor-pointer">
-            <Link href="/become-seller">
+            <Link href="/seller/become">
               <div className="flex items-center w-full">
                 <Store className="mr-3 size-5 text-[#6ab344]" />
                 <span className="font-bold">{t.become_seller}</span>

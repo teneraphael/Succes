@@ -26,7 +26,7 @@ export default async function PioneersDirectoryPage() {
   const { user: admin } = await validateRequest();
 
   // Sécurité admin (ID spécifique)
-  if (!admin || admin.id !== "22lmc64bcqwsqybu") {
+  if (!admin || admin.id !== "dgd2ohqrx3tqezng") {
     redirect("/");
   }
 

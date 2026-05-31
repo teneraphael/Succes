@@ -15,74 +15,80 @@ export async function POST(req: Request) {
       businessEmail, 
       businessProducts, 
       whatsappUrl, 
-      phoneNumber,   // ✅ Récupéré depuis le nouveau formulaire
+      phoneNumber,
       tiktokUrl, 
       facebookUrl, 
       instagramUrl 
     } = body;
 
-    // 1. Slugification de l'username (URL propre)
+    // 1. Slugification sécurisée
     let newUsername = businessName
       .toLowerCase()
       .trim()
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "") 
-      .replace(/\s+/g, "")             
-      .replace(/[^\w]/gi, "");         
+      .replace(/\s+/g, "") 
+      .replace(/[^\w]/gi, "");
 
-    const existingUser = await prisma.user.findUnique({
-      where: { username: newUsername },
-    });
+    // Vérification de l'unicité avec boucle de sécurité
+    let isUnique = false;
+    let attempt = 0;
+    let finalUsername = newUsername;
 
-    // Si l'username existe déjà, on ajoute un suffixe aléatoire
-    if (existingUser && existingUser.id !== user.id) {
-      newUsername = `${newUsername}-${Math.floor(1000 + Math.random() * 9000)}`;
+    while (!isUnique && attempt < 5) {
+      const existingUser = await prisma.user.findUnique({
+        where: { username: finalUsername },
+      });
+
+      if (!existingUser || existingUser.id === user.id) {
+        isUnique = true;
+      } else {
+        finalUsername = `${newUsername}-${Math.floor(1000 + Math.random() * 9000)}`;
+        attempt++;
+      }
     }
 
     // 2. Nettoyage du numéro de téléphone
-    // On enlève tout ce qui n'est pas un chiffre pour avoir un format pur (ex: 237690...)
     const cleanPhoneNumber = phoneNumber ? phoneNumber.replace(/\D/g, '') : null;
 
-    // 3. Logique Pionnier (Si l'un des liens est rempli, il devient Pionnier)
-    const hasSocialLink = 
-      (tiktokUrl && tiktokUrl.trim() !== "") ||
-      (whatsappUrl && whatsappUrl.trim() !== "") || 
-      (phoneNumber && phoneNumber.trim() !== "") || // Le téléphone compte aussi
-      (facebookUrl && facebookUrl.trim() !== "") || 
-      (instagramUrl && instagramUrl.trim() !== "");
+    // 3. Logique Pionnier
+    const hasSocialLink = !!(
+      (tiktokUrl?.trim()) ||
+      (whatsappUrl?.trim()) || 
+      (cleanPhoneNumber) || 
+      (facebookUrl?.trim()) || 
+      (instagramUrl?.trim())
+    );
 
     // 4. Mise à jour Database
     await prisma.user.update({
       where: { id: user.id },
       data: {
         isSeller: true,
-        username: newUsername,
-        displayName: businessName,
-        businessName,
-        businessDomain,
-        businessEmail,
-        businessProducts,
-        // Contacts
-        phoneNumber: cleanPhoneNumber, // ✅ TRÈS IMPORTANT : Pour le bouton "Discuter"
-        whatsappUrl: whatsappUrl || null, // ✅ Gardé tel quel pour ton sourcing (lien groupe)
-        // Réseaux Sociaux
-        tiktokUrl: tiktokUrl || null,
-        facebookUrl: facebookUrl || null,
-        instagramUrl: instagramUrl || null,
-        // Status
-        isPioneer: !!hasSocialLink, 
+        username: finalUsername,
+        displayName: businessName.trim(),
+        businessName: businessName.trim(),
+        businessDomain: businessDomain?.trim(),
+        businessEmail: businessEmail?.trim(),
+        businessProducts: businessProducts?.trim(),
+        phoneNumber: cleanPhoneNumber,
+        whatsappUrl: whatsappUrl?.trim() || null,
+        tiktokUrl: tiktokUrl?.trim() || null,
+        facebookUrl: facebookUrl?.trim() || null,
+        instagramUrl: instagramUrl?.trim() || null,
+        isPioneer: hasSocialLink, 
         isVerified: false, 
       },
     });
 
     return NextResponse.json({ 
       success: true, 
-      newUsername, 
-      isPioneer: !!hasSocialLink 
+      newUsername: finalUsername, 
+      isPioneer: hasSocialLink 
     });
 
-  } catch (error: unknown) {
-    console.error("Erreur API Become Seller:", error);
-    return new NextResponse("Une erreur est survenue", { status: 500 });
+  } catch (error) {
+    console.error("Erreur API Finalize Seller:", error);
+    return new NextResponse("Une erreur est survenue lors de l'enregistrement", { status: 500 });
   }
 }
