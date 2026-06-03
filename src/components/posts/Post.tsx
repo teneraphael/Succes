@@ -71,7 +71,6 @@ const extractInfo = (content: string) => {
   };
 };
 
-// ✅ Helper pour détecter les domaines externes lents
 const isExternalImage = (url: string) =>
   url.includes("ufs.sh") ||
   url.includes("utfs.io") ||
@@ -126,7 +125,7 @@ export default function Post({ post }: PostProps) {
 
     const number = whatsappNumber || post.user?.phoneNumber || post.user?.phone || "";
     if (!number) {
-      toast({ variant: "destructive", description: "Numéro WhatsApp non disponible", duration: 2000 });
+      toast({ variant: "destructive", description: "Numero WhatsApp non disponible", duration: 2000 });
       return;
     }
 
@@ -134,16 +133,43 @@ export default function Post({ post }: PostProps) {
       .map(([key, val]) => `${key}: ${val}`)
       .join(", ");
 
+    // URL absolue — WhatsApp lit les og:image de cette page pour l'aperçu
     const origin = typeof window !== "undefined" ? window.location.origin : "https://dealcity.app";
     const postUrl = `${origin}/posts/${post.id}`;
 
-    const message =
-      `Bonjour ! Je suis intéressé(e) par votre produit :\n\n` +
-      `🛍️ *${productName || "Article"}*\n` +
-      `💰 *${currentPrice} FCFA*\n` +
-      (choiceLabel ? `⚙️ Options : ${choiceLabel}\n` : "") +
-      `\n🔗 Voir le produit :\n${postUrl}`;
+    // Description tronquée à 200 caractères pour ne pas alourdir le message
+    const shortDesc = cleanDescription
+      ? cleanDescription.length > 200
+        ? cleanDescription.slice(0, 200) + "..."
+        : cleanDescription
+      : null;
 
+    // ✅ Message bien structuré et lisible pour le vendeur
+    const lines: string[] = [];
+
+    lines.push("Bonjour ! 👋");
+    lines.push(`Je suis interesse(e) par votre produit sur *DealCity* :`);
+    lines.push("");
+    lines.push(`*${productName || "Article"}*`);
+    lines.push(`Prix : *${currentPrice} FCFA*`);
+
+    if (choiceLabel) {
+      lines.push(`Options choisies : *${choiceLabel}*`);
+    }
+
+    if (shortDesc) {
+      lines.push("");
+      lines.push("Description :");
+      lines.push(shortDesc);
+    }
+
+    lines.push("");
+    lines.push("Voir le produit :");
+    lines.push(postUrl);
+    lines.push("");
+    lines.push("Est-ce que ce produit est toujours disponible ? Merci !");
+
+    const message = lines.join("\n");
     const cleanNumber = number.replace(/\D/g, "");
     window.open(`https://wa.me/${cleanNumber}?text=${encodeURIComponent(message)}`, "_blank");
   };
@@ -356,8 +382,6 @@ function MediaPreviews({
                 )}
               >
                 {m.type === "IMAGE" ? (
-                  // ✅ CORRIGÉ : bypass le proxy Next.js pour UploadThing
-                  // évite les timeouts 500 sur /_next/image
                   <Image
                     src={m.url}
                     alt="Product"
