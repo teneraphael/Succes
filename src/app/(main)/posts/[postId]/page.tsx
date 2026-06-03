@@ -46,11 +46,8 @@ export async function generateMetadata({
     post.content.split("📝 DESCRIPTION :")[1]?.trim().slice(0, 150) ||
     post.content.slice(0, 150);
 
-  // ✅ Image proxiée via votre domaine — WhatsApp peut y accéder
-  // sans être bloqué par UploadThing
-  const ogImage = firstImage
-    ? `https://dealcity.app/api/og-image?url=${encodeURIComponent(firstImage)}`
-    : null;
+  // ✅ URL directe sans proxy — WhatsApp accède directement à ufs.sh
+  const ogImage = firstImage ?? null;
 
   return {
     title: shareTitle,
@@ -62,7 +59,7 @@ export async function generateMetadata({
       siteName: "DealCity",
       type: "article",
       images: ogImage
-        ? [{ url: ogImage, width: 800, height: 800, type: "image/jpeg" }]
+        ? [{ url: ogImage, width: 1200, height: 630, type: "image/jpeg" }]
         : [],
     },
     twitter: {
