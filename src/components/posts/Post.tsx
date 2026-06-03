@@ -21,7 +21,6 @@ import { useMediaQuery } from "@/hooks/use-media-query";
 import { Drawer, DrawerContent, DrawerTrigger } from "@/components/ui/drawer";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
-// ✅ CORRECTION 1 : La description respecte les sauts de ligne
 function ExpandableDescription({ text, limit = 120 }: { text: string; limit?: number }) {
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -72,6 +71,12 @@ const extractInfo = (content: string) => {
   };
 };
 
+// ✅ Helper pour détecter les domaines externes lents
+const isExternalImage = (url: string) =>
+  url.includes("ufs.sh") ||
+  url.includes("utfs.io") ||
+  url.includes("lh3.googleusercontent.com");
+
 export default function Post({ post }: PostProps) {
   const { user: loggedInUser } = useSession();
   const router = useRouter();
@@ -113,20 +118,13 @@ export default function Post({ post }: PostProps) {
   const visualAttachments = post.attachments.filter((m: any) => m.type !== "AUDIO");
   const finalAudioUrl = post.audioUrl || audioMedia?.url;
 
-  // ✅ NOUVEAU: choisir une image pour WhatsApp (la première IMAGE)
-  const firstImageUrl =
-    visualAttachments?.find((m: any) => m.type === "IMAGE")?.url ||
-    visualAttachments?.[0]?.url ||
-    null;
-
-  // ✅ CORRECTION SÉCURISÉE : Encodage des Emojis + Placement du lien au début pour forcer l'aperçu image
   const handleWhatsApp = () => {
     if (!isAvailable) {
       toast({ variant: "destructive", description: "Ce produit est indisponible !", duration: 2000 });
       return;
     }
 
-    const number = whatsappNumber || post.user?.phone || "";
+    const number = whatsappNumber || post.user?.phoneNumber || post.user?.phone || "";
     if (!number) {
       toast({ variant: "destructive", description: "Numéro WhatsApp non disponible", duration: 2000 });
       return;
@@ -136,40 +134,18 @@ export default function Post({ post }: PostProps) {
       .map(([key, val]) => `${key}: ${val}`)
       .join(", ");
 
-    // Déclaration sécurisée des emojis pour éviter les conflits d'encodage (les fameux )
-    const emojiProduct = String.fromCodePoint(0x1F6CD); // 🛍️
-    const emojiPrice = String.fromCodePoint(0x1F4B0);   // 💰
-    const emojiGear = String.fromCodePoint(0x2699);    // ⚙️
-    const emojiCamera = String.fromCodePoint(0x1F4F7);  // 📷
+    const origin = typeof window !== "undefined" ? window.location.origin : "https://dealcity.app";
+    const postUrl = `${origin}/posts/${post.id}`;
 
-    // S'assurer que l'URL est absolue
-    let fullImageUrl = firstImageUrl;
-    if (fullImageUrl && fullImageUrl.startsWith("/")) {
-      const origin = typeof window !== "undefined" ? window.location.origin : "";
-      fullImageUrl = `${origin}${fullImageUrl}`;
-    }
-
-    // Reconstruction stratégique du texte :
-    // On positionne l'URL de l'image TOUT EN HAUT. WhatsApp cible le premier lien valide pour générer la carte d'aperçu visuel.
-    let textWithImage = "";
-    if (fullImageUrl) {
-      textWithImage += `${fullImageUrl}\n\n`;
-    }
-
-    textWithImage += 
+    const message =
       `Bonjour ! Je suis intéressé(e) par votre produit :\n\n` +
-      `${emojiProduct} *${productName || "Article"}*\n` +
-      `${emojiPrice} *${currentPrice} FCFA*\n` +
-      (choiceLabel ? `${emojiGear} Options : ${choiceLabel}\n` : "");
+      `🛍️ *${productName || "Article"}*\n` +
+      `💰 *${currentPrice} FCFA*\n` +
+      (choiceLabel ? `⚙️ Options : ${choiceLabel}\n` : "") +
+      `\n🔗 Voir le produit :\n${postUrl}`;
 
-    if (fullImageUrl) {
-      textWithImage += `\n${emojiCamera} Photo du produit ci-dessus.`;
-    }
-
-    const message = encodeURIComponent(textWithImage);
-    const cleanNumber = number.replace(/\D/g, ""); // Nettoyage du numéro de téléphone
-    
-    window.open(`https://wa.me/${cleanNumber}?text=${message}`, "_blank");
+    const cleanNumber = number.replace(/\D/g, "");
+    window.open(`https://wa.me/${cleanNumber}?text=${encodeURIComponent(message)}`, "_blank");
   };
 
   return (
@@ -380,6 +356,8 @@ function MediaPreviews({
                 )}
               >
                 {m.type === "IMAGE" ? (
+                  // ✅ CORRIGÉ : bypass le proxy Next.js pour UploadThing
+                  // évite les timeouts 500 sur /_next/image
                   <Image
                     src={m.url}
                     alt="Product"
@@ -387,6 +365,7 @@ function MediaPreviews({
                     sizes="(max-width: 768px) 100vw, 600px"
                     className="object-cover transition-transform duration-500 hover:scale-105"
                     priority={i === 0}
+                    unoptimized={isExternalImage(m.url)}
                   />
                 ) : (
                   <VideoPost src={m.url} />

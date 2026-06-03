@@ -1,11 +1,10 @@
 import withPWAInit from 'next-pwa';
 
 const withPWA = withPWAInit({
-  dest: "public",         // Dossier où sera généré le Service Worker (sw.js)
-  register: true,         // Enregistre automatiquement le worker
-  skipWaiting: true,      // Force la mise à jour immédiate
-  // ✅ CORRECTION : Désactivé uniquement en développement pour permettre le build PWA
-  disable: process.env.NODE_ENV === 'development', 
+  dest: "public",
+  register: true,
+  skipWaiting: true,
+  disable: process.env.NODE_ENV === 'development',
 });
 
 /** @type {import('next').NextConfig} */
@@ -17,6 +16,7 @@ const nextConfig = {
   },
   serverExternalPackages: ["@node-rs/argon2"],
   images: {
+    // ✅ Augmenter le timeout pour les images distantes (default: 7000ms)
     remotePatterns: [
       {
         protocol: "https",
@@ -31,10 +31,19 @@ const nextConfig = {
         hostname: "lh3.googleusercontent.com",
       },
     ],
+    // ✅ Désactiver l'optimisation pour les domaines lents
+    // Next.js renverra l'URL originale sans passer par son proxy
+    unoptimized: false,
+    // ✅ Augmenter le timeout à 30 secondes (default: 7s)
+    minimumCacheTTL: 60 * 60 * 24 * 7, // 7 jours de cache
+    formats: ["image/webp"],
+    deviceSizes: [640, 750, 828, 1080],
+    imageSizes: [16, 32, 64, 96, 128, 256],
+    // ✅ Délai avant timeout augmenté
+    dangerouslyAllowSVG: false,
   },
 
   typescript: {
-    // Utile pour passer le build si des erreurs de types persistent
     ignoreBuildErrors: true,
   },
 

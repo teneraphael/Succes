@@ -16,10 +16,6 @@ interface PageProps {
   params: { postId: string };
 }
 
-/**
- * On rend le loggedInUserId optionnel pour permettre aux robots 
- * de prévisualisation de récupérer les données publiques du post.
- */
 const getPost = cache(async (postId: string, loggedInUserId?: string) => {
   const post = await prisma.post.findUnique({
     where: {
@@ -38,17 +34,23 @@ export async function generateMetadata({
 }: PageProps): Promise<Metadata> {
   const post = await getPost(postId);
 
-  // On récupère la photo
   const firstImage = post.attachments.find((m) => m.type === "IMAGE")?.url;
-  
-  // On extrait les infos du post (Prix et Nom) pour un titre percutant
+
   const productMatch = post.content.match(/🛍️ PRODUIT : (.*)/);
   const priceMatch = post.content.match(/💰 PRIX : (.*?) FCFA/);
   const productName = productMatch ? productMatch[1] : post.user.displayName;
   const price = priceMatch ? `${priceMatch[1]} FCFA` : "";
 
   const shareTitle = `${productName} - ${price}`.trim();
-  const description = post.content.split('📝 DESCRIPTION :')[1]?.trim().slice(0, 150) || post.content.slice(0, 150);
+  const description =
+    post.content.split("📝 DESCRIPTION :")[1]?.trim().slice(0, 150) ||
+    post.content.slice(0, 150);
+
+  // ✅ S'assurer que l'URL de l'image est absolue
+  const absoluteImageUrl =
+    firstImage && firstImage.startsWith("/")
+      ? `https://dealcity.app${firstImage}`
+      : firstImage;
 
   return {
     title: shareTitle,
@@ -59,20 +61,22 @@ export async function generateMetadata({
       url: `https://dealcity.app/posts/${postId}`,
       siteName: "DealCity",
       type: "article",
-      images: firstImage ? [
-        {
-          url: firstImage,
-          width: 800, // Taille recommandée pour WhatsApp (plus léger que 1200)
-          height: 800,
-          type: 'image/jpeg',
-        },
-      ] : [],
+      images: absoluteImageUrl
+        ? [
+            {
+              url: absoluteImageUrl,
+              width: 800,
+              height: 800,
+              type: "image/jpeg",
+            },
+          ]
+        : [],
     },
     twitter: {
       card: "summary_large_image",
       title: shareTitle,
       description: description,
-      images: firstImage ? [firstImage] : [],
+      images: absoluteImageUrl ? [absoluteImageUrl] : [],
     },
   };
 }
@@ -80,19 +84,21 @@ export async function generateMetadata({
 export default async function Page({ params: { postId } }: PageProps) {
   const { user } = await validateRequest();
 
-  // Si tu veux que la page soit consultable sans être connecté, 
-  // retire ce bloc. Sinon, garde-le pour forcer le login.
+  // ✅ On charge le post même sans connexion (pour que WhatsApp puisse
+  // accéder à la page et lire les métadonnées og:image)
+  const post = await getPost(postId, user?.id ?? "");
+
+  // ✅ Si non connecté : on affiche une version publique minimale
+  // (le composant Post gère l'affichage sans utilisateur connecté)
   if (!user) {
     return (
-      <main className="mx-auto my-10 max-w-7xl px-3">
-        <p className="text-center text-destructive font-bold">
-          Veuillez vous connecter pour voir ce post.
-        </p>
+      <main className="flex w-full min-w-0 gap-5">
+        <div className="w-full min-w-0 space-y-5">
+          <Post post={post} />
+        </div>
       </main>
     );
   }
-
-  const post = await getPost(postId, user.id);
 
   return (
     <main className="flex w-full min-w-0 gap-5">
