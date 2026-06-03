@@ -46,37 +46,30 @@ export async function generateMetadata({
     post.content.split("📝 DESCRIPTION :")[1]?.trim().slice(0, 150) ||
     post.content.slice(0, 150);
 
-  // ✅ S'assurer que l'URL de l'image est absolue
-  const absoluteImageUrl =
-    firstImage && firstImage.startsWith("/")
-      ? `https://dealcity.app${firstImage}`
-      : firstImage;
+  // ✅ Image proxiée via votre domaine — WhatsApp peut y accéder
+  // sans être bloqué par UploadThing
+  const ogImage = firstImage
+    ? `https://dealcity.app/api/og-image?url=${encodeURIComponent(firstImage)}`
+    : null;
 
   return {
     title: shareTitle,
-    description: description,
+    description,
     openGraph: {
       title: shareTitle,
-      description: description,
+      description,
       url: `https://dealcity.app/posts/${postId}`,
       siteName: "DealCity",
       type: "article",
-      images: absoluteImageUrl
-        ? [
-            {
-              url: absoluteImageUrl,
-              width: 800,
-              height: 800,
-              type: "image/jpeg",
-            },
-          ]
+      images: ogImage
+        ? [{ url: ogImage, width: 800, height: 800, type: "image/jpeg" }]
         : [],
     },
     twitter: {
       card: "summary_large_image",
       title: shareTitle,
-      description: description,
-      images: absoluteImageUrl ? [absoluteImageUrl] : [],
+      description,
+      images: ogImage ? [ogImage] : [],
     },
   };
 }
@@ -84,12 +77,8 @@ export async function generateMetadata({
 export default async function Page({ params: { postId } }: PageProps) {
   const { user } = await validateRequest();
 
-  // ✅ On charge le post même sans connexion (pour que WhatsApp puisse
-  // accéder à la page et lire les métadonnées og:image)
   const post = await getPost(postId, user?.id ?? "");
 
-  // ✅ Si non connecté : on affiche une version publique minimale
-  // (le composant Post gère l'affichage sans utilisateur connecté)
   if (!user) {
     return (
       <main className="flex w-full min-w-0 gap-5">
