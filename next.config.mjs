@@ -5,6 +5,131 @@ const withPWA = withPWAInit({
   register: true,
   skipWaiting: true,
   disable: process.env.NODE_ENV === 'development',
+
+  runtimeCaching: [
+    // ✅ Images UploadThing — CacheFirst (offline complet)
+    {
+      urlPattern: /^https:\/\/.*\.ufs\.sh\/.*/i,
+      handler: "CacheFirst",
+      options: {
+        cacheName: "uploadthing-images",
+        expiration: {
+          maxEntries: 200,
+          maxAgeSeconds: 60 * 60 * 24 * 30,
+        },
+        cacheableResponse: {
+          statuses: [0, 200],
+        },
+      },
+    },
+    {
+      urlPattern: /^https:\/\/utfs\.io\/.*/i,
+      handler: "CacheFirst",
+      options: {
+        cacheName: "uploadthing-images",
+        expiration: {
+          maxEntries: 200,
+          maxAgeSeconds: 60 * 60 * 24 * 30,
+        },
+        cacheableResponse: {
+          statuses: [0, 200],
+        },
+      },
+    },
+    // ✅ Avatars Google
+    {
+      urlPattern: /^https:\/\/lh3\.googleusercontent\.com\/.*/i,
+      handler: "CacheFirst",
+      options: {
+        cacheName: "google-avatars",
+        expiration: {
+          maxEntries: 100,
+          maxAgeSeconds: 60 * 60 * 24 * 7,
+        },
+        cacheableResponse: {
+          statuses: [0, 200],
+        },
+      },
+    },
+    // ✅ Fichiers statiques Next.js
+    {
+      urlPattern: /\/_next\/static\/.*/i,
+      handler: "CacheFirst",
+      options: {
+        cacheName: "next-static",
+        expiration: {
+          maxEntries: 200,
+          maxAgeSeconds: 60 * 60 * 24 * 30,
+        },
+        cacheableResponse: {
+          statuses: [0, 200],
+        },
+      },
+    },
+    // ✅ Images statiques locales
+    {
+      urlPattern: /\.(?:jpg|jpeg|gif|png|svg|ico|webp)$/i,
+      handler: "CacheFirst",
+      options: {
+        cacheName: "static-image-assets",
+        expiration: {
+          maxEntries: 100,
+          maxAgeSeconds: 60 * 60 * 24 * 7,
+        },
+        cacheableResponse: {
+          statuses: [0, 200],
+        },
+      },
+    },
+    // ✅ Sons/audio
+    {
+      urlPattern: /\/sounds\/.*/i,
+      handler: "CacheFirst",
+      options: {
+        cacheName: "audio-assets",
+        expiration: {
+          maxEntries: 50,
+          maxAgeSeconds: 60 * 60 * 24 * 30,
+        },
+        cacheableResponse: {
+          statuses: [0, 200],
+        },
+        rangeRequests: true,
+      },
+    },
+    // ✅ API posts — NetworkFirst avec fallback cache
+    {
+      urlPattern: /\/api\/posts.*/i,
+      handler: "NetworkFirst",
+      options: {
+        cacheName: "api-posts",
+        networkTimeoutSeconds: 5,
+        expiration: {
+          maxEntries: 50,
+          maxAgeSeconds: 60 * 5,
+        },
+        cacheableResponse: {
+          statuses: [0, 200],
+        },
+      },
+    },
+    // ✅ Pages de l'app — NetworkFirst avec fallback cache
+    {
+      urlPattern: /^https:\/\/dealcity\.app\/(?!api\/).*/i,
+      handler: "NetworkFirst",
+      options: {
+        cacheName: "pages",
+        networkTimeoutSeconds: 5,
+        expiration: {
+          maxEntries: 50,
+          maxAgeSeconds: 60 * 60 * 24,
+        },
+        cacheableResponse: {
+          statuses: [0, 200],
+        },
+      },
+    },
+  ],
 });
 
 /** @type {import('next').NextConfig} */
@@ -16,7 +141,6 @@ const nextConfig = {
   },
   serverExternalPackages: ["@node-rs/argon2"],
   images: {
-    // ✅ Augmenter le timeout pour les images distantes (default: 7000ms)
     remotePatterns: [
       {
         protocol: "https",
@@ -31,22 +155,16 @@ const nextConfig = {
         hostname: "lh3.googleusercontent.com",
       },
     ],
-    // ✅ Désactiver l'optimisation pour les domaines lents
-    // Next.js renverra l'URL originale sans passer par son proxy
     unoptimized: false,
-    // ✅ Augmenter le timeout à 30 secondes (default: 7s)
-    minimumCacheTTL: 60 * 60 * 24 * 7, // 7 jours de cache
+    minimumCacheTTL: 60 * 60 * 24 * 7,
     formats: ["image/webp"],
     deviceSizes: [640, 750, 828, 1080],
     imageSizes: [16, 32, 64, 96, 128, 256],
-    // ✅ Délai avant timeout augmenté
     dangerouslyAllowSVG: false,
   },
-
   typescript: {
     ignoreBuildErrors: true,
   },
-
   rewrites: async () => {
     return [
       {
