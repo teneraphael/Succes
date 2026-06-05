@@ -1,15 +1,143 @@
 "use client";
 
 import InfiniteScrollContainer from "@/components/InfiniteScrollContainer";
-import Post from "@/components/posts/Post";
-import PostsLoadingSkeleton from "@/components/posts/PostsLoadingSkeleton";
 import kyInstance from "@/lib/ky";
 import { PostsPage } from "@/lib/types";
 import { useInfiniteQuery } from "@tanstack/react-query";
-import { Loader2 } from "lucide-react";
+import { Loader2, Search, ShoppingBag } from "lucide-react";
+import Image from "next/image";
+import Link from "next/link";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { cn } from "@/lib/utils";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface SearchResultsProps {
   query: string;
+}
+
+const extractInfo = (content: string) => {
+  const productMatch = content.match(/🛍️\s*PRODUIT\s*:\s*(.*)/i);
+  const priceMatch = content.match(/💰\s*PRIX\s*:\s*(.*?)\s*FCFA/i);
+  const descMatch = content.match(/📝\s*DESCRIPTION\s*:\s*\n?([\s\S]*?)(?=\n\n|$)/i);
+  return {
+    productName: productMatch ? productMatch[1].trim() : null,
+    price: priceMatch ? priceMatch[1].trim() : null,
+    description: descMatch ? descMatch[1].trim().slice(0, 80) : content.slice(0, 80),
+  };
+};
+
+const isExternalImage = (url: string) =>
+  url.includes("ufs.sh") || url.includes("utfs.io") || url.includes("lh3.googleusercontent.com");
+
+// ✅ Carte produit style TikTok
+function ProductCard({ post }: { post: any }) {
+  const router = useRouter();
+  const { productName, price, description } = extractInfo(post.content);
+  const firstImage = post.attachments?.find((m: any) => m.type === "IMAGE")?.url;
+  const isAvailable = (post.stock ?? 0) > 0 || post.variants?.some((v: any) => v.stock > 0);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.25 }}
+      onClick={() => router.push(`/posts/${post.id}`)}
+      className="relative cursor-pointer rounded-2xl overflow-hidden bg-card border border-border/60 shadow-sm hover:shadow-md transition-all active:scale-[0.98] group"
+    >
+      {/* Image */}
+      <div className="relative w-full aspect-square overflow-hidden bg-zinc-100 dark:bg-zinc-900">
+        {firstImage ? (
+          <Image
+            src={firstImage}
+            alt={productName || "Produit"}
+            fill
+            sizes="(max-width: 768px) 50vw, 33vw"
+            className="object-cover transition-transform duration-500 group-hover:scale-105"
+            unoptimized={isExternalImage(firstImage)}
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center">
+            <ShoppingBag className="size-10 text-muted-foreground/30" />
+          </div>
+        )}
+
+        {/* Badge stock */}
+        {!isAvailable && (
+          <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+            <span className="text-white text-[10px] font-black uppercase tracking-widest bg-red-500 px-2 py-1 rounded-full">
+              Épuisé
+            </span>
+          </div>
+        )}
+
+        {/* Badge vendeur vérifié */}
+        {post.user?.isVerified && (
+          <div className="absolute top-2 left-2">
+            <span className="bg-blue-500 text-white text-[8px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-wider">
+              ✓ Vérifié
+            </span>
+          </div>
+        )}
+
+        {/* Nombre d'images */}
+        {post.attachments?.filter((m: any) => m.type === "IMAGE").length > 1 && (
+          <div className="absolute top-2 right-2">
+            <span className="bg-black/60 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full">
+              +{post.attachments.filter((m: any) => m.type === "IMAGE").length}
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* Infos */}
+      <div className="p-2.5 space-y-1">
+        <p className="text-[11px] font-black uppercase tracking-tight text-foreground line-clamp-2 leading-tight">
+          {productName || "Article"}
+        </p>
+        {description && (
+          <p className="text-[9px] text-muted-foreground line-clamp-1 leading-relaxed">
+            {description}
+          </p>
+        )}
+        <div className="flex items-center justify-between pt-0.5">
+          <span className="text-[12px] font-black text-emerald-600">
+            {price ? `${parseInt(price).toLocaleString()} FCFA` : "—"}
+          </span>
+          <div className="flex items-center gap-1">
+            <Image
+              src={post.user?.avatarUrl || "/icons/icon-192.png"}
+              alt={post.user?.displayName || ""}
+              width={16}
+              height={16}
+              className="rounded-full object-cover"
+              unoptimized={isExternalImage(post.user?.avatarUrl || "")}
+            />
+            <span className="text-[8px] text-muted-foreground font-bold truncate max-w-[60px]">
+              {post.user?.displayName}
+            </span>
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+// ✅ Skeleton style grille
+function GridSkeleton() {
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 p-4">
+      {Array.from({ length: 8 }).map((_, i) => (
+        <div key={i} className="rounded-2xl overflow-hidden bg-card border border-border/40 animate-pulse">
+          <div className="aspect-square bg-muted" />
+          <div className="p-2.5 space-y-2">
+            <div className="h-3 bg-muted rounded w-3/4" />
+            <div className="h-2 bg-muted rounded w-1/2" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
 }
 
 export default function SearchResults({ query }: SearchResultsProps) {
@@ -38,35 +166,73 @@ export default function SearchResults({ query }: SearchResultsProps) {
 
   const posts = data?.pages.flatMap((page) => page.posts) || [];
 
-  if (status === "pending") {
-    return <PostsLoadingSkeleton />;
-  }
-
-  if (status === "success" && !posts.length && !hasNextPage) {
-    return (
-      <p className="text-center text-muted-foreground">
-        No posts found for this query.
-      </p>
-    );
-  }
-
-  if (status === "error") {
-    return (
-      <p className="text-center text-destructive">
-        An error occurred while loading posts.
-      </p>
-    );
-  }
-
   return (
-    <InfiniteScrollContainer
-      className="space-y-5"
-      onBottomReached={() => hasNextPage && !isFetching && fetchNextPage()}
-    >
-      {posts.map((post) => (
-        <Post key={post.id} post={post} />
-      ))}
-      {isFetchingNextPage && <Loader2 className="mx-auto my-3 animate-spin" />}
-    </InfiniteScrollContainer>
+    <div className="w-full min-h-screen">
+      {/* Header recherche */}
+      <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-md border-b border-border/40 px-4 py-3">
+        <div className="flex items-center gap-2 max-w-2xl mx-auto">
+          <Search className="size-4 text-muted-foreground flex-none" />
+          <div className="flex-1">
+            <p className="text-sm font-black text-foreground truncate">
+              {query ? `"${query}"` : "Tous les produits"}
+            </p>
+            {posts.length > 0 && (
+              <p className="text-[10px] text-muted-foreground font-bold">
+                {posts.length}+ résultats
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Contenu */}
+      <AnimatePresence mode="wait">
+        {status === "pending" && <GridSkeleton />}
+
+        {status === "error" && (
+          <div className="flex flex-col items-center justify-center py-20 gap-3">
+            <p className="text-destructive font-bold text-sm">
+              Erreur lors du chargement
+            </p>
+          </div>
+        )}
+
+        {status === "success" && !posts.length && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="flex flex-col items-center justify-center py-20 gap-4"
+          >
+            <div className="size-16 rounded-full bg-muted flex items-center justify-center">
+              <Search className="size-7 text-muted-foreground" />
+            </div>
+            <div className="text-center">
+              <p className="font-black text-foreground">Aucun résultat</p>
+              <p className="text-sm text-muted-foreground mt-1">
+                Aucun produit trouvé pour &quot;{query}&quot;
+              </p>
+            </div>
+          </motion.div>
+        )}
+
+        {status === "success" && posts.length > 0 && (
+          <InfiniteScrollContainer
+            onBottomReached={() => hasNextPage && !isFetching && fetchNextPage()}
+          >
+            {/* ✅ Grille style TikTok / Pinterest */}
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 p-4">
+              {posts.map((post) => (
+                <ProductCard key={post.id} post={post} />
+              ))}
+            </div>
+            {isFetchingNextPage && (
+              <div className="flex justify-center py-4">
+                <Loader2 className="size-5 animate-spin text-muted-foreground" />
+              </div>
+            )}
+          </InfiniteScrollContainer>
+        )}
+      </AnimatePresence>
+    </div>
   );
 }

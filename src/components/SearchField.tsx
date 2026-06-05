@@ -4,25 +4,23 @@ import { useState } from "react";
 import { SearchIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Input } from "./ui/input";
-import SearchPage from "./SearchPage"; // 👈 Import de l'interface TikTok séparée
+import SearchPage from "./SearchPage";
 
 export default function SearchField() {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
 
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const form = e.currentTarget;
     const q = (form.q as HTMLInputElement).value.trim();
     if (!q) return;
-
-    // 🚀 SIGNAL POUR L'ALGO SUR PC
     router.push(`/search?q=${encodeURIComponent(q)}`);
   }
 
   return (
     <>
-      {/* 1. LOUPE COMPACTE POUR MOBILE (Ouvre le panneau SearchPage complet) */}
+      {/* 1. LOUPE MOBILE */}
       <button
         type="button"
         aria-label="Ouvrir la recherche"
@@ -32,15 +30,29 @@ export default function SearchField() {
         <SearchIcon className="size-5" />
       </button>
 
-      {/* 2. BARRE DE RECHERCHE CLASSIQUE FIXE (Cachée sur mobile, visible sur PC/Tablette) */}
-      <form onSubmit={handleSubmit} method="GET" action="/search" className="hidden sm:block w-full">
+      {/* 2. BARRE PC — ✅ plus de action="/search" qui entre en conflit */}
+      <form
+        onSubmit={handleSubmit}
+        className="hidden sm:block w-full"
+      >
         <div className="relative">
-          <Input name="q" placeholder="Search" className="pe-10" />
-          <SearchIcon className="absolute right-3 top-1/2 size-5 -translate-y-1/2 transform text-muted-foreground" />
+          <Input
+            name="q"
+            placeholder="Rechercher un produit..."
+            className="pe-10 rounded-full bg-muted/50 border-none focus-visible:ring-1"
+          />
+          {/* ✅ Bouton submit invisible pour que Entrée fonctionne */}
+          <button
+            type="submit"
+            className="absolute right-3 top-1/2 -translate-y-1/2"
+            aria-label="Rechercher"
+          >
+            <SearchIcon className="size-4 text-muted-foreground hover:text-foreground transition-colors" />
+          </button>
         </div>
       </form>
 
-      {/* 3. L'EXPÉRIENCE TIKTOK COMPLÈTE EN PLEIN ÉCRAN SUR MOBILE */}
+      {/* 3. SEARCHPAGE MOBILE PLEIN ÉCRAN */}
       {isOpen && (
         <SearchPage onClose={() => setIsOpen(false)} />
       )}
