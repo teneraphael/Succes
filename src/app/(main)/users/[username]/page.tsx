@@ -96,9 +96,9 @@ export default async function Page(props: PageProps) {
               )}
             </TabsList>
 
-            <TabsContent value="posts" className="outline-none pt-5 w-full">
-              <UserPosts userId={user.id} />
-            </TabsContent>
+            <TabsContent value="posts" className="outline-none pt-4 w-full">
+  <UserPosts userId={user.id} />
+</TabsContent>
 
             {isUserProfile && (
               <TabsContent value="bookmarks" className="outline-none pt-5 w-full">

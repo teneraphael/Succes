@@ -1,15 +1,140 @@
 "use client";
 
 import InfiniteScrollContainer from "@/components/InfiniteScrollContainer";
-import Post from "@/components/posts/Post";
-import PostsLoadingSkeleton from "@/components/posts/PostsLoadingSkeleton";
 import kyInstance from "@/lib/ky";
 import { PostsPage } from "@/lib/types";
 import { useInfiniteQuery } from "@tanstack/react-query";
-import { Loader2 } from "lucide-react";
+import { Loader2, ShoppingBag } from "lucide-react";
+import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
+import { cn } from "@/lib/utils";
 
 interface UserPostsProps {
   userId: string;
+}
+
+const extractInfo = (content: string) => {
+  const productMatch = content.match(/🛍️\s*PRODUIT\s*:\s*(.*)/i);
+  const priceMatch = content.match(/💰\s*PRIX\s*:\s*(.*?)\s*FCFA/i);
+  return {
+    productName: productMatch ? productMatch[1].trim() : null,
+    price: priceMatch ? priceMatch[1].trim() : null,
+  };
+};
+
+const isExternalImage = (url: string) =>
+  url.includes("ufs.sh") ||
+  url.includes("utfs.io") ||
+  url.includes("lh3.googleusercontent.com");
+
+function ProductCard({
+  post,
+  index,
+  allPosts,
+}: {
+  post: any;
+  index: number;
+  allPosts: any[];
+}) {
+  const router = useRouter();
+  const { productName, price } = extractInfo(post.content);
+  const firstImage = post.attachments?.find((m: any) => m.type === "IMAGE")?.url;
+  const imageCount = post.attachments?.filter((m: any) => m.type === "IMAGE").length || 0;
+  const isAvailable = (post.stock ?? 0) > 0 || post.variants?.some((v: any) => v.stock > 0);
+
+  const handleClick = () => {
+    // ✅ Naviguer vers le post avec l'index pour permettre le scroll entre posts
+    router.push(`/posts/${post.id}`);
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.2, delay: index * 0.03 }}
+      onClick={handleClick}
+      className="relative cursor-pointer rounded-2xl overflow-hidden bg-card border border-border/60 shadow-sm hover:shadow-md transition-all active:scale-[0.98] group"
+    >
+      {/* Image */}
+      <div className="relative w-full aspect-square overflow-hidden bg-zinc-100 dark:bg-zinc-900">
+        {firstImage ? (
+          <Image
+            src={firstImage}
+            alt={productName || "Produit"}
+            fill
+            sizes="(max-width: 768px) 50vw, 33vw"
+            className="object-cover transition-transform duration-500 group-hover:scale-105"
+            unoptimized={isExternalImage(firstImage)}
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center bg-muted/50">
+            <ShoppingBag className="size-10 text-muted-foreground/30" />
+          </div>
+        )}
+
+        {/* Overlay rupture de stock */}
+        {!isAvailable && (
+          <div className="absolute inset-0 bg-black/50 flex items-center justify-center backdrop-blur-[1px]">
+            <span className="text-white text-[9px] font-black uppercase tracking-widest bg-red-500 px-2 py-1 rounded-full">
+              Épuisé
+            </span>
+          </div>
+        )}
+
+        {/* Nombre d'images */}
+        {imageCount > 1 && (
+          <div className="absolute top-2 right-2 bg-black/60 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full backdrop-blur-sm">
+            +{imageCount}
+          </div>
+        )}
+
+        {/* Likes */}
+        <div className="absolute bottom-2 left-2 bg-black/50 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full backdrop-blur-sm flex items-center gap-1">
+          ❤️ {post._count?.likes || 0}
+        </div>
+      </div>
+
+      {/* Infos produit */}
+      <div className="p-2.5 space-y-1">
+        <p className="text-[11px] font-black uppercase tracking-tight text-foreground line-clamp-2 leading-tight">
+          {productName || "Article"}
+        </p>
+        <div className="flex items-center justify-between">
+          <span
+            className={cn(
+              "text-[12px] font-black",
+              isAvailable ? "text-emerald-600" : "text-muted-foreground line-through"
+            )}
+          >
+            {price ? `${parseInt(price).toLocaleString()} FCFA` : "—"}
+          </span>
+          <span className="text-[9px] text-muted-foreground font-bold">
+            {post._count?.comments || 0} 💬
+          </span>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+function GridSkeleton() {
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-3">
+      {Array.from({ length: 6 }).map((_, i) => (
+        <div
+          key={i}
+          className="rounded-2xl overflow-hidden bg-card border border-border/40 animate-pulse"
+        >
+          <div className="aspect-square bg-muted" />
+          <div className="p-2.5 space-y-2">
+            <div className="h-3 bg-muted rounded w-3/4" />
+            <div className="h-2 bg-muted rounded w-1/2" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
 }
 
 export default function UserPosts({ userId }: UserPostsProps) {
@@ -35,35 +160,54 @@ export default function UserPosts({ userId }: UserPostsProps) {
 
   const posts = data?.pages.flatMap((page) => page.posts) || [];
 
-  if (status === "pending") {
-    return <PostsLoadingSkeleton />;
-  }
+  if (status === "pending") return <GridSkeleton />;
 
-  if (status === "success" && !posts.length && !hasNextPage) {
+  if (status === "error") {
     return (
-      <p className="text-center text-muted-foreground">
-        This user hasn&apos;t posted anything yet.
+      <p className="text-center text-destructive text-sm py-10">
+        Erreur lors du chargement.
       </p>
     );
   }
 
-  if (status === "error") {
+  if (status === "success" && !posts.length) {
     return (
-      <p className="text-center text-destructive">
-        An error occurred while loading posts.
-      </p>
+      <div className="flex flex-col items-center justify-center py-16 gap-4">
+        <div className="size-16 rounded-full bg-muted flex items-center justify-center">
+          <ShoppingBag className="size-7 text-muted-foreground" />
+        </div>
+        <div className="text-center">
+          <p className="font-black text-foreground text-sm">Aucun produit</p>
+          <p className="text-xs text-muted-foreground mt-1">
+            Ce vendeur n&apos;a pas encore publié de produits.
+          </p>
+        </div>
+      </div>
     );
   }
 
   return (
     <InfiniteScrollContainer
-      className="space-y-5"
       onBottomReached={() => hasNextPage && !isFetching && fetchNextPage()}
     >
-      {posts.map((post) => (
-        <Post key={post.id} post={post} />
-      ))}
-      {isFetchingNextPage && <Loader2 className="mx-auto my-3 animate-spin" />}
+      <AnimatePresence>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-3">
+          {posts.map((post, index) => (
+            <ProductCard
+              key={post.id}
+              post={post}
+              index={index}
+              allPosts={posts}
+            />
+          ))}
+        </div>
+      </AnimatePresence>
+
+      {isFetchingNextPage && (
+        <div className="flex justify-center py-4">
+          <Loader2 className="size-5 animate-spin text-muted-foreground" />
+        </div>
+      )}
     </InfiniteScrollContainer>
   );
 }
