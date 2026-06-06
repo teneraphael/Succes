@@ -1,22 +1,21 @@
-"use client"; // <--- INDISPENSABLE car tu as du JS interactif (onClick, confirm)
+"use client";
 
-import { 
-  UserCircle, 
-  BellRing, 
-  ShieldCheck, 
-  FileSignature, 
-  LogOut, 
+import {
+  UserCircle,
+  BellRing,
+  ShieldCheck,
+  FileSignature,
+  LogOut,
   ChevronRight,
   Trash2,
-  LockKeyhole
+  LockKeyhole,
+  Settings,
 } from "lucide-react";
-import { deleteAccount } from "./actions"; // Ton action de suppression
-import { logout } from "@/app/(auth)/actions"; // Ton action de logout
+import { deleteAccount } from "./actions";
+import { logout } from "@/app/(auth)/actions";
 import Link from "next/link";
 
 export default function SettingsPage() {
-  
-  // Handler pour la suppression avec confirmation
   const handleDeleteAction = async () => {
     if (confirm("Êtes-vous sûr de vouloir supprimer votre compte définitivement ? Cette action est irréversible.")) {
       try {
@@ -29,96 +28,162 @@ export default function SettingsPage() {
 
   return (
     <div className="max-w-xl mx-auto py-8 px-4 space-y-6">
-      {/* Header avec ton style bleu emblématique */}
-      <div className="px-2">
-        <h1 className="text-4xl font-black uppercase tracking-tighter italic text-[#4a90e2]">Settings</h1>
-        <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest mt-1">Gestion du compte DealCity</p>
-      </div>
 
-      {/* GROUPE 1 : MON COMPTE */}
-      <div className="space-y-2">
-        <p className="ml-4 text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">Mon Compte</p>
-        <div className="bg-muted/30 rounded-[2rem] border border-border overflow-hidden">
-          <Link href="/user/profile" className="flex items-center justify-between p-5 hover:bg-muted/50 transition-all border-b">
-            <div className="flex items-center gap-4">
-              <div className="bg-blue-500/10 p-2 rounded-xl text-blue-600">
-                <UserCircle size={22} />
-              </div>
-              <span className="font-bold text-sm">Modifier le profil public</span>
-            </div>
-            <ChevronRight size={18} className="text-muted-foreground" />
-          </Link>
-
-          <Link href="/settings/security" className="flex items-center justify-between p-5 hover:bg-muted/50 transition-all">
-            <div className="flex items-center gap-4">
-              <div className="bg-green-500/10 p-2 rounded-xl text-green-600">
-                <LockKeyhole size={22} />
-              </div>
-              <span className="font-bold text-sm">Sécurité & Mot de passe</span>
-            </div>
-            <ChevronRight size={18} className="text-muted-foreground" />
-          </Link>
+      {/* Titre */}
+      <div className="flex items-center gap-3 px-1">
+        <div className="size-9 rounded-xl bg-[#4a90e2]/10 border border-[#4a90e2]/20 flex items-center justify-center shrink-0">
+          <Settings className="size-4 text-[#4a90e2]" />
+        </div>
+        <div>
+          <h1 className="text-base font-black uppercase tracking-tight text-foreground leading-none">
+            Paramètres
+          </h1>
+          <p className="text-[11px] text-muted-foreground font-medium mt-0.5">
+            Gestion du compte DealCity
+          </p>
         </div>
       </div>
 
-      {/* GROUPE 2 : APPLICATION */}
+      {/* Groupe 1 : Mon Compte */}
       <div className="space-y-2">
-        <p className="ml-4 text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">Application</p>
-        <div className="bg-muted/30 rounded-[2rem] border border-border overflow-hidden">
-          <Link href="/settings/notifications" className="flex items-center justify-between p-5 hover:bg-muted/50 transition-all border-b">
-            <div className="flex items-center gap-4">
-              <div className="bg-orange-500/10 p-2 rounded-xl text-orange-600">
-                <BellRing size={22} />
-              </div>
-              <span className="font-bold text-sm">Notifications Push</span>
-            </div>
-            <ChevronRight size={18} className="text-muted-foreground" />
-          </Link>
-
-          <Link href="/confidentialite" className="flex items-center justify-between p-5 hover:bg-muted/50 transition-all border-b">
-            <div className="flex items-center gap-4">
-              <div className="bg-slate-500/10 p-2 rounded-xl text-slate-600">
-                <ShieldCheck size={22} />
-              </div>
-              <span className="font-bold text-sm">Confidentialité</span>
-            </div>
-            <ChevronRight size={18} className="text-muted-foreground" />
-          </Link>
-
-          <Link href="/mentions-legales" className="flex items-center justify-between p-5 hover:bg-muted/50 transition-all">
-            <div className="flex items-center gap-4">
-              <div className="bg-slate-500/10 p-2 rounded-xl text-slate-600">
-                <FileSignature size={22} />
-              </div>
-              <span className="font-bold text-sm">Mentions Légales</span>
-            </div>
-            <ChevronRight size={18} className="text-muted-foreground" />
-          </Link>
-        </div>
-      </div>
-
-      {/* GROUPE 3 : ACTIONS DANGEREUSES */}
-      <div className="pt-4 pb-10">
-        <div className="bg-destructive/5 rounded-[2rem] border border-destructive/10 overflow-hidden">
-          {/* Logout via action serveur */}
-          <button 
-            onClick={() => logout()} 
-            className="w-full flex items-center gap-4 p-5 text-destructive hover:bg-destructive/10 transition-all font-bold text-xs uppercase tracking-widest"
+        <p className="ml-2 text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">
+          Mon Compte
+        </p>
+        <div className="bg-card rounded-3xl border border-border/60 shadow-sm overflow-hidden">
+          <Link
+            href="/user/profile"
+            className="flex items-center justify-between p-4 hover:bg-[#4a90e2]/[0.03] transition-all border-b border-border/40 group"
           >
-            <LogOut size={20} />
-            Se déconnecter
+            <div className="flex items-center gap-3">
+              <div className="size-9 bg-[#4a90e2]/10 rounded-xl flex items-center justify-center border border-[#4a90e2]/15">
+                <UserCircle className="size-4 text-[#4a90e2]" />
+              </div>
+              <span className="font-bold text-sm text-foreground group-hover:text-[#4a90e2] transition-colors">
+                Modifier le profil public
+              </span>
+            </div>
+            <ChevronRight className="size-4 text-muted-foreground group-hover:text-[#4a90e2] transition-colors" />
+          </Link>
+
+          <Link
+            href="/settings/security"
+            className="flex items-center justify-between p-4 hover:bg-[#6ab344]/[0.03] transition-all group"
+          >
+            <div className="flex items-center gap-3">
+              <div className="size-9 bg-[#6ab344]/10 rounded-xl flex items-center justify-center border border-[#6ab344]/15">
+                <LockKeyhole className="size-4 text-[#6ab344]" />
+              </div>
+              <span className="font-bold text-sm text-foreground group-hover:text-[#6ab344] transition-colors">
+                Sécurité & Mot de passe
+              </span>
+            </div>
+            <ChevronRight className="size-4 text-muted-foreground group-hover:text-[#6ab344] transition-colors" />
+          </Link>
+        </div>
+      </div>
+
+      {/* Groupe 2 : Application */}
+      <div className="space-y-2">
+        <p className="ml-2 text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">
+          Application
+        </p>
+        <div className="bg-card rounded-3xl border border-border/60 shadow-sm overflow-hidden">
+          <Link
+            href="/settings/notifications"
+            className="flex items-center justify-between p-4 hover:bg-[#4a90e2]/[0.03] transition-all border-b border-border/40 group"
+          >
+            <div className="flex items-center gap-3">
+              <div className="size-9 bg-orange-500/10 rounded-xl flex items-center justify-center border border-orange-500/15">
+                <BellRing className="size-4 text-orange-500" />
+              </div>
+              <span className="font-bold text-sm text-foreground group-hover:text-[#4a90e2] transition-colors">
+                Notifications Push
+              </span>
+            </div>
+            <ChevronRight className="size-4 text-muted-foreground group-hover:text-[#4a90e2] transition-colors" />
+          </Link>
+
+          <Link
+            href="/confidentialite"
+            className="flex items-center justify-between p-4 hover:bg-[#4a90e2]/[0.03] transition-all border-b border-border/40 group"
+          >
+            <div className="flex items-center gap-3">
+              <div className="size-9 bg-slate-500/10 rounded-xl flex items-center justify-center border border-slate-500/15">
+                <ShieldCheck className="size-4 text-slate-500" />
+              </div>
+              <span className="font-bold text-sm text-foreground group-hover:text-[#4a90e2] transition-colors">
+                Confidentialité
+              </span>
+            </div>
+            <ChevronRight className="size-4 text-muted-foreground group-hover:text-[#4a90e2] transition-colors" />
+          </Link>
+
+          <Link
+            href="/mentions-legales"
+            className="flex items-center justify-between p-4 hover:bg-[#4a90e2]/[0.03] transition-all group"
+          >
+            <div className="flex items-center gap-3">
+              <div className="size-9 bg-slate-500/10 rounded-xl flex items-center justify-center border border-slate-500/15">
+                <FileSignature className="size-4 text-slate-500" />
+              </div>
+              <span className="font-bold text-sm text-foreground group-hover:text-[#4a90e2] transition-colors">
+                Mentions Légales
+              </span>
+            </div>
+            <ChevronRight className="size-4 text-muted-foreground group-hover:text-[#4a90e2] transition-colors" />
+          </Link>
+        </div>
+      </div>
+
+      {/* Groupe 3 : Actions dangereuses */}
+      <div className="space-y-2 pb-10">
+        <p className="ml-2 text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">
+          Session
+        </p>
+        <div className="bg-card rounded-3xl border border-red-200/50 dark:border-red-900/20 shadow-sm overflow-hidden">
+          <button
+            onClick={() => logout()}
+            className="w-full flex items-center gap-3 p-4 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 transition-all border-b border-red-100 dark:border-red-900/20 group"
+          >
+            <div className="size-9 bg-red-500/10 rounded-xl flex items-center justify-center border border-red-500/15">
+              <LogOut className="size-4 text-red-500" />
+            </div>
+            <span className="font-black text-xs uppercase tracking-widest text-red-500">
+              Se déconnecter
+            </span>
           </button>
-          
-          {/* Delete Account */}
-          <button 
+
+          <button
             onClick={handleDeleteAction}
-            className="w-full flex items-center gap-4 p-5 text-destructive/60 hover:bg-destructive/20 transition-all font-bold text-xs uppercase tracking-widest border-t border-destructive/10"
+            className="w-full flex items-center gap-3 p-4 hover:bg-red-50 dark:hover:bg-red-950/20 transition-all group"
           >
-            <Trash2 size={20} />
-            Supprimer mon compte
+            <div className="size-9 bg-red-500/5 rounded-xl flex items-center justify-center border border-red-500/10">
+              <Trash2 className="size-4 text-red-400/60" />
+            </div>
+            <span className="font-black text-xs uppercase tracking-widest text-red-400/60">
+              Supprimer mon compte
+            </span>
           </button>
         </div>
       </div>
+
+      {/* Badge DealCity */}
+      <div className="flex items-center justify-center gap-3 py-2 opacity-40">
+        <div className="h-px w-10 bg-border" />
+        <div className="flex items-center gap-1.5">
+          <div className="flex items-end gap-[3px]">
+            <div className="w-[4px] h-3 bg-[#4a90e2] rounded-sm" />
+            <div className="w-[4px] h-4 bg-[#4a90e2] rounded-sm" />
+            <div className="w-[4px] h-5 bg-[#4a90e2] rounded-sm" />
+            <div className="w-[4px] h-3.5 bg-[#4a90e2] rounded-sm" />
+          </div>
+          <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">
+            DealCity
+          </span>
+        </div>
+        <div className="h-px w-10 bg-border" />
+      </div>
+
     </div>
   );
 }

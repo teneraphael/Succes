@@ -5,34 +5,43 @@ const withPWA = withPWAInit({
   register: true,
   skipWaiting: true,
   disable: process.env.NODE_ENV === 'development',
-
+  fallbacks: {
+    image: '/icons/icon-192.png',
+  },
   runtimeCaching: [
-    // ✅ Images UploadThing — CacheFirst (offline complet)
+    // ✅ Images UploadThing ufs.sh
     {
       urlPattern: /^https:\/\/.*\.ufs\.sh\/.*/i,
       handler: "CacheFirst",
       options: {
         cacheName: "uploadthing-images",
         expiration: {
-          maxEntries: 200,
+          maxEntries: 300,
           maxAgeSeconds: 60 * 60 * 24 * 30,
         },
         cacheableResponse: {
-          statuses: [0, 200],
+          statuses: [0, 200], // ✅ 0 = opaque (cross-origin mobile)
+        },
+        fetchOptions: {
+          mode: 'no-cors', // ✅ Force le cache sur mobile
         },
       },
     },
+    // ✅ Images utfs.io
     {
       urlPattern: /^https:\/\/utfs\.io\/.*/i,
       handler: "CacheFirst",
       options: {
         cacheName: "uploadthing-images",
         expiration: {
-          maxEntries: 200,
+          maxEntries: 300,
           maxAgeSeconds: 60 * 60 * 24 * 30,
         },
         cacheableResponse: {
           statuses: [0, 200],
+        },
+        fetchOptions: {
+          mode: 'no-cors',
         },
       },
     },
@@ -49,6 +58,9 @@ const withPWA = withPWAInit({
         cacheableResponse: {
           statuses: [0, 200],
         },
+        fetchOptions: {
+          mode: 'no-cors',
+        },
       },
     },
     // ✅ Fichiers statiques Next.js
@@ -60,6 +72,21 @@ const withPWA = withPWAInit({
         expiration: {
           maxEntries: 200,
           maxAgeSeconds: 60 * 60 * 24 * 30,
+        },
+        cacheableResponse: {
+          statuses: [0, 200],
+        },
+      },
+    },
+    // ✅ Next image optimizer
+    {
+      urlPattern: /\/_next\/image\?url=.+$/i,
+      handler: "CacheFirst",
+      options: {
+        cacheName: "next-image",
+        expiration: {
+          maxEntries: 200,
+          maxAgeSeconds: 60 * 60 * 24 * 7,
         },
         cacheableResponse: {
           statuses: [0, 200],
@@ -81,7 +108,7 @@ const withPWA = withPWAInit({
         },
       },
     },
-    // ✅ Sons/audio
+    // ✅ Sons
     {
       urlPattern: /\/sounds\/.*/i,
       handler: "CacheFirst",
@@ -113,7 +140,7 @@ const withPWA = withPWAInit({
         },
       },
     },
-    // ✅ Pages de l'app — NetworkFirst avec fallback cache
+    // ✅ Pages app
     {
       urlPattern: /^https:\/\/dealcity\.app\/(?!api\/).*/i,
       handler: "NetworkFirst",
@@ -142,18 +169,9 @@ const nextConfig = {
   serverExternalPackages: ["@node-rs/argon2"],
   images: {
     remotePatterns: [
-      {
-        protocol: "https",
-        hostname: "utfs.io",
-      },
-      {
-        protocol: "https",
-        hostname: "un9zgttebh.ufs.sh",
-      },
-      {
-        protocol: "https",
-        hostname: "lh3.googleusercontent.com",
-      },
+      { protocol: "https", hostname: "utfs.io" },
+      { protocol: "https", hostname: "un9zgttebh.ufs.sh" },
+      { protocol: "https", hostname: "lh3.googleusercontent.com" },
     ],
     unoptimized: false,
     minimumCacheTTL: 60 * 60 * 24 * 7,

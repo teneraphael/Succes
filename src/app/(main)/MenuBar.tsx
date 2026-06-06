@@ -1,6 +1,5 @@
 import { validateRequest } from "@/auth";
-import { Button } from "@/components/ui/button";
-import { Home, Video, PlusSquare, Store, LogIn, ShoppingBag, User } from "lucide-react"; 
+import { Home, Video, PlusSquare, Store, LogIn, User } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
@@ -8,90 +7,111 @@ interface MenuBarProps {
   className?: string;
 }
 
+// ✅ Composant item de menu — évite la répétition de classes
+function MenuItem({
+  href,
+  icon,
+  label,
+  className,
+}: {
+  href: string;
+  icon: React.ReactNode;
+  label: string;
+  className?: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className={cn(
+        "flex flex-1 flex-col lg:flex-row items-center justify-center lg:justify-start gap-1 lg:gap-3",
+        "h-auto py-2 px-1 rounded-xl transition-all group",
+        "hover:bg-[#4a90e2]/8 text-muted-foreground hover:text-[#4a90e2]",
+        className,
+      )}
+    >
+      {icon}
+      <span className="text-[10px] lg:text-sm font-black uppercase tracking-tight truncate">
+        {label}
+      </span>
+    </Link>
+  );
+}
+
 export default async function MenuBar({ className }: MenuBarProps) {
   const { user } = await validateRequest();
 
   return (
-    <div className={cn("flex w-full flex-row lg:flex-col", className)}>
-      
-      {/* 1. ACCUEIL */}
-      <Button
-        variant="ghost"
-        className="flex flex-1 flex-col lg:flex-row items-center justify-center lg:justify-start gap-1 lg:gap-3 transition-all hover:bg-primary/10 group h-auto py-2 px-1"
-        title="Accueil"
-        asChild
-      >
-        <Link href="/" className="w-full flex flex-col lg:flex-row items-center justify-center lg:justify-start overflow-hidden">
-          <Home className="size-6 lg:size-5 shrink-0 group-hover:text-primary transition-colors" />
-          <span className="text-[10px] lg:text-base font-medium group-hover:text-primary truncate">Accueil</span>
-        </Link>
-      </Button>
+    <div className={cn("flex w-full flex-row lg:flex-col lg:gap-1", className)}>
 
-      {/* 2. VIDÉOS */}
-      <Button
-        variant="ghost"
-        className="flex flex-1 flex-col lg:flex-row items-center justify-center lg:justify-start gap-1 lg:gap-3 transition-all hover:bg-primary/10 group h-auto py-2 px-1"
-        title="Vidéos"
-        asChild
-      >
-        <Link href="/video" className="w-full flex flex-col lg:flex-row items-center justify-center lg:justify-start overflow-hidden">
-          <Video className="size-6 lg:size-5 shrink-0 group-hover:text-primary transition-colors" />
-          <span className="text-[10px] lg:text-base font-medium group-hover:text-primary truncate">Vidéos</span>
-        </Link>
-      </Button>
+      {/* ✅ Accueil */}
+      <MenuItem
+        href="/"
+        icon={<Home className="size-6 lg:size-5 shrink-0 transition-colors" />}
+        label="Accueil"
+      />
 
-      {/* 3. LE MILIEU : BOUTON DYNAMIQUE */}
+      {/* ✅ Vidéos */}
+      <MenuItem
+        href="/video"
+        icon={<Video className="size-6 lg:size-5 shrink-0 transition-colors" />}
+        label="Vidéos"
+      />
+
+      {/* ✅ Bouton central dynamique selon l'état de connexion */}
       {!user ? (
-        <Button
-          variant="ghost"
-          className="flex flex-1 flex-col lg:flex-row items-center justify-center lg:justify-start gap-1 lg:gap-3 text-[#4a90e2] animate-pulse h-auto py-2 px-1"
-          title="Se connecter"
-          asChild
+        // Non connecté — bouton connexion bleu DealCity animé
+        <Link
+          href="/login"
+          className={cn(
+            "flex flex-1 flex-col lg:flex-row items-center justify-center lg:justify-start gap-1 lg:gap-3",
+            "h-auto py-2 px-1 rounded-xl transition-all",
+            "text-[#4a90e2] hover:bg-[#4a90e2]/10 animate-pulse",
+          )}
         >
-          <Link href="/login" className="w-full flex flex-col lg:flex-row items-center justify-center lg:justify-start overflow-hidden">
-            <LogIn className="size-6 shrink-0" />
-            <span className="text-[10px] lg:text-base font-black uppercase italic tracking-tighter truncate">Connexion</span>
-          </Link>
-        </Button>
+          <LogIn className="size-6 shrink-0" />
+          <span className="text-[10px] lg:text-sm font-black uppercase italic tracking-tight truncate">
+            Connexion
+          </span>
+        </Link>
       ) : user.isSeller ? (
-        <Button
-          variant="ghost"
-          className="flex flex-1 flex-col lg:flex-row items-center justify-center lg:justify-start gap-1 lg:gap-3 text-primary h-auto py-2 px-1"
-          title="Publier une annonce"
-          asChild
+        // Vendeur — bouton publier vert DealCity
+        <Link
+          href="/post/new"
+          className={cn(
+            "flex flex-1 flex-col lg:flex-row items-center justify-center lg:justify-start gap-1 lg:gap-3",
+            "h-auto py-2 px-1 rounded-xl transition-all",
+            "text-[#6ab344] hover:bg-[#6ab344]/10",
+          )}
         >
-          <Link href="/post/new" className="w-full flex flex-col lg:flex-row items-center justify-center lg:justify-start overflow-hidden">
-            <PlusSquare className="size-6 shrink-0" />
-            <span className="text-[10px] lg:text-base font-bold truncate">Publier</span>
-          </Link>
-        </Button>
+          <PlusSquare className="size-6 shrink-0" />
+          <span className="text-[10px] lg:text-sm font-black uppercase tracking-tight truncate">
+            Publier
+          </span>
+        </Link>
       ) : (
-        <Button
-          variant="ghost"
-          className="flex flex-1 flex-col lg:flex-row items-center justify-center lg:justify-start gap-1 lg:gap-3 text-amber-600 h-auto py-2 px-1"
-          title="Devenir vendeur"
-          asChild
+        // Acheteur — bouton devenir vendeur ambre
+        <Link
+          href="/become-seller"
+          className={cn(
+            "flex flex-1 flex-col lg:flex-row items-center justify-center lg:justify-start gap-1 lg:gap-3",
+            "h-auto py-2 px-1 rounded-xl transition-all",
+            "text-amber-500 hover:bg-amber-500/10",
+          )}
         >
-          <Link href="/become-seller" className="w-full flex flex-col lg:flex-row items-center justify-center lg:justify-start overflow-hidden">
-            <Store className="size-6 shrink-0" />
-            <span className="text-[10px] lg:text-base font-bold truncate">Vendre</span>
-          </Link>
-        </Button>
+          <Store className="size-6 shrink-0" />
+          <span className="text-[10px] lg:text-sm font-black uppercase tracking-tight truncate">
+            Vendre
+          </span>
+        </Link>
       )}
 
-      {/* 5. PROFIL */}
+      {/* ✅ Profil — uniquement si connecté */}
       {user && (
-        <Button
-          variant="ghost"
-          className="flex flex-1 flex-col lg:flex-row items-center justify-center lg:justify-start gap-1 lg:gap-3 transition-all hover:bg-primary/10 group h-auto py-2 px-1"
-          title="Profil"
-          asChild
-        >
-          <Link href={`/users/${user.username}`} className="w-full flex flex-col lg:flex-row items-center justify-center lg:justify-start overflow-hidden">
-            <User className="size-6 lg:size-5 shrink-0 group-hover:text-primary transition-colors" />
-            <span className="text-[10px] lg:text-base font-medium group-hover:text-primary truncate">Mon Profil</span>
-          </Link>
-        </Button>
+        <MenuItem
+          href={`/users/${user.username}`}
+          icon={<User className="size-6 lg:size-5 shrink-0 transition-colors" />}
+          label="Mon Profil"
+        />
       )}
     </div>
   );

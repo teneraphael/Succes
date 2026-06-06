@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { SearchIcon, Clock, Trash2, TrendingUp, ShoppingBag, Loader2 } from "lucide-react";
+import { SearchIcon, Clock, Trash2, TrendingUp, ShoppingBag, Loader2, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Input } from "./ui/input";
 
@@ -18,15 +18,12 @@ export default function SearchPage({ onClose }: SearchPageProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingTrends, setIsLoadingTrends] = useState(true);
 
-  // 1. Charger l'historique local ET les vraies tendances SQL au montage du composant
+  // ✅ Chargement historique local + tendances SQL au montage
   useEffect(() => {
     const saved = localStorage.getItem("dealcity-search-history");
     if (saved) {
-      try {
-        setRecentSearches(JSON.parse(saved));
-      } catch (e) {
-        console.error(e);
-      }
+      try { setRecentSearches(JSON.parse(saved)); }
+      catch (e) { console.error(e); }
     }
 
     async function loadRealTrends() {
@@ -34,12 +31,10 @@ export default function SearchPage({ onClose }: SearchPageProps) {
         const response = await fetch("/api/search/suggestions");
         if (response.ok) {
           const result = await response.json();
-          if (result.type === "trends") {
-            setTrendingSearches(result.data);
-          }
+          if (result.type === "trends") setTrendingSearches(result.data);
         }
       } catch (error) {
-        console.error("Impossible de charger les vraies tendances SQL:", error);
+        console.error("Impossible de charger les tendances:", error);
       } finally {
         setIsLoadingTrends(false);
       }
@@ -48,11 +43,10 @@ export default function SearchPage({ onClose }: SearchPageProps) {
     loadRealTrends();
   }, []);
 
-  // 2. CORRECTION : Gestion des suggestions en temps réel avec coupure propre du Loader
+  // ✅ Suggestions en temps réel avec debounce 300ms
   useEffect(() => {
     const query = inputValue.trim();
-    
-    // Si le champ est vide, on nettoie les suggestions ET on coupe immédiatement le loader
+
     if (!query) {
       setSuggestions([]);
       setIsLoading(false);
@@ -61,38 +55,35 @@ export default function SearchPage({ onClose }: SearchPageProps) {
 
     setIsLoading(true);
 
-    const delayDebounceFn = setTimeout(async () => {
+    const timer = setTimeout(async () => {
       try {
         const response = await fetch(`/api/search/suggestions?q=${encodeURIComponent(query)}`);
         if (response.ok) {
           const result = await response.json();
-          if (result.type === "suggestions") {
-            setSuggestions(result.data);
-          }
+          if (result.type === "suggestions") setSuggestions(result.data);
         }
       } catch (error) {
-        console.error("Erreur lors de la récupération des suggestions:", error);
+        console.error("Erreur suggestions:", error);
       } finally {
-        // Désactive le loader une fois que la base de données a répondu
         setIsLoading(false);
       }
     }, 300);
 
-    return () => clearTimeout(delayDebounceFn);
+    return () => clearTimeout(timer);
   }, [inputValue]);
 
   const handleExecuteSearch = (searchQuery: string) => {
     const trimmed = searchQuery.trim();
     if (!trimmed) return;
 
+    // ✅ Sauvegarde dans l'historique local (max 5 entrées)
     const updatedHistory = [
       trimmed,
-      ...recentSearches.filter((item) => item !== trimmed)
+      ...recentSearches.filter((item) => item !== trimmed),
     ].slice(0, 5);
 
     setRecentSearches(updatedHistory);
     localStorage.setItem("dealcity-search-history", JSON.stringify(updatedHistory));
-
     router.push(`/search?q=${encodeURIComponent(trimmed)}`);
     onClose();
   };
@@ -108,91 +99,101 @@ export default function SearchPage({ onClose }: SearchPageProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-[999] w-screen h-screen bg-background flex flex-col p-4 animate-in fade-in slide-in-from-top-4 duration-200 sm:hidden">
-      
-      {/* Barre de saisie mobile */}
-      <div className="flex items-center gap-3 w-full border-b pb-4 bg-background">
+    <div className="fixed inset-0 z-[999] w-screen h-screen bg-background flex flex-col animate-in fade-in slide-in-from-top-4 duration-200 sm:hidden">
+
+      {/* ✅ Barre de saisie — style DealCity */}
+      <div className="flex items-center gap-3 px-4 py-3 border-b border-border/40 bg-background/95 backdrop-blur-sm">
         <form onSubmit={handleSubmit} className="flex-1">
           <div className="relative">
+            <SearchIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
             <Input
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               autoFocus
               placeholder="Rechercher sur DealCity..."
-              className="w-full h-11 ps-11 pe-11 rounded-2xl bg-muted border-none focus-visible:ring-2 focus-visible:ring-primary text-base"
+              className="w-full h-11 pl-10 pr-10 rounded-2xl bg-[#f8faff] dark:bg-zinc-800/50 border border-[#4a90e2]/10 focus-visible:border-[#4a90e2]/30 focus-visible:ring-1 focus-visible:ring-[#4a90e2]/10 text-sm transition-all"
             />
-            <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 size-5 text-muted-foreground" />
-            
-            {/* L'indicateur ne s'affiche plus que lorsque isLoading est actif */}
+            {/* ✅ Loader pendant la recherche */}
             {isLoading && (
-              <Loader2 className="absolute right-4 top-1/2 -translate-y-1/2 size-4 animate-spin text-primary" />
+              <Loader2 className="absolute right-3.5 top-1/2 -translate-y-1/2 size-4 animate-spin text-[#4a90e2]" />
             )}
           </div>
         </form>
 
+        {/* ✅ Bouton annuler — style DealCity */}
         <button
           type="button"
           onClick={onClose}
-          className="text-sm font-black text-muted-foreground hover:text-foreground px-1 whitespace-nowrap active:scale-95 transition-transform"
+          className="p-2 rounded-xl text-muted-foreground hover:text-[#4a90e2] hover:bg-[#4a90e2]/8 transition-all active:scale-90 shrink-0"
         >
-          Annuler
+          <X className="size-5" />
         </button>
       </div>
 
-      {/* Zone de contenu dynamique */}
-      <div className="flex-1 overflow-y-auto pt-4 space-y-6 bg-background select-none">
-        
-        {/* VRAIES SUGGESTIONS (Saisie active) */}
+      {/* ✅ Zone contenu dynamique */}
+      <div className="flex-1 overflow-y-auto px-4 pt-5 space-y-6 select-none">
+
+        {/* Suggestions en temps réel */}
         {suggestions.length > 0 ? (
-          <div className="space-y-1">
-            <div className="text-[10px] font-black uppercase tracking-widest text-primary px-2 mb-2">
-              Produits trouvés
-            </div>
-            <div className="divide-y border border-border/60 rounded-2xl bg-card overflow-hidden shadow-sm">
+          <div className="space-y-2">
+            <p className="text-[10px] font-black uppercase tracking-widest text-[#4a90e2] px-1">
+              Produits trouves
+            </p>
+            <div className="rounded-2xl border border-border/60 bg-card overflow-hidden shadow-sm divide-y divide-border/40">
               {suggestions.map((suggestion, index) => (
                 <button
                   key={index}
                   type="button"
                   onClick={() => handleExecuteSearch(suggestion)}
-                  className="w-full flex items-center gap-3 px-4 py-3.5 text-left text-sm font-bold hover:bg-muted/50 active:bg-muted transition-colors"
+                  className="w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-[#4a90e2]/5 active:bg-muted transition-colors"
                 >
-                  <ShoppingBag className="size-4 text-muted-foreground/80" />
-                  <span className="text-foreground">{suggestion}</span>
+                  <ShoppingBag className="size-4 text-[#4a90e2] shrink-0" />
+                  <span className="text-sm font-bold text-foreground">{suggestion}</span>
                 </button>
               ))}
             </div>
           </div>
+
         ) : inputValue.trim() !== "" && !isLoading ? (
-          /* Aucun résultat trouvé dans la base de données (CORRIGÉ POUR ESLINT ICI) */
-          <div className="text-center py-8 text-sm text-muted-foreground font-semibold">
-            Aucun produit exact trouvé. Taper Entrée pour chercher <span className="text-primary font-black">{`"${inputValue}"`}</span>
+          // ✅ Aucun résultat exact
+          <div className="flex flex-col items-center justify-center py-12 gap-3 text-center">
+            <div className="size-12 rounded-2xl bg-[#4a90e2]/10 border border-[#4a90e2]/20 flex items-center justify-center">
+              <SearchIcon className="size-5 text-[#4a90e2]" />
+            </div>
+            <p className="text-sm text-muted-foreground font-medium">
+              Aucun produit exact. Appuyez sur Entree pour chercher{" "}
+              <span className="text-[#4a90e2] font-black">{`"${inputValue}"`}</span>
+            </p>
           </div>
+
         ) : (
-          /* BLOC PAR DÉFAUT (Champ vide : Historique + Tendances Réelles) */
-          <>
-            {/* RECHERCHES RÉCENTES */}
+          // ✅ État par défaut — historique + tendances
+          <div className="space-y-6">
+
+            {/* Recherches récentes */}
             {recentSearches.length > 0 && (
               <div className="space-y-3">
-                <div className="flex items-center justify-between text-xs font-black uppercase tracking-wider text-muted-foreground/70">
-                  <span className="flex items-center gap-1.5">
-                    <Clock className="size-3.5" /> Recherches récentes
-                  </span>
-                  <button 
-                    type="button" 
-                    onClick={clearHistory} 
-                    className="text-destructive flex items-center gap-1 hover:underline font-bold normal-case"
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                    <Clock className="size-3.5" />
+                    Recherches recentes
+                  </div>
+                  <button
+                    type="button"
+                    onClick={clearHistory}
+                    className="flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-red-500 hover:text-red-600 transition-colors"
                   >
-                    <Trash2 className="size-3.5" /> Effacer
+                    <Trash2 className="size-3" />
+                    Effacer
                   </button>
                 </div>
-                
                 <div className="flex flex-wrap gap-2">
                   {recentSearches.map((search, index) => (
-                    <button 
-                      key={index} 
-                      type="button" 
-                      onClick={() => handleExecuteSearch(search)} 
-                      className="px-4 py-2 bg-muted text-sm font-semibold rounded-full hover:bg-muted/80 transition-colors"
+                    <button
+                      key={index}
+                      type="button"
+                      onClick={() => handleExecuteSearch(search)}
+                      className="px-3 py-1.5 bg-[#f8faff] dark:bg-zinc-800/50 border border-[#4a90e2]/10 text-xs font-bold rounded-2xl hover:border-[#4a90e2]/30 hover:text-[#4a90e2] transition-all active:scale-95"
                     >
                       {search}
                     </button>
@@ -201,48 +202,54 @@ export default function SearchPage({ onClose }: SearchPageProps) {
               </div>
             )}
 
-            {/* VRAIES TENDANCES DE LA PLATFORME */}
+            {/* ✅ Tendances DealCity réelles depuis la DB */}
             <div className="space-y-3">
-              <div className="text-xs font-black uppercase tracking-wider text-muted-foreground/70 flex items-center gap-1.5">
-                <TrendingUp className="size-3.5 text-primary" /> Tendances DealCity
+              <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                <TrendingUp className="size-3.5 text-[#4a90e2]" />
+                Tendances DealCity
               </div>
-              
+
               {isLoadingTrends ? (
-                <div className="flex items-center justify-center py-8 text-muted-foreground gap-2 text-xs font-bold">
-                  <Loader2 className="size-4 animate-spin text-primary" /> Chargement des tendances...
+                <div className="flex items-center justify-center gap-2 py-8 text-muted-foreground">
+                  <Loader2 className="size-4 animate-spin text-[#4a90e2]" />
+                  <span className="text-xs font-bold">Chargement...</span>
                 </div>
               ) : trendingSearches.length > 0 ? (
-                <div className="divide-y border rounded-2xl bg-card overflow-hidden shadow-sm">
+                <div className="rounded-2xl border border-border/60 bg-card overflow-hidden shadow-sm divide-y divide-border/40">
                   {trendingSearches.map((trend, index) => (
                     <button
                       key={index}
                       type="button"
                       onClick={() => handleExecuteSearch(trend)}
-                      className="w-full flex items-center gap-4 px-4 py-3.5 text-left text-sm font-bold hover:bg-muted/40 transition-colors active:bg-muted"
+                      className="w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-[#4a90e2]/5 active:bg-muted transition-colors"
                     >
-                      <span className={`w-5 text-center font-black italic ${
-                        index === 0 ? "text-red-500 text-base" : 
-                        index === 1 ? "text-orange-500" : 
-                        index === 2 ? "text-amber-500" : "text-muted-foreground"
-                      }`}>
+                      {/* ✅ Numéro coloré selon le rang */}
+                      <span className={[
+                        "w-5 text-center font-black italic text-sm shrink-0",
+                        index === 0 ? "text-red-500" :
+                        index === 1 ? "text-orange-500" :
+                        index === 2 ? "text-amber-500" :
+                        "text-muted-foreground",
+                      ].join(" ")}>
                         {index + 1}
                       </span>
-                      <span className="flex-1 truncate font-semibold text-foreground">{trend}</span>
-                      <span className="text-[9px] bg-primary/10 text-primary px-2 py-0.5 rounded-full uppercase font-black tracking-tighter">
+                      <span className="flex-1 truncate text-sm font-bold text-foreground">
+                        {trend}
+                      </span>
+                      <span className="text-[9px] bg-[#4a90e2]/10 text-[#4a90e2] px-2 py-0.5 rounded-full font-black uppercase tracking-widest shrink-0">
                         Hot
                       </span>
                     </button>
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-6 text-xs font-semibold text-muted-foreground bg-muted/40 rounded-2xl border border-dashed">
-                  Aucun produit populaire à afficher pour le moment.
+                <div className="text-center py-8 text-xs font-bold text-muted-foreground bg-muted/30 rounded-2xl border border-dashed border-border/60">
+                  Aucun produit populaire pour le moment.
                 </div>
               )}
             </div>
-          </>
+          </div>
         )}
-
       </div>
     </div>
   );

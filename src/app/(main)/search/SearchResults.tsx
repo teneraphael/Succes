@@ -6,11 +6,9 @@ import { PostsPage } from "@/lib/types";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { Loader2, Search, ShoppingBag } from "lucide-react";
 import Image from "next/image";
-import Link from "next/link";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
+import PostScrollViewer from "@/components/PostScrollViewer";
 
 interface SearchResultsProps {
   query: string;
@@ -30,9 +28,13 @@ const extractInfo = (content: string) => {
 const isExternalImage = (url: string) =>
   url.includes("ufs.sh") || url.includes("utfs.io") || url.includes("lh3.googleusercontent.com");
 
-// ✅ Carte produit style TikTok
-function ProductCard({ post }: { post: any }) {
-  const router = useRouter();
+function ProductCard({
+  post,
+  onClick,
+}: {
+  post: any;
+  onClick: () => void;
+}) {
   const { productName, price, description } = extractInfo(post.content);
   const firstImage = post.attachments?.find((m: any) => m.type === "IMAGE")?.url;
   const isAvailable = (post.stock ?? 0) > 0 || post.variants?.some((v: any) => v.stock > 0);
@@ -42,10 +44,9 @@ function ProductCard({ post }: { post: any }) {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.25 }}
-      onClick={() => router.push(`/posts/${post.id}`)}
+      onClick={onClick}
       className="relative cursor-pointer rounded-2xl overflow-hidden bg-card border border-border/60 shadow-sm hover:shadow-md transition-all active:scale-[0.98] group"
     >
-      {/* Image */}
       <div className="relative w-full aspect-square overflow-hidden bg-zinc-100 dark:bg-zinc-900">
         {firstImage ? (
           <Image
@@ -62,7 +63,6 @@ function ProductCard({ post }: { post: any }) {
           </div>
         )}
 
-        {/* Badge stock */}
         {!isAvailable && (
           <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
             <span className="text-white text-[10px] font-black uppercase tracking-widest bg-red-500 px-2 py-1 rounded-full">
@@ -71,7 +71,6 @@ function ProductCard({ post }: { post: any }) {
           </div>
         )}
 
-        {/* Badge vendeur vérifié */}
         {post.user?.isVerified && (
           <div className="absolute top-2 left-2">
             <span className="bg-blue-500 text-white text-[8px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-wider">
@@ -80,7 +79,6 @@ function ProductCard({ post }: { post: any }) {
           </div>
         )}
 
-        {/* Nombre d'images */}
         {post.attachments?.filter((m: any) => m.type === "IMAGE").length > 1 && (
           <div className="absolute top-2 right-2">
             <span className="bg-black/60 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full">
@@ -90,7 +88,6 @@ function ProductCard({ post }: { post: any }) {
         )}
       </div>
 
-      {/* Infos */}
       <div className="p-2.5 space-y-1">
         <p className="text-[11px] font-black uppercase tracking-tight text-foreground line-clamp-2 leading-tight">
           {productName || "Article"}
@@ -123,7 +120,6 @@ function ProductCard({ post }: { post: any }) {
   );
 }
 
-// ✅ Skeleton style grille
 function GridSkeleton() {
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 p-4">
@@ -141,6 +137,8 @@ function GridSkeleton() {
 }
 
 export default function SearchResults({ query }: SearchResultsProps) {
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+
   const {
     data,
     fetchNextPage,
@@ -168,7 +166,7 @@ export default function SearchResults({ query }: SearchResultsProps) {
 
   return (
     <div className="w-full min-h-screen">
-      {/* Header recherche */}
+      {/* Header */}
       <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-md border-b border-border/40 px-4 py-3">
         <div className="flex items-center gap-2 max-w-2xl mx-auto">
           <Search className="size-4 text-muted-foreground flex-none" />
@@ -185,15 +183,12 @@ export default function SearchResults({ query }: SearchResultsProps) {
         </div>
       </div>
 
-      {/* Contenu */}
       <AnimatePresence mode="wait">
         {status === "pending" && <GridSkeleton />}
 
         {status === "error" && (
           <div className="flex flex-col items-center justify-center py-20 gap-3">
-            <p className="text-destructive font-bold text-sm">
-              Erreur lors du chargement
-            </p>
+            <p className="text-destructive font-bold text-sm">Erreur lors du chargement</p>
           </div>
         )}
 
@@ -219,10 +214,13 @@ export default function SearchResults({ query }: SearchResultsProps) {
           <InfiniteScrollContainer
             onBottomReached={() => hasNextPage && !isFetching && fetchNextPage()}
           >
-            {/* ✅ Grille style TikTok / Pinterest */}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 p-4">
-              {posts.map((post) => (
-                <ProductCard key={post.id} post={post} />
+              {posts.map((post, index) => (
+                <ProductCard
+                  key={post.id}
+                  post={post}
+                  onClick={() => setSelectedIndex(index)}
+                />
               ))}
             </div>
             {isFetchingNextPage && (
@@ -233,6 +231,17 @@ export default function SearchResults({ query }: SearchResultsProps) {
           </InfiniteScrollContainer>
         )}
       </AnimatePresence>
+
+      {/* ✅ Vue scroll plein écran */}
+      {selectedIndex !== null && (
+        <PostScrollViewer
+          posts={posts}
+          initialIndex={selectedIndex}
+          onClose={() => setSelectedIndex(null)}
+          onLoadMore={() => hasNextPage && !isFetching && fetchNextPage()}
+          hasMore={hasNextPage ?? false}
+        />
+      )}
     </div>
   );
 }

@@ -3,7 +3,6 @@
 import { CommentData } from "@/lib/types";
 import { MoreHorizontal, Trash2 } from "lucide-react";
 import { useState } from "react";
-import { Button } from "../ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,19 +26,31 @@ export default function CommentMoreButton({
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button size="icon" variant="ghost" className={className}>
-            <MoreHorizontal className="size-5 text-muted-foreground" />
-          </Button>
+          {/* ✅ Bouton options — style DealCity, sans Button shadcn */}
+          <button
+            className={`p-1.5 rounded-xl text-muted-foreground hover:text-[#4a90e2] hover:bg-[#4a90e2]/8 transition-all active:scale-90 outline-none ${className}`}
+          >
+            <MoreHorizontal className="size-4" />
+          </button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuItem onClick={() => setShowDeleteDialog(true)}>
-            <span className="flex items-center gap-3 text-destructive font-medium">
-              <Trash2 className="size-4" />
+
+        {/* ✅ Menu déroulant — style cohérent DealCity */}
+        <DropdownMenuContent
+          align="end"
+          className="rounded-2xl border border-border/60 shadow-lg p-1 min-w-[140px]"
+        >
+          <DropdownMenuItem
+            onClick={() => setShowDeleteDialog(true)}
+            className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-red-500 hover:text-red-500 hover:bg-red-500/8 cursor-pointer transition-colors"
+          >
+            <Trash2 className="size-4" />
+            <span className="text-xs font-black uppercase tracking-widest">
               Supprimer
             </span>
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+
       <DeleteCommentDialog
         comment={comment}
         open={showDeleteDialog}

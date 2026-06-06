@@ -1,7 +1,6 @@
 "use client";
 
 import { useSession } from "@/app/(main)/SessionProvider";
-import { Button } from "@/components/ui/button";
 import kyInstance from "@/lib/ky";
 import { NotificationCountInfo } from "@/lib/types";
 import { useQuery } from "@tanstack/react-query";
@@ -15,7 +14,7 @@ interface NotificationsButtonProps {
 export default function NotificationsButton({
   initialState,
 }: NotificationsButtonProps) {
-  const { user } = useSession(); // Récupère l'état de connexion
+  const { user } = useSession();
 
   const { data } = useQuery({
     queryKey: ["unread-notification-count"],
@@ -25,34 +24,34 @@ export default function NotificationsButton({
         .json<NotificationCountInfo>(),
     initialData: initialState,
     refetchInterval: 60 * 1000,
-    // IMPORTANT : On ne lance la requête que si l'utilisateur est connecté
-    enabled: !!user, 
+    // ✅ Requête désactivée si non connecté — évite les appels API inutiles
+    enabled: !!user,
   });
 
-  // Si pas de user, on affiche une icône simplifiée qui redirige vers le login
+  // ✅ Compte à 0 si non connecté, redirige vers login si nécessaire
   const unreadCount = user ? data.unreadCount : 0;
   const href = user ? "/notifications" : "/login?redirectTo=/notifications";
 
   return (
-    <Button
-      variant="ghost"
-      className="flex items-center justify-start gap-3 transition-all hover:bg-primary/10 group"
+    <Link
+      href={href}
       title="Notifications"
-      asChild
+      className="flex items-center justify-start gap-3 px-2 py-2 rounded-xl transition-all hover:bg-[#4a90e2]/8 text-muted-foreground hover:text-[#4a90e2] group"
     >
-      <Link href={href}>
-        <div className="relative">
-          <Bell className="group-hover:text-primary transition-colors" />
-          {!!unreadCount && (
-            <span className="absolute -right-1 -top-1 rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-black tabular-nums text-primary-foreground border-2 border-background animate-in zoom-in">
-              {unreadCount}
-            </span>
-          )}
-        </div>
-        <span className="hidden lg:inline font-medium group-hover:text-primary transition-colors">
-          Notifications
-        </span>
-      </Link>
-    </Button>
+      {/* ✅ Icône cloche avec badge de compteur non lu */}
+      <div className="relative">
+        <Bell className="size-5 lg:size-5 transition-colors shrink-0" />
+        {!!unreadCount && (
+          <span className="absolute -right-1.5 -top-1.5 min-w-[18px] h-[18px] rounded-full bg-[#4a90e2] px-1 text-[9px] font-black tabular-nums text-white border-2 border-card flex items-center justify-center animate-in zoom-in">
+            {unreadCount > 99 ? "99+" : unreadCount}
+          </span>
+        )}
+      </div>
+
+      {/* ✅ Label visible uniquement sur desktop */}
+      <span className="hidden lg:inline text-sm font-black uppercase tracking-tight transition-colors">
+        Notifications
+      </span>
+    </Link>
   );
 }

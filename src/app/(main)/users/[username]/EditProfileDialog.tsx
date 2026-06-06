@@ -13,11 +13,9 @@ import {
   FormControl,
   FormField,
   FormItem,
-  FormLabel,
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { UserData } from "@/lib/types";
 import {
@@ -25,7 +23,7 @@ import {
   UpdateUserProfileValues,
 } from "@/lib/validation";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Camera } from "lucide-react";
+import { Camera, User, FileText } from "lucide-react";
 import Image, { StaticImageData } from "next/image";
 import { useRef, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -52,8 +50,6 @@ export default function EditProfileDialog({
   });
 
   const mutation = useUpdateProfileMutation();
-
-  // États locaux pour stocker les blobs finaux après recadrage
   const [croppedAvatar, setCroppedAvatar] = useState<Blob | null>(null);
   const [croppedCover, setCroppedCover] = useState<Blob | null>(null);
 
@@ -67,11 +63,7 @@ export default function EditProfileDialog({
       : undefined;
 
     mutation.mutate(
-      {
-        values,
-        avatar: newAvatarFile,
-        cover: newCoverFile, // Transmis à ta mutation qui gère l'upload de la bannière
-      },
+      { values, avatar: newAvatarFile, cover: newCoverFile },
       {
         onSuccess: () => {
           setCroppedAvatar(null);
@@ -84,16 +76,27 @@ export default function EditProfileDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-xl overflow-y-auto max-h-[90vh] p-6 rounded-3xl">
-        <DialogHeader>
-          <DialogTitle>Edit profile</DialogTitle>
+      <DialogContent className="max-w-lg overflow-y-auto max-h-[90vh] p-0 rounded-3xl border border-border/60 shadow-xl gap-0">
+
+        {/* Header */}
+        <DialogHeader className="px-6 pt-6 pb-4 border-b border-border/40">
+          <div className="flex items-center gap-3">
+            <div className="size-8 rounded-xl bg-[#4a90e2]/10 border border-[#4a90e2]/20 flex items-center justify-center">
+              <User className="size-4 text-[#4a90e2]" />
+            </div>
+            <DialogTitle className="text-sm font-black uppercase tracking-tight text-foreground">
+              Modifier le profil
+            </DialogTitle>
+          </div>
         </DialogHeader>
 
-        {/* SECTION DES DEUX COMPOSANTS DE CONFIGURATION VISUELLE */}
-        <div className="space-y-6 my-2">
-          {/* 1. Zone Image de Couverture / Bannière */}
-          <div className="space-y-1.5">
-            <Label className="text-xs font-bold text-slate-600">Bannière de couverture</Label>
+        <div className="px-6 py-5 space-y-5">
+
+          {/* Bannière */}
+          <div className="space-y-2">
+            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">
+              Image de couverture
+            </p>
             <CoverInput
               src={
                 croppedCover
@@ -104,9 +107,11 @@ export default function EditProfileDialog({
             />
           </div>
 
-          {/* 2. Zone Photo de Profil (Avatar) */}
-          <div className="space-y-1.5">
-            <Label className="text-xs font-bold text-slate-600">Avatar</Label>
+          {/* Avatar */}
+          <div className="space-y-2">
+            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">
+              Photo de profil
+            </p>
             <AvatarInput
               src={
                 croppedAvatar
@@ -116,57 +121,80 @@ export default function EditProfileDialog({
               onImageCropped={setCroppedAvatar}
             />
           </div>
-        </div>
 
-        {/* FORMULAIRE DES CHAMPS TEXTE */}
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="displayName"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Display name</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Your display name" {...field} className="rounded-xl" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="bio"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Bio</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder="Tell us a little bit about yourself"
-                      className="resize-none rounded-xl"
-                      rows={4}
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <DialogFooter className="pt-2">
-              <LoadingButton type="submit" loading={mutation.isPending} className="w-full sm:w-auto px-6 rounded-xl">
-                Save
-              </LoadingButton>
-            </DialogFooter>
-          </form>
-        </Form>
+          {/* Formulaire */}
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+
+              <FormField
+                control={form.control}
+                name="displayName"
+                render={({ field }) => (
+                  <FormItem>
+                    <div className="space-y-1.5">
+                      <div className="flex items-center gap-1.5 ml-1">
+                        <User className="size-3 text-muted-foreground" />
+                        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                          Nom affiché
+                        </p>
+                      </div>
+                      <FormControl>
+                        <Input
+                          placeholder="Votre nom affiché"
+                          {...field}
+                          className="h-12 rounded-2xl bg-[#f8faff] dark:bg-zinc-800/50 border border-[#4a90e2]/10 dark:border-white/5 focus-visible:border-[#4a90e2]/40 focus-visible:ring-2 focus-visible:ring-[#4a90e2]/10 text-sm font-semibold transition-all"
+                        />
+                      </FormControl>
+                      <FormMessage className="ml-1 text-[10px] font-black uppercase tracking-widest" />
+                    </div>
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="bio"
+                render={({ field }) => (
+                  <FormItem>
+                    <div className="space-y-1.5">
+                      <div className="flex items-center gap-1.5 ml-1">
+                        <FileText className="size-3 text-muted-foreground" />
+                        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                          Bio
+                        </p>
+                      </div>
+                      <FormControl>
+                        <Textarea
+                          placeholder="Parlez un peu de vous..."
+                          className="resize-none rounded-2xl bg-[#f8faff] dark:bg-zinc-800/50 border border-[#4a90e2]/10 dark:border-white/5 focus-visible:border-[#4a90e2]/40 focus-visible:ring-2 focus-visible:ring-[#4a90e2]/10 text-sm font-semibold transition-all min-h-[100px]"
+                          rows={4}
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage className="ml-1 text-[10px] font-black uppercase tracking-widest" />
+                    </div>
+                  </FormItem>
+                )}
+              />
+
+              <DialogFooter className="pt-2">
+                <LoadingButton
+                  type="submit"
+                  loading={mutation.isPending}
+                  className="w-full h-12 bg-[#4a90e2] hover:bg-[#357abd] text-white rounded-2xl font-black uppercase italic tracking-tight text-sm shadow-lg shadow-[#4a90e2]/20 transition-all active:scale-[0.97]"
+                >
+                  Sauvegarder
+                </LoadingButton>
+              </DialogFooter>
+            </form>
+          </Form>
+        </div>
       </DialogContent>
     </Dialog>
   );
 }
 
-// ==========================================
-// COMPOSANT D'INPUT POUR L'AVATAR (INCHANGÉ)
-// ==========================================
+// Avatar Input
 interface AvatarInputProps {
   src: string | StaticImageData;
   onImageCropped: (blob: Blob | null) => void;
@@ -178,17 +206,8 @@ function AvatarInput({ src, onImageCropped }: AvatarInputProps) {
 
   function onImageSelected(image: File | undefined) {
     if (!image) return;
-
-    Resizer.imageFileResizer(
-      image,
-      1024,
-      1024,
-      "WEBP",
-      100,
-      0,
-      (uri) => setImageToCrop(uri as File),
-      "file",
-    );
+    Resizer.imageFileResizer(image, 1024, 1024, "WEBP", 100, 0,
+      (uri) => setImageToCrop(uri as File), "file");
   }
 
   return (
@@ -208,12 +227,12 @@ function AvatarInput({ src, onImageCropped }: AvatarInputProps) {
         <Image
           src={src}
           alt="Avatar preview"
-          width={100}
-          height={100}
-          className="size-24 flex-none rounded-full object-cover border border-slate-200 shadow-sm"
+          width={80}
+          height={80}
+          className="size-20 rounded-full object-cover ring-2 ring-[#4a90e2]/20 ring-offset-2 ring-offset-background"
         />
-        <span className="absolute inset-0 m-auto flex size-10 items-center justify-center rounded-full bg-black bg-opacity-40 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-          <Camera size={20} />
+        <span className="absolute inset-0 m-auto flex size-8 items-center justify-center rounded-full bg-black/50 text-white opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm">
+          <Camera size={16} />
         </span>
       </button>
       {imageToCrop && (
@@ -223,9 +242,7 @@ function AvatarInput({ src, onImageCropped }: AvatarInputProps) {
           onCropped={onImageCropped}
           onClose={() => {
             setImageToCrop(undefined);
-            if (fileInputRef.current) {
-              fileInputRef.current.value = "";
-            }
+            if (fileInputRef.current) fileInputRef.current.value = "";
           }}
         />
       )}
@@ -233,9 +250,7 @@ function AvatarInput({ src, onImageCropped }: AvatarInputProps) {
   );
 }
 
-// ==========================================
-// GESTIONNAIRE D'INPUT POUR LA BANNIÈRE (NOUVEAU)
-// ==========================================
+// Cover Input
 interface CoverInputProps {
   src: string | null;
   onImageCropped: (blob: Blob | null) => void;
@@ -247,18 +262,8 @@ function CoverInput({ src, onImageCropped }: CoverInputProps) {
 
   function onImageSelected(image: File | undefined) {
     if (!image) return;
-
-    // Compression et conversion fluide de la bannière en WebP haute définition
-    Resizer.imageFileResizer(
-      image,
-      1920,
-      600,
-      "WEBP",
-      90,
-      0,
-      (uri) => setImageToCrop(uri as File),
-      "file",
-    );
+    Resizer.imageFileResizer(image, 1920, 600, "WEBP", 90, 0,
+      (uri) => setImageToCrop(uri as File), "file");
   }
 
   return (
@@ -273,27 +278,28 @@ function CoverInput({ src, onImageCropped }: CoverInputProps) {
       <button
         type="button"
         onClick={() => fileInputRef.current?.click()}
-        className="group relative w-full h-32 rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-100 to-slate-50 overflow-hidden shadow-sm flex items-center justify-center"
+        className="group relative w-full h-28 rounded-2xl border-2 border-dashed border-[#4a90e2]/20 hover:border-[#4a90e2]/40 bg-[#4a90e2]/5 overflow-hidden transition-all flex items-center justify-center"
       >
         {src ? (
           <Image
             src={src}
             alt="Bannière preview"
             fill
-            className="object-cover group-hover:opacity-80 transition-opacity duration-200"
+            className="object-cover group-hover:opacity-80 transition-opacity"
             unoptimized
           />
         ) : (
-          <div className="flex flex-col items-center gap-1 text-slate-400">
-            <Camera size={24} className="opacity-70" />
-            <span className="text-[11px] font-semibold">Ajouter une image de couverture</span>
+          <div className="flex flex-col items-center gap-1.5 text-[#4a90e2]/50">
+            <Camera size={20} />
+            <span className="text-[10px] font-black uppercase tracking-widest">
+              Ajouter une couverture
+            </span>
           </div>
         )}
-        
-        {/* Voile d'interaction au survol si une image existe */}
+
         {src && (
-          <span className="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-            <Camera size={22} />
+          <span className="absolute inset-0 bg-black/30 flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-[2px]">
+            <Camera size={20} />
           </span>
         )}
       </button>
@@ -301,13 +307,11 @@ function CoverInput({ src, onImageCropped }: CoverInputProps) {
       {imageToCrop && (
         <CropImageDialog
           src={URL.createObjectURL(imageToCrop)}
-          cropAspectRatio={16 / 5} // Ratio panoramique calibré pour une bannière impeccable
+          cropAspectRatio={16 / 5}
           onCropped={onImageCropped}
           onClose={() => {
             setImageToCrop(undefined);
-            if (fileInputRef.current) {
-              fileInputRef.current.value = "";
-            }
+            if (fileInputRef.current) fileInputRef.current.value = "";
           }}
         />
       )}

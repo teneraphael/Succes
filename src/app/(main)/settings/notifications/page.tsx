@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Bell, BellOff, ShieldCheck, ArrowLeft } from "lucide-react";
+import { Bell, BellOff, ShieldCheck, ArrowLeft, AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import { getToken } from "firebase/messaging";
-import { messaging } from "@/lib/firebase"; // Vérifie ton chemin
-import { toast } from "sonner"; // Ou ta librairie de notifications
+import { messaging } from "@/lib/firebase";
+import { toast } from "sonner";
 
 export default function NotificationSettings() {
   const [permission, setPermission] = useState<NotificationPermission>("default");
@@ -17,8 +17,7 @@ export default function NotificationSettings() {
     }
   }, []);
 
- const handleEnableNotifications = async () => {
-    // 1. Sécurité TypeScript : On vérifie si messaging existe
+  const handleEnableNotifications = async () => {
     if (!messaging) {
       toast.error("Le service de messagerie n'est pas initialisé.");
       return;
@@ -30,7 +29,6 @@ export default function NotificationSettings() {
       setPermission(status);
 
       if (status === "granted") {
-        // TypeScript sait désormais que 'messaging' ne peut pas être null ici
         const token = await getToken(messaging, {
           vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY,
         });
@@ -56,60 +54,126 @@ export default function NotificationSettings() {
 
   return (
     <div className="max-w-xl mx-auto py-8 px-4 space-y-6">
-      {/* Retour aux paramètres */}
-      <Link href="/settings" className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors text-xs font-bold uppercase tracking-widest">
-        <ArrowLeft size={16} />
-        Retour
+
+      {/* Retour */}
+      <Link
+        href="/settings"
+        className="inline-flex items-center gap-2 text-muted-foreground hover:text-[#4a90e2] transition-colors group"
+      >
+        <div className="p-1.5 rounded-lg bg-muted/50 group-hover:bg-[#4a90e2]/10 border border-border group-hover:border-[#4a90e2]/20 transition-all">
+          <ArrowLeft size={14} />
+        </div>
+        <span className="text-[10px] font-black uppercase tracking-widest">
+          Retour aux paramètres
+        </span>
       </Link>
 
-      <div className="px-2">
-        <h1 className="text-3xl font-black uppercase tracking-tighter italic">Notifications</h1>
-        <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest mt-1">Gérez vos alertes en temps réel</p>
-      </div>
-
-      <div className="bg-muted/30 rounded-[2rem] border border-border p-8 space-y-6 text-center">
-        <div className="flex justify-center">
-          <div className={`p-6 rounded-full ${permission === 'granted' ? 'bg-green-500/10 text-green-500' : 'bg-orange-500/10 text-orange-500'}`}>
-            {permission === 'granted' ? <Bell size={48} /> : <BellOff size={48} />}
-          </div>
+      {/* Titre */}
+      <div className="flex items-center gap-3 px-1">
+        <div className="size-9 rounded-xl bg-[#4a90e2]/10 border border-[#4a90e2]/20 flex items-center justify-center shrink-0">
+          <Bell className="size-4 text-[#4a90e2]" />
         </div>
-
-        <div className="space-y-2">
-          <h2 className="text-xl font-bold">
-            {permission === 'granted' ? "Notifications activées" : "Notifications désactivées"}
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            {permission === 'granted' 
-              ? "Vous recevrez une alerte pour chaque nouveau message ou bon plan." 
-              : "Activez les notifications pour ne rater aucune vente sur DealCity."}
+        <div>
+          <h1 className="text-base font-black uppercase tracking-tight text-foreground leading-none">
+            Notifications
+          </h1>
+          <p className="text-[11px] text-muted-foreground font-medium mt-0.5">
+            Gérez vos alertes en temps réel
           </p>
         </div>
-
-        {permission !== 'granted' ? (
-          <button
-            onClick={handleEnableNotifications}
-            disabled={loading}
-            className="w-full h-[60px] bg-[#4a90e2] text-white rounded-[1.5rem] font-black uppercase italic tracking-widest hover:bg-[#357abd] transition-all disabled:opacity-50"
-          >
-            {loading ? "Chargement..." : "Activer maintenant"}
-          </button>
-        ) : (
-          <div className="flex items-center justify-center gap-2 text-green-500 text-xs font-black uppercase tracking-widest border border-green-500/20 bg-green-500/5 py-3 rounded-xl italic">
-            <ShieldCheck size={16} />
-            Service actif sur ce navigateur
-          </div>
-        )}
       </div>
 
-      {/* Guide en cas de blocage */}
-      {permission === 'denied' && (
-        <div className="p-6 bg-destructive/5 rounded-[1.5rem] border border-destructive/10 text-center">
-          <p className="text-xs font-bold text-destructive uppercase tracking-tight">
-            ⚠️ Les notifications sont bloquées par votre navigateur. <br />
-            Cliquez sur le cadenas dans la barre d&apos;adresse pour les réautoriser.
+      {/* Carte principale */}
+      <div className="bg-card rounded-3xl border border-border/60 shadow-sm overflow-hidden">
+
+        {/* Icône statut */}
+        <div className={`flex flex-col items-center gap-4 p-8 border-b border-border/40 ${
+          permission === "granted"
+            ? "bg-[#6ab344]/5"
+            : "bg-[#4a90e2]/5"
+        }`}>
+          <div className={`size-20 rounded-2xl flex items-center justify-center border-2 ${
+            permission === "granted"
+              ? "bg-[#6ab344]/10 border-[#6ab344]/20 text-[#6ab344]"
+              : "bg-[#4a90e2]/10 border-[#4a90e2]/20 text-[#4a90e2]"
+          }`}>
+            {permission === "granted"
+              ? <Bell className="size-9" />
+              : <BellOff className="size-9" />
+            }
+          </div>
+
+          <div className="text-center space-y-1.5">
+            <h2 className="font-black text-foreground uppercase tracking-tight">
+              {permission === "granted"
+                ? "Notifications activées"
+                : "Notifications désactivées"
+              }
+            </h2>
+            <p className="text-xs text-muted-foreground font-medium max-w-xs leading-relaxed">
+              {permission === "granted"
+                ? "Vous recevrez une alerte pour chaque nouveau message ou bon plan."
+                : "Activez les notifications pour ne rater aucune vente sur DealCity."
+              }
+            </p>
+          </div>
+        </div>
+
+        {/* Action */}
+        <div className="p-6">
+          {permission !== "granted" ? (
+            <button
+              onClick={handleEnableNotifications}
+              disabled={loading}
+              className="w-full h-14 bg-[#4a90e2] hover:bg-[#357abd] text-white rounded-2xl font-black uppercase italic tracking-tight text-sm shadow-lg shadow-[#4a90e2]/20 transition-all active:scale-[0.97] disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <div className="size-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  Activation...
+                </span>
+              ) : (
+                "Activer maintenant"
+              )}
+            </button>
+          ) : (
+            <div className="flex items-center justify-center gap-2.5 py-3.5 rounded-2xl bg-[#6ab344]/8 border border-[#6ab344]/20">
+              <ShieldCheck className="size-4 text-[#6ab344]" />
+              <span className="text-xs font-black uppercase tracking-widest text-[#6ab344]">
+                Service actif sur ce navigateur
+              </span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Alerte blocage */}
+      {permission === "denied" && (
+        <div className="flex gap-3 p-4 bg-red-50 dark:bg-red-950/20 rounded-2xl border border-red-200 dark:border-red-900/30">
+          <AlertTriangle className="size-4 text-red-500 shrink-0 mt-0.5" />
+          <p className="text-xs font-bold text-red-600 dark:text-red-400 leading-relaxed">
+            Les notifications sont bloquées par votre navigateur. Cliquez sur le cadenas dans la barre d&apos;adresse pour les réautoriser.
           </p>
         </div>
       )}
+
+      {/* Badge DealCity */}
+      <div className="flex items-center justify-center gap-3 py-2 opacity-40">
+        <div className="h-px w-10 bg-border" />
+        <div className="flex items-center gap-1.5">
+          <div className="flex items-end gap-[3px]">
+            <div className="w-[4px] h-3 bg-[#4a90e2] rounded-sm" />
+            <div className="w-[4px] h-4 bg-[#4a90e2] rounded-sm" />
+            <div className="w-[4px] h-5 bg-[#4a90e2] rounded-sm" />
+            <div className="w-[4px] h-3.5 bg-[#4a90e2] rounded-sm" />
+          </div>
+          <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">
+            DealCity
+          </span>
+        </div>
+        <div className="h-px w-10 bg-border" />
+      </div>
+
     </div>
   );
 }

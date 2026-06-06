@@ -9,90 +9,104 @@ interface NotificationProps {
   notification: NotificationData;
 }
 
+type NotificationConfig = {
+  message: string;
+  icon: JSX.Element;
+  iconBg: string;
+  dot: string;
+  href: string;
+};
+
 export default function Notification({ notification }: NotificationProps) {
-  // Map des configurations d'icônes, messages et styles type écusson marketplace
-  const notificationTypeMap: Record<
-    NotificationType,
-    { message: string; icon: JSX.Element; bg: string; href: string }
-  > = {
+  const notificationTypeMap: Partial<Record<NotificationType, NotificationConfig>> & {
+    [key: string]: NotificationConfig;
+  } = {
     FOLLOW: {
       message: "a rejoint ta vitrine",
-      icon: <User2 className="size-3.5 text-sky-600" />,
-      bg: "bg-sky-500/[0.05] border-sky-500/10",
+      icon: <User2 className="size-3.5 text-[#4a90e2]" />,
+      iconBg: "bg-[#4a90e2]/10 border-[#4a90e2]/20",
+      dot: "bg-[#4a90e2]",
       href: `/users/${notification.issuer.username}`,
     },
     COMMENT: {
       message: "a laissé un avis sur ton article",
-      icon: <MessageCircle className="size-3.5 text-amber-600 fill-amber-500/10" />,
-      bg: "bg-amber-500/[0.05] border-amber-500/10",
+      icon: <MessageCircle className="size-3.5 text-amber-500" />,
+      iconBg: "bg-amber-500/10 border-amber-500/20",
+      dot: "bg-amber-500",
       href: `/posts/${notification.postId}`,
     },
     LIKE: {
       message: "a aimé ta création",
-      icon: <Heart className="size-3.5 text-rose-600 fill-rose-600/10" />,
-      bg: "bg-rose-500/[0.05] border-rose-500/10",
+      icon: <Heart className="size-3.5 text-rose-500 fill-rose-500/20" />,
+      iconBg: "bg-rose-500/10 border-rose-500/20",
+      dot: "bg-rose-500",
       href: `/posts/${notification.postId}`,
     },
-    // Ajout d'un type Marketplace si jamais tu l'utilises ou pour ton futur système de commande
-    // @ts-ignore (Au cas où il n'est pas encore dans ton enum Prisma)
     ORDER: {
       message: "a validé un achat avec toi !",
-      icon: <ShoppingBag className="size-3.5 text-emerald-600 fill-emerald-600/10" />,
-      bg: "bg-emerald-500/[0.05] border-emerald-500/10",
+      icon: <ShoppingBag className="size-3.5 text-[#6ab344]" />,
+      iconBg: "bg-[#6ab344]/10 border-[#6ab344]/20",
+      dot: "bg-[#6ab344]",
       href: `/posts/${notification.postId}`,
     },
     REPORT_DELETION: {
       message: "Un article non conforme a été supprimé",
       icon: <User2 className="size-3.5 text-muted-foreground" />,
-      bg: "bg-muted",
+      iconBg: "bg-muted border-border",
+      dot: "bg-muted-foreground",
       href: "#",
     },
   };
 
   const config = notificationTypeMap[notification.type];
 
-  // Sécurité si le type de notification n'est pas géré ou vide
-  if (!config || notification.type === "REPORT_DELETION") {
-    return null; 
-  }
+  if (!config || notification.type === "REPORT_DELETION") return null;
 
   return (
     <Link href={config.href} className="block group">
       <article
         className={cn(
-          "flex items-start gap-4 p-4 lg:p-5 transition-colors border-b border-border/40 bg-white dark:bg-card hover:bg-muted/[0.02]",
-          !notification.read && "bg-amber-500/[0.01]",
+          "flex items-start gap-3 px-4 py-4 transition-all border-b border-border/40",
+          "hover:bg-[#4a90e2]/[0.02] dark:hover:bg-[#4a90e2]/[0.04]",
+          !notification.read && "bg-[#4a90e2]/[0.03] dark:bg-[#4a90e2]/[0.05]",
         )}
       >
-        {/* AVATAR + ÉCUSSON S'INSPIRANT DE L'ARTISANAT DU PROFIL */}
+        {/* Avatar + badge */}
         <div className="relative shrink-0">
-          <UserAvatar avatarUrl={notification.issuer.avatarUrl} size={40} />
-          {/* Le mini badge sculpté incrusté en bas à droite de l'avatar */}
-          <div className={cn("absolute -bottom-1 -right-1 p-1 rounded-lg border shadow-sm flex items-center justify-center", config.bg)}>
+          <UserAvatar avatarUrl={notification.issuer.avatarUrl} size={42} />
+          <div
+            className={cn(
+              "absolute -bottom-1 -right-1 p-[5px] rounded-lg border shadow-sm flex items-center justify-center",
+              config.iconBg,
+            )}
+          >
             {config.icon}
           </div>
         </div>
 
-        {/* LOGIQUE DE TEXTE HORIZONTALE ÉLÉGANTE */}
-        <div className="flex-1 min-w-0 space-y-1.5">
-          <div className="text-sm text-foreground/90 leading-tight">
-            <span className="font-bold text-foreground group-hover:text-amber-600 transition-colors">
+        {/* Contenu */}
+        <div className="flex-1 min-w-0 space-y-2 pt-0.5">
+          <p className="text-sm leading-snug">
+            <span className="font-black text-foreground group-hover:text-[#4a90e2] transition-colors">
               {notification.issuer.displayName}
             </span>{" "}
-            <span className="text-muted-foreground font-medium font-sans">{config.message}</span>
-          </div>
+            <span className="text-muted-foreground font-medium">
+              {config.message}
+            </span>
+          </p>
 
-          {/* APERÇU DU POST ENCADRÉ STYLE FICHE PRODUIT */}
           {notification.post && (
-            <div className="p-2.5 rounded-xl bg-muted/30 border border-border/40 text-xs text-muted-foreground line-clamp-2 whitespace-pre-line group-hover:text-foreground transition-colors max-w-2xl font-sans leading-relaxed">
-              {notification.post.content}
+            <div className="px-3 py-2 rounded-xl bg-muted/40 border border-border/50 text-[11px] text-muted-foreground line-clamp-2 leading-relaxed group-hover:border-[#4a90e2]/20 transition-colors">
+              {notification.post.content.slice(0, 120)}
+              {notification.post.content.length > 120 && "..."}
             </div>
           )}
         </div>
 
-        {/* POINT DE NOTIFICATION DISCRET NON LUE */}
         {!notification.read && (
-          <span className="size-2 rounded-full bg-amber-600 shrink-0 mt-2 animate-pulse" />
+          <div className="shrink-0 mt-1.5">
+            <span className={cn("block size-2 rounded-full animate-pulse", config.dot)} />
+          </div>
         )}
       </article>
     </Link>

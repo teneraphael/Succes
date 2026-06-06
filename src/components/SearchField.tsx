@@ -19,43 +19,40 @@ export default function SearchField() {
   }
 
   return (
-    <>
-      {/* 1. LOUPE MOBILE */}
+    <div className="flex items-center">
+      {/* ✅ Loupe mobile — ouvre SearchPage plein écran */}
       <button
         type="button"
         aria-label="Ouvrir la recherche"
         onClick={() => setIsOpen(true)}
-        className="p-2 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors active:scale-95 sm:hidden"
+        className="p-2 rounded-xl text-muted-foreground hover:text-[#4a90e2] hover:bg-[#4a90e2]/8 transition-all active:scale-95 sm:hidden"
       >
         <SearchIcon className="size-5" />
       </button>
 
-      {/* 2. BARRE PC — ✅ plus de action="/search" qui entre en conflit */}
-      <form
-        onSubmit={handleSubmit}
-        className="hidden sm:block w-full"
-      >
+      {/* ✅ Barre de recherche PC — soumet via Entrée ou clic loupe */}
+      <form onSubmit={handleSubmit} className="hidden sm:block w-full">
         <div className="relative">
           <Input
             name="q"
             placeholder="Rechercher un produit..."
-            className="pe-10 rounded-full bg-muted/50 border-none focus-visible:ring-1"
+            className="pe-10 rounded-2xl bg-[#f8faff] dark:bg-zinc-800/50 border border-[#4a90e2]/10 focus-visible:border-[#4a90e2]/30 focus-visible:ring-1 focus-visible:ring-[#4a90e2]/10 text-sm transition-all placeholder:text-muted-foreground/50"
           />
-          {/* ✅ Bouton submit invisible pour que Entrée fonctionne */}
+          {/* ✅ Bouton submit pour soumettre au clic sur la loupe */}
           <button
             type="submit"
-            className="absolute right-3 top-1/2 -translate-y-1/2"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-[#4a90e2] transition-colors"
             aria-label="Rechercher"
           >
-            <SearchIcon className="size-4 text-muted-foreground hover:text-foreground transition-colors" />
+            <SearchIcon className="size-4" />
           </button>
         </div>
       </form>
 
-      {/* 3. SEARCHPAGE MOBILE PLEIN ÉCRAN */}
+      {/* ✅ SearchPage mobile plein écran */}
       {isOpen && (
         <SearchPage onClose={() => setIsOpen(false)} />
       )}
-    </>
+    </div>
   );
 }

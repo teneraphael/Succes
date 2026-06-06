@@ -3,9 +3,8 @@
 import kyInstance from "@/lib/ky";
 import { CommentsPage, PostData } from "@/lib/types";
 import { useInfiniteQuery } from "@tanstack/react-query";
-import { Loader2 } from "lucide-react";
+import { Loader2, MessageCircle } from "lucide-react";
 import { useState } from "react";
-import { Button } from "../ui/button";
 import Comment from "./Comment";
 import CommentInput from "./CommentInput";
 import { useMediaQuery } from "@/hooks/use-media-query";
@@ -17,7 +16,7 @@ interface CommentsProps {
 }
 
 export default function Comments({ post }: CommentsProps) {
-  const { user } = useSession(); 
+  const { user } = useSession();
   const [replyTarget, setReplyTarget] = useState<string | null>(null);
   const isDesktop = useMediaQuery("(min-width: 768px)");
 
@@ -37,78 +36,113 @@ export default function Comments({ post }: CommentsProps) {
         pages: [...data.pages].reverse(),
         pageParams: [...data.pageParams].reverse(),
       }),
-      // Ajout pour la résilience réseau (Étape 1 & 2)
+      // ✅ 3 tentatives + cache 5 min pour la résilience réseau
       retry: 3,
-      staleTime: 1000 * 60 * 5, // Garder les commentaires "frais" 5 min en cache
+      staleTime: 1000 * 60 * 5,
     });
 
   const allComments = data?.pages.flatMap((page) => page.comments) || [];
-  
-  // Logique de tri des commentaires et réponses
-  const mainComments = allComments.filter(c => !c.content.startsWith("@"));
-  const replyComments = allComments.filter(c => c.content.startsWith("@"));
+
+  // ✅ Séparation commentaires principaux et réponses (mentions @)
+  const mainComments = allComments.filter((c) => !c.content.startsWith("@"));
+  const replyComments = allComments.filter((c) => c.content.startsWith("@"));
 
   return (
     <div className="flex flex-col h-full max-h-[85vh] md:max-h-full bg-background overflow-hidden">
-      
+
+      {/* ✅ Header mobile avec poignée de drag */}
       {!isDesktop && (
-        <div className="border-b p-3 text-center text-sm font-bold bg-background shrink-0">
-          <div className="mx-auto mb-2 h-1.5 w-12 rounded-full bg-muted md:hidden" />
-          Commentaires
+        <div className="border-b border-border/40 px-4 py-3 text-center shrink-0 bg-background">
+          <div className="mx-auto mb-2.5 h-1 w-10 rounded-full bg-muted" />
+          <div className="flex items-center justify-center gap-2">
+            <MessageCircle className="size-4 text-[#4a90e2]" />
+            <span className="text-sm font-black uppercase tracking-tight text-foreground">
+              Commentaires
+            </span>
+          </div>
         </div>
       )}
 
-      <div className="flex-1 overflow-y-auto p-4 custom-scrollbar bg-background">
+      {/* ✅ Zone scrollable des commentaires */}
+      <div className="flex-1 overflow-y-auto px-4 py-3 space-y-1 bg-background">
+
+        {/* Bouton charger plus */}
         {hasNextPage && (
-          <Button
-            variant="ghost"
-            className="mx-auto block text-xs text-muted-foreground"
+          <button
             disabled={isFetching}
             onClick={() => fetchNextPage()}
+            className="mx-auto flex items-center gap-2 px-4 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-[#4a90e2] hover:bg-[#4a90e2]/8 transition-all disabled:opacity-50 mb-2"
           >
-            {isFetching ? <Loader2 className="animate-spin size-4" /> : "Voir plus"}
-          </Button>
+            {isFetching ? (
+              <Loader2 className="animate-spin size-3.5" />
+            ) : (
+              "Voir plus"
+            )}
+          </button>
         )}
 
-        {status === "pending" && <Loader2 className="mx-auto animate-spin my-4" />}
-        
+        {/* ✅ Skeleton chargement */}
+        {status === "pending" && (
+          <div className="space-y-4 py-4">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="flex gap-2.5 animate-pulse">
+                <div className="size-9 rounded-full bg-muted shrink-0" />
+                <div className="space-y-2 flex-1">
+                  <div className="h-16 bg-muted rounded-2xl w-full" />
+                  <div className="h-2 bg-muted rounded w-20" />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* ✅ État vide — style DealCity */}
         {status === "success" && !allComments.length && (
-          <p className="text-center text-muted-foreground py-10 text-sm">
-            Soyez le premier à commenter.
-          </p>
+          <div className="flex flex-col items-center justify-center py-14 gap-3">
+            <div className="size-12 rounded-2xl bg-[#4a90e2]/10 border border-[#4a90e2]/20 flex items-center justify-center">
+              <MessageCircle className="size-5 text-[#4a90e2]" />
+            </div>
+            <p className="text-xs font-black uppercase tracking-widest text-muted-foreground">
+              Soyez le premier à commenter
+            </p>
+          </div>
         )}
 
+        {/* ✅ Liste des commentaires avec réponses associées */}
         <div className="space-y-1">
           {mainComments.map((mainComment) => {
-            const associatedReplies = replyComments.filter(r => 
-              r.content.startsWith(`@${mainComment.user.username}`)
+            const associatedReplies = replyComments.filter((r) =>
+              r.content.startsWith(`@${mainComment.user.username}`),
             );
-
             return (
-              <Comment 
-                key={mainComment.id} 
-                comment={mainComment} 
+              <Comment
+                key={mainComment.id}
+                comment={mainComment}
                 onReply={(username) => setReplyTarget(username)}
-                replies={associatedReplies} 
+                replies={associatedReplies}
               />
             );
           })}
         </div>
       </div>
 
-      <div className="shrink-0 sticky bottom-0 bg-background border-t z-20">
-        {/* Affichage conditionnel selon la session */}
+      {/* ✅ Zone saisie sticky en bas */}
+      <div className="shrink-0 sticky bottom-0 bg-background z-20">
         {user ? (
-          <CommentInput 
-            post={post} 
-            replyTarget={replyTarget} 
-            onClearReply={() => setReplyTarget(null)} 
+          <CommentInput
+            post={post}
+            replyTarget={replyTarget}
+            onClearReply={() => setReplyTarget(null)}
           />
         ) : (
-          <div className="p-4 text-center bg-muted/30">
-            <p className="text-sm text-muted-foreground">
+          // ✅ Invite connexion — style DealCity
+          <div className="px-4 py-3 border-t border-border/40 bg-[#4a90e2]/5 text-center">
+            <p className="text-xs text-muted-foreground font-medium">
               Veuillez vous{" "}
-              <Link href="/login" className="text-primary font-bold hover:underline">
+              <Link
+                href="/login"
+                className="text-[#4a90e2] font-black hover:underline uppercase tracking-tight italic"
+              >
                 connecter
               </Link>{" "}
               pour participer à la discussion.

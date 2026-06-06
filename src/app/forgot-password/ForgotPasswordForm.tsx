@@ -3,8 +3,8 @@
 import { useState, useTransition } from "react";
 import { generateResetCode } from "@/actions/password-reset";
 import { useRouter } from "next/navigation";
-import { Mail, Send } from "lucide-react"; // Ajout d'icônes
-import LoadingButton from "@/components/LoadingButton"; // Utilisation de ton composant de bouton
+import { Mail, Send } from "lucide-react";
+import LoadingButton from "@/components/LoadingButton";
 
 export default function ForgotPasswordForm() {
   const [email, setEmail] = useState("");
@@ -20,48 +20,44 @@ export default function ForgotPasswordForm() {
 
     startTransition(async () => {
       const res = await generateResetCode(email);
-      
-      if (res?.error) {
-        setError(res.error);
-      }
-      
+
+      if (res?.error) setError(res.error);
+
       if (res?.success) {
         setSuccess(res.success);
-        
-        // CORRECTION : encodeURIComponent permet de gérer les e-mails avec des caractères spéciaux
-        const encodedEmail = encodeURIComponent(email);
-        
+        // ✅ encodeURIComponent gère les caractères spéciaux dans l'email
         setTimeout(() => {
-          router.push(`/reset-password?email=${encodedEmail}`);
+          router.push(`/reset-password?email=${encodeURIComponent(email)}`);
         }, 2000);
       }
     });
   };
 
   return (
-    <form onSubmit={onSubmit} className="space-y-6">
-      {/* Message d'erreur stylisé comme ton login */}
+    <form onSubmit={onSubmit} className="space-y-4">
+
+      {/* ✅ Message d'erreur — style DealCity rouge */}
       {error && (
-        <div className="bg-destructive/10 p-3 rounded-2xl border border-destructive/20 animate-in fade-in zoom-in">
-          <p className="text-center text-destructive text-[10px] font-black uppercase tracking-tight">
+        <div className="bg-red-50 dark:bg-red-950/30 p-3 rounded-2xl border border-red-200 dark:border-red-900/50 animate-in fade-in zoom-in duration-300">
+          <p className="text-center text-red-600 dark:text-red-400 text-xs font-black uppercase tracking-tight">
             {error}
           </p>
         </div>
       )}
 
-      {/* Message de succès stylisé */}
+      {/* ✅ Message de succès — style DealCity vert */}
       {success && (
-        <div className="bg-green-500/10 p-3 rounded-2xl border border-green-500/20 animate-in fade-in zoom-in">
-          <p className="text-center text-green-600 text-[10px] font-black uppercase tracking-tight">
+        <div className="bg-[#6ab344]/10 dark:bg-[#6ab344]/5 p-3 rounded-2xl border border-[#6ab344]/20 animate-in fade-in zoom-in duration-300">
+          <p className="text-center text-[#6ab344] text-xs font-black uppercase tracking-tight">
             {success}
           </p>
         </div>
       )}
 
-      {/* Champ Email avec icône (Design DealCity) */}
+      {/* ✅ Champ email — style cohérent avec LoginForm */}
       <div className="relative group">
-        <div className="absolute left-5 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors">
-          <Mail size={20} />
+        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-[#4a90e2] transition-colors z-10">
+          <Mail size={18} />
         </div>
         <input
           disabled={isPending}
@@ -70,18 +66,18 @@ export default function ForgotPasswordForm() {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
-          className="w-full h-[65px] rounded-[1.5rem] pl-14 bg-muted/30 border-none shadow-inner text-base font-semibold focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+          className="w-full h-14 rounded-2xl pl-12 bg-[#f8faff] dark:bg-zinc-800/50 border border-[#4a90e2]/10 dark:border-white/5 focus:border-[#4a90e2]/40 focus:ring-2 focus:ring-[#4a90e2]/10 outline-none text-sm font-semibold transition-all placeholder:text-muted-foreground/50 disabled:opacity-50"
         />
       </div>
 
-      {/* Bouton stylisé comme ton LoginForm */}
+      {/* ✅ Bouton envoi — bleu DealCity */}
       <LoadingButton
         loading={isPending}
         type="submit"
-        className="w-full h-[65px] rounded-[1.5rem] bg-primary hover:bg-primary/90 text-white text-lg font-black uppercase italic tracking-tighter shadow-lg shadow-primary/20 transition-all active:scale-[0.97]"
+        className="w-full h-14 rounded-2xl bg-[#4a90e2] hover:bg-[#357abd] text-white text-sm font-black uppercase italic tracking-tight shadow-lg shadow-[#4a90e2]/25 transition-all active:scale-[0.97] flex items-center justify-center gap-2"
       >
-        <Send className="size-5 mr-2" />
-        {isPending ? "Envoi..." : "Envoyer le code"}
+        <Send className="size-4" />
+        {isPending ? "Envoi en cours..." : "Envoyer le code"}
       </LoadingButton>
     </form>
   );

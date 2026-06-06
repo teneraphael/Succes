@@ -6,9 +6,10 @@ import { PostsPage } from "@/lib/types";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { Loader2, ShoppingBag } from "lucide-react";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
+import PostScrollViewer from "@/components/PostScrollViewer";
 
 interface UserPostsProps {
   userId: string;
@@ -24,39 +25,30 @@ const extractInfo = (content: string) => {
 };
 
 const isExternalImage = (url: string) =>
-  url.includes("ufs.sh") ||
-  url.includes("utfs.io") ||
-  url.includes("lh3.googleusercontent.com");
+  url.includes("ufs.sh") || url.includes("utfs.io") || url.includes("lh3.googleusercontent.com");
 
 function ProductCard({
   post,
   index,
-  allPosts,
+  onClick,
 }: {
   post: any;
   index: number;
-  allPosts: any[];
+  onClick: () => void;
 }) {
-  const router = useRouter();
   const { productName, price } = extractInfo(post.content);
   const firstImage = post.attachments?.find((m: any) => m.type === "IMAGE")?.url;
   const imageCount = post.attachments?.filter((m: any) => m.type === "IMAGE").length || 0;
   const isAvailable = (post.stock ?? 0) > 0 || post.variants?.some((v: any) => v.stock > 0);
-
-  const handleClick = () => {
-    // ✅ Naviguer vers le post avec l'index pour permettre le scroll entre posts
-    router.push(`/posts/${post.id}`);
-  };
 
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.2, delay: index * 0.03 }}
-      onClick={handleClick}
+      onClick={onClick}
       className="relative cursor-pointer rounded-2xl overflow-hidden bg-card border border-border/60 shadow-sm hover:shadow-md transition-all active:scale-[0.98] group"
     >
-      {/* Image */}
       <div className="relative w-full aspect-square overflow-hidden bg-zinc-100 dark:bg-zinc-900">
         {firstImage ? (
           <Image
@@ -73,7 +65,6 @@ function ProductCard({
           </div>
         )}
 
-        {/* Overlay rupture de stock */}
         {!isAvailable && (
           <div className="absolute inset-0 bg-black/50 flex items-center justify-center backdrop-blur-[1px]">
             <span className="text-white text-[9px] font-black uppercase tracking-widest bg-red-500 px-2 py-1 rounded-full">
@@ -82,31 +73,26 @@ function ProductCard({
           </div>
         )}
 
-        {/* Nombre d'images */}
         {imageCount > 1 && (
           <div className="absolute top-2 right-2 bg-black/60 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full backdrop-blur-sm">
             +{imageCount}
           </div>
         )}
 
-        {/* Likes */}
         <div className="absolute bottom-2 left-2 bg-black/50 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full backdrop-blur-sm flex items-center gap-1">
           ❤️ {post._count?.likes || 0}
         </div>
       </div>
 
-      {/* Infos produit */}
       <div className="p-2.5 space-y-1">
         <p className="text-[11px] font-black uppercase tracking-tight text-foreground line-clamp-2 leading-tight">
           {productName || "Article"}
         </p>
         <div className="flex items-center justify-between">
-          <span
-            className={cn(
-              "text-[12px] font-black",
-              isAvailable ? "text-emerald-600" : "text-muted-foreground line-through"
-            )}
-          >
+          <span className={cn(
+            "text-[12px] font-black",
+            isAvailable ? "text-emerald-600" : "text-muted-foreground line-through"
+          )}>
             {price ? `${parseInt(price).toLocaleString()} FCFA` : "—"}
           </span>
           <span className="text-[9px] text-muted-foreground font-bold">
@@ -120,12 +106,9 @@ function ProductCard({
 
 function GridSkeleton() {
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-3">
+    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
       {Array.from({ length: 6 }).map((_, i) => (
-        <div
-          key={i}
-          className="rounded-2xl overflow-hidden bg-card border border-border/40 animate-pulse"
-        >
+        <div key={i} className="rounded-2xl overflow-hidden bg-card border border-border/40 animate-pulse">
           <div className="aspect-square bg-muted" />
           <div className="p-2.5 space-y-2">
             <div className="h-3 bg-muted rounded w-3/4" />
@@ -138,6 +121,8 @@ function GridSkeleton() {
 }
 
 export default function UserPosts({ userId }: UserPostsProps) {
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+
   const {
     data,
     fetchNextPage,
@@ -187,27 +172,40 @@ export default function UserPosts({ userId }: UserPostsProps) {
   }
 
   return (
-    <InfiniteScrollContainer
-      onBottomReached={() => hasNextPage && !isFetching && fetchNextPage()}
-    >
-      <AnimatePresence>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-3">
-          {posts.map((post, index) => (
-            <ProductCard
-              key={post.id}
-              post={post}
-              index={index}
-              allPosts={posts}
-            />
-          ))}
-        </div>
-      </AnimatePresence>
+    <>
+      <InfiniteScrollContainer
+        onBottomReached={() => hasNextPage && !isFetching && fetchNextPage()}
+      >
+        <AnimatePresence>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            {posts.map((post, index) => (
+              <ProductCard
+                key={post.id}
+                post={post}
+                index={index}
+                onClick={() => setSelectedIndex(index)}
+              />
+            ))}
+          </div>
+        </AnimatePresence>
 
-      {isFetchingNextPage && (
-        <div className="flex justify-center py-4">
-          <Loader2 className="size-5 animate-spin text-muted-foreground" />
-        </div>
+        {isFetchingNextPage && (
+          <div className="flex justify-center py-4">
+            <Loader2 className="size-5 animate-spin text-muted-foreground" />
+          </div>
+        )}
+      </InfiniteScrollContainer>
+
+      {/* ✅ Vue scroll plein écran */}
+      {selectedIndex !== null && (
+        <PostScrollViewer
+          posts={posts}
+          initialIndex={selectedIndex}
+          onClose={() => setSelectedIndex(null)}
+          onLoadMore={() => hasNextPage && !isFetching && fetchNextPage()}
+          hasMore={hasNextPage ?? false}
+        />
       )}
-    </InfiniteScrollContainer>
+    </>
   );
 }

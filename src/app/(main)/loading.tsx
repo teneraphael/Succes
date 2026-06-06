@@ -1,23 +1,46 @@
-
 export default function Loading() {
   return (
-    <div className="max-w-[600px] mx-auto p-4 space-y-6">
-      {/* On génère 3 faux posts pour remplir l'écran */}
+    <div className="max-w-[600px] mx-auto space-y-5">
+      {/* ✅ 3 skeletons de posts — style DealCity */}
       {[1, 2, 3].map((i) => (
-        <div key={i} className="space-y-4 animate-pulse">
-          {/* Header du post (Avatar + Nom) */}
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-gray-200 rounded-full" />
-            <div className="h-4 bg-gray-200 rounded w-24" />
+        <div
+          key={i}
+          className="rounded-3xl border border-border/40 bg-card p-5 space-y-4 animate-pulse"
+        >
+          {/* Header : avatar + nom + date */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="size-10 rounded-full bg-muted shrink-0" />
+              <div className="space-y-1.5">
+                <div className="h-3 bg-muted rounded w-24" />
+                <div className="h-2 bg-muted rounded w-16" />
+              </div>
+            </div>
+            <div className="size-7 rounded-xl bg-muted" />
           </div>
-          
-          {/* Corps du post (Image ou texte) */}
-          <div className="h-64 bg-gray-100 rounded-xl w-full" />
-          
-          {/* Footer du post (Actions) */}
-          <div className="flex space-x-4">
-            <div className="h-4 bg-gray-200 rounded w-16" />
-            <div className="h-4 bg-gray-200 rounded w-16" />
+
+          {/* Titre produit + prix */}
+          <div className="flex items-start justify-between gap-4">
+            <div className="space-y-1.5 flex-1">
+              <div className="h-4 bg-muted rounded w-2/3" />
+              <div className="h-3 bg-muted rounded w-1/3" />
+            </div>
+            <div className="h-8 w-24 bg-muted rounded-2xl" />
+          </div>
+
+          {/* Image produit */}
+          <div className="h-56 bg-muted rounded-2xl w-full" />
+
+          {/* Bouton WhatsApp */}
+          <div className="h-12 bg-muted rounded-2xl w-full" />
+
+          {/* Actions : like + commentaire + bookmark */}
+          <div className="flex items-center justify-between pt-1 border-t border-border/30">
+            <div className="flex items-center gap-5">
+              <div className="h-3 bg-muted rounded w-10" />
+              <div className="h-3 bg-muted rounded w-10" />
+            </div>
+            <div className="h-3 bg-muted rounded w-6" />
           </div>
         </div>
       ))}

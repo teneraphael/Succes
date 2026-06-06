@@ -22,7 +22,7 @@ export default function BookmarkButton({
   postId,
   initialState,
 }: BookmarkButtonProps) {
-  const { user: loggedInUser } = useSession(); 
+  const { user: loggedInUser } = useSession();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const queryKey: QueryKey = ["bookmark-info", postId];
@@ -38,39 +38,38 @@ export default function BookmarkButton({
   const { mutate } = useMutation({
     mutationFn: async () => {
       const isBookmarking = !data.isBookmarkedByUser;
-      
+
       const request = isBookmarking
         ? kyInstance.post(`/api/posts/${postId}/bookmark`)
         : kyInstance.delete(`/api/posts/${postId}/bookmark`);
-      
+
       await request;
 
-      // Tracking algorithmique lancé après l'action
+      // ✅ Tracking algo — enregistre l'action favori pour l'algorithme
       if (isBookmarking) {
         fetch("/api/posts/track", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ 
-            id: postId, 
-            type: "FAVORITE", 
-            itemType: "POST" 
+          body: JSON.stringify({
+            id: postId,
+            type: "FAVORITE",
+            itemType: "POST",
           }),
-        }).catch(err => console.error("Algo tracking error (bookmark):", err));
+        }).catch((err) => console.error("Algo tracking error (bookmark):", err));
       }
     },
     onMutate: async () => {
-      // Notification instantanée
+      // ✅ Notification instantanée avant la réponse serveur
       toast({
-        description: data.isBookmarkedByUser 
-          ? "Retiré des favoris" 
+        description: data.isBookmarkedByUser
+          ? "Retiré des favoris"
           : "Enregistré dans vos favoris",
       });
 
       await queryClient.cancelQueries({ queryKey });
-
       const previousState = queryClient.getQueryData<BookmarkInfo>(queryKey);
 
-      // Mise à jour optimiste du cache
+      // ✅ Mise à jour optimiste du cache — UI réactive sans attendre le serveur
       queryClient.setQueryData<BookmarkInfo>(queryKey, () => ({
         isBookmarkedByUser: !previousState?.isBookmarkedByUser,
       }));
@@ -78,7 +77,7 @@ export default function BookmarkButton({
       return { previousState };
     },
     onError(error, variables, context) {
-      // Retour en arrière si le réseau dérange
+      // ✅ Rollback si erreur réseau
       queryClient.setQueryData(queryKey, context?.previousState);
       console.error(error);
       toast({
@@ -87,16 +86,17 @@ export default function BookmarkButton({
       });
     },
     onSettled: () => {
-      // Synchronisation avec le flux des favoris
+      // ✅ Synchronisation du feed favoris après mutation
       queryClient.invalidateQueries({ queryKey: ["bookmarks-feed"] });
-    }
+    },
   });
 
   return (
-    <button 
+    <button
       onClick={(e) => {
         e.preventDefault();
-        
+
+        // ✅ Bloque l'action si non connecté
         if (!loggedInUser) {
           toast({
             variant: "destructive",
@@ -106,15 +106,16 @@ export default function BookmarkButton({
         }
 
         mutate();
-      }} 
+      }}
       className="flex items-center gap-2 group transition-transform active:scale-125"
     >
       <Bookmark
         className={cn(
-          "size-5 transition-colors group-hover:text-primary",
-          data.isBookmarkedByUser 
-            ? "fill-primary text-primary" 
-            : "text-muted-foreground",
+          "size-5 transition-all duration-200",
+          // ✅ Rempli en bleu DealCity si bookmarké, gris sinon
+          data.isBookmarkedByUser
+            ? "fill-[#4a90e2] text-[#4a90e2] scale-110"
+            : "text-muted-foreground group-hover:text-[#4a90e2]",
         )}
       />
     </button>
