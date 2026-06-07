@@ -8,6 +8,7 @@ import { useToast } from "./ui/use-toast";
 import { useSession } from "@/app/(main)/SessionProvider";
 import { UserPlus, UserMinus } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useLanguage } from "@/components/LanguageProvider";
 
 interface FollowButtonProps {
   userId: string;
@@ -17,6 +18,7 @@ interface FollowButtonProps {
 export default function FollowButton({ userId, initialState }: FollowButtonProps) {
   const { user: loggedInUser } = useSession();
   const { toast } = useToast();
+  const { t } = useLanguage();
   const queryClient = useQueryClient();
   const { data } = useFollowerInfo(userId, initialState);
   const queryKey: QueryKey = ["follower-info", userId];
@@ -30,7 +32,7 @@ export default function FollowButton({ userId, initialState }: FollowButtonProps
       await queryClient.cancelQueries({ queryKey });
       const previousState = queryClient.getQueryData<FollowerInfo>(queryKey);
 
-      // ✅ Mise à jour optimiste — UI réactive sans attendre le serveur
+      // ✅ Mise à jour optimiste
       queryClient.setQueryData<FollowerInfo>(queryKey, () => ({
         followers: (previousState?.followers || 0) + (previousState?.isFollowedByUser ? -1 : 1),
         isFollowedByUser: !previousState?.isFollowedByUser,
@@ -44,7 +46,7 @@ export default function FollowButton({ userId, initialState }: FollowButtonProps
       console.error(error);
       toast({
         variant: "destructive",
-        description: "Une erreur est survenue. Veuillez reessayer.",
+        description: t.error_loading,
       });
     },
   });
@@ -58,7 +60,7 @@ export default function FollowButton({ userId, initialState }: FollowButtonProps
         if (!loggedInUser) {
           toast({
             variant: "destructive",
-            description: "Veuillez vous connecter pour suivre cet utilisateur.",
+            description: t.login,
           });
           return;
         }
@@ -68,10 +70,8 @@ export default function FollowButton({ userId, initialState }: FollowButtonProps
       className={cn(
         "flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed",
         isFollowing
-          ? // ✅ Abonné — fond gris avec hover rouge pour désabonnement
-            "bg-muted hover:bg-red-500/10 hover:text-red-500 hover:border-red-500/20 border border-border text-muted-foreground"
-          : // ✅ Non abonné — bleu DealCity
-            "bg-[#4a90e2] hover:bg-[#357abd] text-white shadow-lg shadow-[#4a90e2]/20 border border-[#4a90e2]"
+          ? "bg-muted hover:bg-red-500/10 hover:text-red-500 hover:border-red-500/20 border border-border text-muted-foreground"
+          : "bg-[#4a90e2] hover:bg-[#357abd] text-white shadow-lg shadow-[#4a90e2]/20 border border-[#4a90e2]"
       )}
     >
       {isFollowing ? (
@@ -79,7 +79,8 @@ export default function FollowButton({ userId, initialState }: FollowButtonProps
       ) : (
         <UserPlus className="size-3.5" />
       )}
-      {isPending ? "..." : isFollowing ? "Se desabonner" : "Suivre"}
+      {/* ✅ Labels traduits */}
+      {isPending ? "..." : isFollowing ? t.unfollow : t.follow}
     </button>
   );
 }
