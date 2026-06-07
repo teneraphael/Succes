@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence, PanInfo } from "framer-motion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useLanguage } from "@/components/LanguageProvider";
 
 interface FeedTabsProps {
   userId?: string;
@@ -14,12 +15,12 @@ export default function FeedTabs({ userId, forYouFeed, followingFeed }: FeedTabs
   const [activeTab, setActiveTab] = useState("for-you");
   const [isHeaderVisible, setIsHeaderVisible] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
+  const { t } = useLanguage();
 
-  // 1. Logique pour masquer/afficher le header au scroll
+  // ✅ Masquer/afficher le header au scroll
   useEffect(() => {
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
-      // On masque si on descend de plus de 50px, on affiche si on remonte
       if (currentScrollY > lastScrollY && currentScrollY > 50) {
         setIsHeaderVisible(false);
       } else {
@@ -32,7 +33,7 @@ export default function FeedTabs({ userId, forYouFeed, followingFeed }: FeedTabs
     return () => window.removeEventListener("scroll", handleScroll);
   }, [lastScrollY]);
 
-  // 2. Fonction pour gérer le swipe
+  // ✅ Swipe gauche/droite pour changer d'onglet
   const handleDragEnd = (event: any, info: PanInfo) => {
     if (info.offset.x > 50) setActiveTab("for-you");
     else if (info.offset.x < -50) setActiveTab("following");
@@ -40,25 +41,28 @@ export default function FeedTabs({ userId, forYouFeed, followingFeed }: FeedTabs
 
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-      {/* Header avec animation de glissement */}
-      <motion.div 
-        className="sticky top-[5.25rem] z-40 w-full py-2.5 shadow-sm  "
+
+      {/* ✅ Header sticky avec onglets traduits */}
+      <motion.div
+        className="sticky top-[5.25rem] z-40 w-full py-2.5 shadow-sm"
         initial={{ y: 0 }}
         animate={{ y: isHeaderVisible ? 0 : -80 }}
         transition={{ duration: 0.3, ease: "easeInOut" }}
       >
         <TabsList className="bg-muted/75 border border-border/20 p-1 h-11 max-w-[280px] sm:max-w-xs mx-auto flex rounded-full select-none">
-          <TabsTrigger 
-            value="for-you" 
+          {/* ✅ "Pour vous" traduit */}
+          <TabsTrigger
+            value="for-you"
             className="flex-1 rounded-full text-[11px] font-black uppercase tracking-widest transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md"
           >
-            Pour vous
+            {t.for_you}
           </TabsTrigger>
-          <TabsTrigger 
-            value="following" 
+          {/* ✅ "Abonnements" traduit */}
+          <TabsTrigger
+            value="following"
             className="flex-1 rounded-full text-[11px] font-black uppercase tracking-widest transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md"
           >
-            Abonnements
+            {t.following}
           </TabsTrigger>
         </TabsList>
       </motion.div>

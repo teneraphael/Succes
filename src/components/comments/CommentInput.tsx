@@ -7,6 +7,7 @@ import { Input } from "../ui/input";
 import { useSubmitCommentMutation } from "./mutations";
 import Image from "next/image";
 import { useSession } from "@/app/(main)/SessionProvider";
+import { useLanguage } from "@/components/LanguageProvider";
 
 interface CommentInputProps {
   post: PostData;
@@ -16,6 +17,7 @@ interface CommentInputProps {
 
 export default function CommentInput({ post, replyTarget, onClearReply }: CommentInputProps) {
   const { user } = useSession();
+  const { t } = useLanguage();
   const [input, setInput] = useState("");
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -35,7 +37,7 @@ export default function CommentInput({ post, replyTarget, onClearReply }: Commen
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [replyTarget]);
 
-  // ✅ Nettoyage de l'URL de prévisualisation pour éviter les fuites mémoire
+  // ✅ Nettoyage URL prévisualisation — évite les fuites mémoire
   useEffect(() => {
     return () => {
       if (previewUrl) URL.revokeObjectURL(previewUrl);
@@ -77,11 +79,7 @@ export default function CommentInput({ post, replyTarget, onClearReply }: Commen
           fetch("/api/posts/track", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              id: post.id,
-              type: "COMMENT",
-              itemType: "POST",
-            }),
+            body: JSON.stringify({ id: post.id, type: "COMMENT", itemType: "POST" }),
           }).catch((err) => console.error("Algo tracking error:", err));
         },
       },
@@ -93,17 +91,11 @@ export default function CommentInput({ post, replyTarget, onClearReply }: Commen
   return (
     <div className="border-t border-border/40 bg-card px-3 py-3">
 
-      {/* ✅ Aperçu image sélectionnée */}
+      {/* Aperçu image */}
       {previewUrl && (
         <div className="relative mb-3 inline-block">
           <div className="relative h-20 w-20 overflow-hidden rounded-2xl border border-border/60 shadow-sm">
-            <Image
-              src={previewUrl}
-              alt="Preview"
-              fill
-              className="object-cover"
-              unoptimized
-            />
+            <Image src={previewUrl} alt="Preview" fill className="object-cover" unoptimized />
           </div>
           <button
             type="button"
@@ -115,11 +107,11 @@ export default function CommentInput({ post, replyTarget, onClearReply }: Commen
         </div>
       )}
 
-      {/* ✅ Bandeau "En réponse à @username" */}
+      {/* ✅ Bandeau réponse traduit */}
       {replyTarget && (
         <div className="flex items-center justify-between px-3 pb-2 animate-in fade-in slide-in-from-bottom-1">
           <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
-            En réponse à{" "}
+            {t.reply_to}{" "}
             <span className="text-[#4a90e2] font-black">@{replyTarget}</span>
           </p>
           <button
@@ -132,11 +124,7 @@ export default function CommentInput({ post, replyTarget, onClearReply }: Commen
         </div>
       )}
 
-      <form
-        className="mx-auto flex max-w-4xl items-center gap-2"
-        onSubmit={onSubmit}
-      >
-        {/* Input fichier caché */}
+      <form className="mx-auto flex max-w-4xl items-center gap-2" onSubmit={onSubmit}>
         <input
           type="file"
           accept="image/*"
@@ -145,7 +133,7 @@ export default function CommentInput({ post, replyTarget, onClearReply }: Commen
           onChange={handleImageSelect}
         />
 
-        {/* ✅ Bouton caméra — style DealCity */}
+        {/* Bouton caméra */}
         <button
           type="button"
           onClick={() => fileInputRef.current?.click()}
@@ -154,11 +142,11 @@ export default function CommentInput({ post, replyTarget, onClearReply }: Commen
           <Camera className="size-5" />
         </button>
 
-        {/* ✅ Champ de saisie — style cohérent DealCity */}
+        {/* ✅ Champ de saisie traduit */}
         <div className="relative flex-1">
           <Input
             ref={inputRef}
-            placeholder="Écrire un commentaire..."
+            placeholder={t.write_comment}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             autoComplete="off"
@@ -166,7 +154,7 @@ export default function CommentInput({ post, replyTarget, onClearReply }: Commen
           />
         </div>
 
-        {/* ✅ Bouton envoyer — bleu DealCity */}
+        {/* Bouton envoyer */}
         <button
           type="submit"
           disabled={(!input.trim() && !selectedImage) || mutation.isPending}

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { SearchIcon, Clock, Trash2, TrendingUp, ShoppingBag, Loader2, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Input } from "./ui/input";
+import { useLanguage } from "@/components/LanguageProvider";
 
 interface SearchPageProps {
   onClose: () => void;
@@ -11,6 +12,7 @@ interface SearchPageProps {
 
 export default function SearchPage({ onClose }: SearchPageProps) {
   const router = useRouter();
+  const { t } = useLanguage();
   const [inputValue, setInputValue] = useState("");
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const [suggestions, setSuggestions] = useState<string[]>([]);
@@ -18,7 +20,6 @@ export default function SearchPage({ onClose }: SearchPageProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingTrends, setIsLoadingTrends] = useState(true);
 
-  // ✅ Chargement historique local + tendances SQL au montage
   useEffect(() => {
     const saved = localStorage.getItem("dealcity-search-history");
     if (saved) {
@@ -43,16 +44,9 @@ export default function SearchPage({ onClose }: SearchPageProps) {
     loadRealTrends();
   }, []);
 
-  // ✅ Suggestions en temps réel avec debounce 300ms
   useEffect(() => {
     const query = inputValue.trim();
-
-    if (!query) {
-      setSuggestions([]);
-      setIsLoading(false);
-      return;
-    }
-
+    if (!query) { setSuggestions([]); setIsLoading(false); return; }
     setIsLoading(true);
 
     const timer = setTimeout(async () => {
@@ -75,13 +69,7 @@ export default function SearchPage({ onClose }: SearchPageProps) {
   const handleExecuteSearch = (searchQuery: string) => {
     const trimmed = searchQuery.trim();
     if (!trimmed) return;
-
-    // ✅ Sauvegarde dans l'historique local (max 5 entrées)
-    const updatedHistory = [
-      trimmed,
-      ...recentSearches.filter((item) => item !== trimmed),
-    ].slice(0, 5);
-
+    const updatedHistory = [trimmed, ...recentSearches.filter((item) => item !== trimmed)].slice(0, 5);
     setRecentSearches(updatedHistory);
     localStorage.setItem("dealcity-search-history", JSON.stringify(updatedHistory));
     router.push(`/search?q=${encodeURIComponent(trimmed)}`);
@@ -101,7 +89,7 @@ export default function SearchPage({ onClose }: SearchPageProps) {
   return (
     <div className="fixed inset-0 z-[999] w-screen h-screen bg-background flex flex-col animate-in fade-in slide-in-from-top-4 duration-200 sm:hidden">
 
-      {/* ✅ Barre de saisie — style DealCity */}
+      {/* ✅ Barre de saisie traduite */}
       <div className="flex items-center gap-3 px-4 py-3 border-b border-border/40 bg-background/95 backdrop-blur-sm">
         <form onSubmit={handleSubmit} className="flex-1">
           <div className="relative">
@@ -110,17 +98,16 @@ export default function SearchPage({ onClose }: SearchPageProps) {
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               autoFocus
-              placeholder="Rechercher sur DealCity..."
+              placeholder={t.search_placeholder}
               className="w-full h-11 pl-10 pr-10 rounded-2xl bg-[#f8faff] dark:bg-zinc-800/50 border border-[#4a90e2]/10 focus-visible:border-[#4a90e2]/30 focus-visible:ring-1 focus-visible:ring-[#4a90e2]/10 text-sm transition-all"
             />
-            {/* ✅ Loader pendant la recherche */}
             {isLoading && (
               <Loader2 className="absolute right-3.5 top-1/2 -translate-y-1/2 size-4 animate-spin text-[#4a90e2]" />
             )}
           </div>
         </form>
 
-        {/* ✅ Bouton annuler — style DealCity */}
+        {/* ✅ Bouton annuler traduit */}
         <button
           type="button"
           onClick={onClose}
@@ -130,14 +117,13 @@ export default function SearchPage({ onClose }: SearchPageProps) {
         </button>
       </div>
 
-      {/* ✅ Zone contenu dynamique */}
       <div className="flex-1 overflow-y-auto px-4 pt-5 space-y-6 select-none">
 
-        {/* Suggestions en temps réel */}
+        {/* ✅ Suggestions traduites */}
         {suggestions.length > 0 ? (
           <div className="space-y-2">
             <p className="text-[10px] font-black uppercase tracking-widest text-[#4a90e2] px-1">
-              Produits trouves
+              {t.products_found}
             </p>
             <div className="rounded-2xl border border-border/60 bg-card overflow-hidden shadow-sm divide-y divide-border/40">
               {suggestions.map((suggestion, index) => (
@@ -155,28 +141,27 @@ export default function SearchPage({ onClose }: SearchPageProps) {
           </div>
 
         ) : inputValue.trim() !== "" && !isLoading ? (
-          // ✅ Aucun résultat exact
+          // ✅ Aucun résultat traduit
           <div className="flex flex-col items-center justify-center py-12 gap-3 text-center">
             <div className="size-12 rounded-2xl bg-[#4a90e2]/10 border border-[#4a90e2]/20 flex items-center justify-center">
               <SearchIcon className="size-5 text-[#4a90e2]" />
             </div>
             <p className="text-sm text-muted-foreground font-medium">
-              Aucun produit exact. Appuyez sur Entree pour chercher{" "}
+              {t.no_results_desc}{" "}
               <span className="text-[#4a90e2] font-black">{`"${inputValue}"`}</span>
             </p>
           </div>
 
         ) : (
-          // ✅ État par défaut — historique + tendances
           <div className="space-y-6">
 
-            {/* Recherches récentes */}
+            {/* ✅ Recherches récentes traduites */}
             {recentSearches.length > 0 && (
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
                     <Clock className="size-3.5" />
-                    Recherches recentes
+                    {t.recent_searches}
                   </div>
                   <button
                     type="button"
@@ -184,7 +169,7 @@ export default function SearchPage({ onClose }: SearchPageProps) {
                     className="flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-red-500 hover:text-red-600 transition-colors"
                   >
                     <Trash2 className="size-3" />
-                    Effacer
+                    {t.clear}
                   </button>
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -202,17 +187,17 @@ export default function SearchPage({ onClose }: SearchPageProps) {
               </div>
             )}
 
-            {/* ✅ Tendances DealCity réelles depuis la DB */}
+            {/* ✅ Tendances traduites */}
             <div className="space-y-3">
               <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
                 <TrendingUp className="size-3.5 text-[#4a90e2]" />
-                Tendances DealCity
+                {t.trends}
               </div>
 
               {isLoadingTrends ? (
                 <div className="flex items-center justify-center gap-2 py-8 text-muted-foreground">
                   <Loader2 className="size-4 animate-spin text-[#4a90e2]" />
-                  <span className="text-xs font-bold">Chargement...</span>
+                  <span className="text-xs font-bold">{t.loading}</span>
                 </div>
               ) : trendingSearches.length > 0 ? (
                 <div className="rounded-2xl border border-border/60 bg-card overflow-hidden shadow-sm divide-y divide-border/40">
@@ -223,7 +208,6 @@ export default function SearchPage({ onClose }: SearchPageProps) {
                       onClick={() => handleExecuteSearch(trend)}
                       className="w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-[#4a90e2]/5 active:bg-muted transition-colors"
                     >
-                      {/* ✅ Numéro coloré selon le rang */}
                       <span className={[
                         "w-5 text-center font-black italic text-sm shrink-0",
                         index === 0 ? "text-red-500" :
@@ -243,8 +227,9 @@ export default function SearchPage({ onClose }: SearchPageProps) {
                   ))}
                 </div>
               ) : (
+                // ✅ Aucune tendance traduite
                 <div className="text-center py-8 text-xs font-bold text-muted-foreground bg-muted/30 rounded-2xl border border-dashed border-border/60">
-                  Aucun produit populaire pour le moment.
+                  {t.no_results}
                 </div>
               )}
             </div>

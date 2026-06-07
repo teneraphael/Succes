@@ -1,19 +1,20 @@
 "use client";
 
 import { useSession } from "@/app/(main)/SessionProvider";
-import { Button } from "@/components/ui/button";
 import kyInstance from "@/lib/ky";
 import { MessageCountInfo } from "@/lib/types";
 import { useQuery } from "@tanstack/react-query";
 import { Mail } from "lucide-react";
 import Link from "next/link";
+import { useLanguage } from "@/components/LanguageProvider";
 
 interface MessagesButtonProps {
   initialState: MessageCountInfo;
 }
 
 export default function MessagesButton({ initialState }: MessagesButtonProps) {
-  const { user } = useSession(); // On récupère l'utilisateur pour vérifier la connexion
+  const { user } = useSession();
+  const { t } = useLanguage();
 
   const { data } = useQuery({
     queryKey: ["unread-messages-count"],
@@ -21,34 +22,33 @@ export default function MessagesButton({ initialState }: MessagesButtonProps) {
       kyInstance.get("/api/messages/unread-count").json<MessageCountInfo>(),
     initialData: initialState,
     refetchInterval: 60 * 1000,
-    // Désactive la requête API si l'utilisateur est un visiteur anonyme
+    // ✅ Requête désactivée si non connecté
     enabled: !!user,
   });
 
-  // Gestion dynamique du lien et du compteur
   const unreadCount = user ? data.unreadCount : 0;
   const href = user ? "/messages" : "/login?redirectTo=/messages";
 
   return (
-    <Button
-      variant="ghost"
-      className="flex items-center justify-start gap-3 transition-all hover:bg-primary/10 group"
+    <Link
+      href={href}
       title="Messages"
-      asChild
+      className="flex items-center justify-start gap-3 px-2 py-2 rounded-xl transition-all hover:bg-[#4a90e2]/8 text-muted-foreground hover:text-[#4a90e2] group"
     >
-      <Link href={href}>
-        <div className="relative">
-          <Mail className="group-hover:text-primary transition-colors" />
-          {!!unreadCount && (
-            <span className="absolute -right-1 -top-1 rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-black tabular-nums text-primary-foreground border-2 border-background animate-in zoom-in">
-              {unreadCount}
-            </span>
-          )}
-        </div>
-        <span className="hidden lg:inline font-medium group-hover:text-primary transition-colors">
-          Messages
-        </span>
-      </Link>
-    </Button>
+      {/* ✅ Icône mail avec badge non lu */}
+      <div className="relative">
+        <Mail className="size-5 transition-colors shrink-0" />
+        {!!unreadCount && (
+          <span className="absolute -right-1.5 -top-1.5 min-w-[18px] h-[18px] rounded-full bg-[#4a90e2] px-1 text-[9px] font-black tabular-nums text-white border-2 border-card flex items-center justify-center animate-in zoom-in">
+            {unreadCount > 99 ? "99+" : unreadCount}
+          </span>
+        )}
+      </div>
+
+      {/* ✅ Label visible uniquement sur desktop */}
+      <span className="hidden lg:inline text-sm font-black uppercase tracking-tight transition-colors">
+        Messages
+      </span>
+    </Link>
   );
 }

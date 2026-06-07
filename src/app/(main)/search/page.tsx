@@ -5,15 +5,17 @@ interface PageProps {
   searchParams: { q: string };
 }
 
+// ✅ Metadata statique — ne peut pas être traduit côté serveur sans lang dans l'URL
 export function generateMetadata({ searchParams: { q } }: PageProps): Metadata {
   return {
-    title: q ? `"${q}" — DealCity` : "Rechercher — DealCity",
+    title: q ? `"${q}" — DealCity` : "DealCity",
   };
 }
 
 export default function Page({ searchParams: { q } }: PageProps) {
   return (
     <main className="w-full min-w-0">
+      {/* ✅ SearchResults est client — il utilisera useLanguage() */}
       <SearchResults query={q} />
     </main>
   );

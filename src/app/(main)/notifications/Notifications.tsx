@@ -8,9 +8,10 @@ import {
   useMutation,
   useQueryClient,
 } from "@tanstack/react-query";
-import { Loader2, BellOff, Bell } from "lucide-react";
+import { Loader2, Bell } from "lucide-react";
 import { useEffect } from "react";
 import Notification from "./Notification";
+import { useLanguage } from "@/components/LanguageProvider";
 
 function NotificationsSkeleton() {
   return (
@@ -29,6 +30,8 @@ function NotificationsSkeleton() {
 }
 
 export default function Notifications() {
+  const { t } = useLanguage();
+
   const {
     data,
     fetchNextPage,
@@ -54,9 +57,7 @@ export default function Notifications() {
   const { mutate } = useMutation({
     mutationFn: () => kyInstance.patch("/api/notifications/mark-as-read"),
     onSuccess: () => {
-      queryClient.setQueryData(["unread-notification-count"], {
-        unreadCount: 0,
-      });
+      queryClient.setQueryData(["unread-notification-count"], { unreadCount: 0 });
     },
     onError(error) {
       console.error("Failed to mark notifications as read", error);
@@ -71,20 +72,21 @@ export default function Notifications() {
 
   if (status === "pending") return <NotificationsSkeleton />;
 
+  // ✅ Erreur traduite
   if (status === "error") {
     return (
       <div className="p-8 text-center bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/30 rounded-2xl">
         <p className="text-sm font-black text-red-600 dark:text-red-400 uppercase tracking-widest">
-          Erreur de chargement
+          {t.error_loading}
         </p>
       </div>
     );
   }
 
+  // ✅ État vide traduit
   if (status === "success" && !notifications.length && !hasNextPage) {
     return (
       <div className="w-full bg-card border-y sm:border border-border/60 rounded-none sm:rounded-2xl p-14 flex flex-col items-center justify-center gap-4">
-        {/* Icône */}
         <div className="relative">
           <div className="size-16 rounded-2xl bg-[#4a90e2]/10 border border-[#4a90e2]/20 flex items-center justify-center">
             <Bell className="size-7 text-[#4a90e2]" />
@@ -95,19 +97,19 @@ export default function Notifications() {
         </div>
 
         <div className="text-center space-y-1.5">
+          {/* ✅ Titre et description traduits */}
           <p className="font-black text-foreground text-sm uppercase tracking-tight">
-            Tout est calme ici
+            {t.no_notifications}
           </p>
           <p className="text-xs text-muted-foreground font-medium max-w-[220px] leading-relaxed">
-            Tes notifications apparaîtront ici dès qu&apos;il y a de l&apos;activité.
+            {t.no_notifications_desc}
           </p>
         </div>
 
-        {/* Badge DealCity */}
         <div className="flex items-center gap-2 px-4 py-2 bg-[#4a90e2]/5 border border-[#4a90e2]/10 rounded-full">
           <div className="size-1.5 rounded-full bg-[#6ab344] animate-pulse" />
           <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">
-            DealCity vous surveille
+            DealCity
           </span>
         </div>
       </div>
@@ -123,12 +125,13 @@ export default function Notifications() {
         <Notification key={notification.id} notification={notification} />
       ))}
 
+      {/* ✅ Loader traduit */}
       {isFetchingNextPage && (
         <div className="w-full py-5 flex justify-center">
           <div className="flex items-center gap-2 text-muted-foreground">
             <Loader2 className="size-4 animate-spin text-[#4a90e2]" />
             <span className="text-[10px] font-black uppercase tracking-widest">
-              Chargement...
+              {t.loading}
             </span>
           </div>
         </div>

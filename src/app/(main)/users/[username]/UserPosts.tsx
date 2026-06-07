@@ -10,6 +10,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import PostScrollViewer from "@/components/PostScrollViewer";
+import { useLanguage } from "@/components/LanguageProvider";
 
 interface UserPostsProps {
   userId: string;
@@ -27,15 +28,8 @@ const extractInfo = (content: string) => {
 const isExternalImage = (url: string) =>
   url.includes("ufs.sh") || url.includes("utfs.io") || url.includes("lh3.googleusercontent.com");
 
-function ProductCard({
-  post,
-  index,
-  onClick,
-}: {
-  post: any;
-  index: number;
-  onClick: () => void;
-}) {
+function ProductCard({ post, index, onClick }: { post: any; index: number; onClick: () => void }) {
+  const { t } = useLanguage();
   const { productName, price } = extractInfo(post.content);
   const firstImage = post.attachments?.find((m: any) => m.type === "IMAGE")?.url;
   const imageCount = post.attachments?.filter((m: any) => m.type === "IMAGE").length || 0;
@@ -65,10 +59,11 @@ function ProductCard({
           </div>
         )}
 
+        {/* ✅ Badge épuisé traduit */}
         {!isAvailable && (
           <div className="absolute inset-0 bg-black/50 flex items-center justify-center backdrop-blur-[1px]">
             <span className="text-white text-[9px] font-black uppercase tracking-widest bg-red-500 px-2 py-1 rounded-full">
-              Épuisé
+              {t.out_of_stock}
             </span>
           </div>
         )}
@@ -122,6 +117,7 @@ function GridSkeleton() {
 
 export default function UserPosts({ userId }: UserPostsProps) {
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+  const { t } = useLanguage();
 
   const {
     data,
@@ -147,24 +143,28 @@ export default function UserPosts({ userId }: UserPostsProps) {
 
   if (status === "pending") return <GridSkeleton />;
 
+  // ✅ Erreur traduite
   if (status === "error") {
     return (
       <p className="text-center text-destructive text-sm py-10">
-        Erreur lors du chargement.
+        {t.error_loading}
       </p>
     );
   }
 
+  // ✅ État vide traduit
   if (status === "success" && !posts.length) {
     return (
       <div className="flex flex-col items-center justify-center py-16 gap-4">
-        <div className="size-16 rounded-full bg-muted flex items-center justify-center">
-          <ShoppingBag className="size-7 text-muted-foreground" />
+        <div className="size-16 rounded-2xl bg-[#4a90e2]/10 border border-[#4a90e2]/20 flex items-center justify-center">
+          <ShoppingBag className="size-7 text-[#4a90e2]" />
         </div>
         <div className="text-center">
-          <p className="font-black text-foreground text-sm">Aucun produit</p>
+          <p className="font-black text-foreground text-sm uppercase tracking-tight">
+            {t.no_products}
+          </p>
           <p className="text-xs text-muted-foreground mt-1">
-            Ce vendeur n&apos;a pas encore publié de produits.
+            {t.no_products_desc}
           </p>
         </div>
       </div>
@@ -191,12 +191,11 @@ export default function UserPosts({ userId }: UserPostsProps) {
 
         {isFetchingNextPage && (
           <div className="flex justify-center py-4">
-            <Loader2 className="size-5 animate-spin text-muted-foreground" />
+            <Loader2 className="size-5 animate-spin text-[#4a90e2]" />
           </div>
         )}
       </InfiniteScrollContainer>
 
-      {/* ✅ Vue scroll plein écran */}
       {selectedIndex !== null && (
         <PostScrollViewer
           posts={posts}

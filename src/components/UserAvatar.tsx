@@ -1,6 +1,9 @@
+"use client";
+
 import avatarPlaceholder from "@/assets/avatar-placeholder.png";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
+import { useState } from "react";
 
 interface UserAvatarProps {
   avatarUrl: string | null | undefined;
@@ -13,22 +16,25 @@ export default function UserAvatar({
   size,
   className,
 }: UserAvatarProps) {
-  const src = avatarUrl || avatarPlaceholder;
+  const [imgSrc, setImgSrc] = useState<string | typeof avatarPlaceholder>(
+    avatarUrl || avatarPlaceholder,
+  );
 
-  // ✅ Bypass le proxy Next.js pour les domaines externes lents
   const isExternal =
-    typeof src === "string" &&
-    (src.includes("lh3.googleusercontent.com") ||
-      src.includes("ufs.sh") ||
-      src.includes("utfs.io"));
+    typeof imgSrc === "string" &&
+    (imgSrc.includes("lh3.googleusercontent.com") ||
+      imgSrc.includes("ufs.sh") ||
+      imgSrc.includes("utfs.io"));
 
   return (
     <Image
-      src={src}
+      src={imgSrc}
       alt="User avatar"
       width={size ?? 48}
       height={size ?? 48}
       unoptimized={isExternal}
+      // ✅ Si l'image échoue à charger → fallback sur le placeholder local
+      onError={() => setImgSrc(avatarPlaceholder)}
       className={cn(
         "aspect-square h-fit flex-none rounded-full bg-secondary object-cover",
         className,

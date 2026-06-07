@@ -14,19 +14,19 @@ import { notFound, redirect } from "next/navigation";
 import { cache } from "react";
 import EditProfileButton from "./EditProfileButton";
 import UserPosts from "./UserPosts";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import BookmarksFeed from "@/app/(main)/bookmarks/Bookmarks";
 import ZoomableImage from "@/components/ZoomableImage";
-import {
-  Calendar,
-  Store,
-  Heart,
-  ShieldCheck,
-  CheckCircle2,
-  ShoppingBag,
-} from "lucide-react";
+import { Calendar, Store, ShieldCheck, CheckCircle2 } from "lucide-react";
 import ShareProfileButton from "./ShareProfileButton";
 import MoreOptionsButton from "./MoreOptionsButton";
+import {
+  ProfileTabs,
+  ProfileStats,
+  OnlineBadge,
+  MemberSince,
+  DefaultBio,
+} from "./UserProfileClient";
 
 interface PageProps {
   params: Promise<{ username: string }>;
@@ -34,9 +34,7 @@ interface PageProps {
 
 const getUser = cache(async (username: string, loggedInUserId: string) => {
   const user = await prisma.user.findFirst({
-    where: {
-      username: { equals: username, mode: "insensitive" },
-    },
+    where: { username: { equals: username, mode: "insensitive" } },
     select: getUserDataSelect(loggedInUserId),
   });
   if (!user) notFound();
@@ -72,25 +70,9 @@ export default async function Page(props: PageProps) {
 
         <div className="w-full">
           <Tabs defaultValue="posts" className="w-full">
-            <TabsList className="bg-card border border-border/60 p-1.5 rounded-2xl flex items-center gap-1.5 w-full shadow-sm">
-              <TabsTrigger
-                value="posts"
-                className="flex-1 py-2.5 px-4 rounded-xl text-muted-foreground text-[11px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all duration-200 shadow-none data-[state=active]:bg-background data-[state=active]:text-[#4a90e2] data-[state=active]:border data-[state=active]:border-[#4a90e2]/20 data-[state=active]:shadow-sm"
-              >
-                <Store className="size-3.5 text-[#4a90e2]" />
-                Catalogue
-              </TabsTrigger>
 
-              {isUserProfile && (
-                <TabsTrigger
-                  value="bookmarks"
-                  className="flex-1 py-2.5 px-4 rounded-xl text-muted-foreground text-[11px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all duration-200 shadow-none data-[state=active]:bg-background data-[state=active]:text-rose-500 data-[state=active]:border data-[state=active]:border-rose-500/20 data-[state=active]:shadow-sm"
-                >
-                  <Heart className="size-3.5 text-rose-400" />
-                  Favoris
-                </TabsTrigger>
-              )}
-            </TabsList>
+            {/* ✅ Onglets traduits via composant client */}
+            <ProfileTabs isUserProfile={isUserProfile} />
 
             <TabsContent value="posts" className="outline-none pt-4 w-full">
               <UserPosts userId={user.id} />
@@ -124,6 +106,7 @@ async function UserProfile({ user, loggedInUserId }: UserProfileProps) {
   };
 
   const isAdmin = user.username.toLowerCase() === "dealcity";
+  const dateFormatted = formatDate(user.createdAt, "MMMM yyyy", { locale: fr });
 
   return (
     <div className="w-full bg-card text-foreground rounded-none sm:rounded-3xl overflow-hidden border border-border/60 shadow-sm relative">
@@ -133,14 +116,13 @@ async function UserProfile({ user, loggedInUserId }: UserProfileProps) {
         {user.coverUrl ? (
           <ZoomableImage
             src={user.coverUrl}
-            alt="Bannière de couverture"
+            alt="Banniere de couverture"
             fill
             priority
             className="object-cover cursor-zoom-in"
           />
         ) : (
           <div className="absolute inset-0 bg-gradient-to-br from-[#0a1f3a] via-[#1a3a6b] to-[#0d4a8a]">
-            {/* Grille de points */}
             <div
               className="absolute inset-0 opacity-20"
               style={{
@@ -148,7 +130,6 @@ async function UserProfile({ user, loggedInUserId }: UserProfileProps) {
                 backgroundSize: "22px 22px",
               }}
             />
-            {/* Barres logo DealCity en filigrane */}
             <div className="absolute bottom-4 right-6 flex items-end gap-[6px] opacity-10">
               <div className="w-3 h-8 bg-white rounded-sm" />
               <div className="w-3 h-14 bg-white rounded-sm" />
@@ -160,11 +141,8 @@ async function UserProfile({ user, loggedInUserId }: UserProfileProps) {
           </div>
         )}
 
-        {/* Badge en ligne */}
-        <div className="absolute top-3 right-3 flex items-center gap-1.5 bg-black/40 backdrop-blur-sm border border-white/10 text-white text-[10px] font-bold px-2.5 py-1 rounded-full">
-          <span className="size-1.5 rounded-full bg-[#6ab344] animate-pulse" />
-          En ligne
-        </div>
+        {/* ✅ Badge en ligne traduit */}
+        <OnlineBadge />
       </div>
 
       <div className="px-4 sm:px-6 pb-6 -mt-14 relative z-10 space-y-4">
@@ -211,11 +189,11 @@ async function UserProfile({ user, loggedInUserId }: UserProfileProps) {
           <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs">
             <span className="text-[#4a90e2] font-bold">@{user.username}</span>
             <span className="text-border/70 select-none">·</span>
-            <span className="text-muted-foreground flex items-center gap-1 font-medium">
+            <div className="flex items-center gap-1">
               <Calendar className="size-3 opacity-60" />
-              Membre depuis{" "}
-              {formatDate(user.createdAt, "MMMM yyyy", { locale: fr })}
-            </span>
+              {/* ✅ Date membre traduite */}
+              <MemberSince dateFormatted={dateFormatted} />
+            </div>
           </div>
         </div>
 
@@ -228,47 +206,18 @@ async function UserProfile({ user, loggedInUserId }: UserProfileProps) {
             {user.bio ? (
               <Linkify>{user.bio}</Linkify>
             ) : (
-              "Marketplace & réseau social — Achetez, vendez, connectez-vous."
+              // ✅ Bio par défaut traduite
+              <DefaultBio />
             )}
           </p>
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-3 gap-2.5 pt-0.5 max-w-md">
-          {/* Créations */}
-          <div className="group relative p-3 bg-background border border-border/60 rounded-2xl text-center space-y-1 shadow-sm overflow-hidden transition-all hover:border-[#4a90e2]/30">
-            <div className="absolute inset-x-0 top-0 h-[2px] bg-[#4a90e2] scale-x-0 group-hover:scale-x-100 transition-transform duration-300 rounded-t-2xl" />
-            <div className="text-xl font-black text-foreground tabular-nums">
-              {formatNumber(user._count.posts)}
-            </div>
-            <div className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">
-              Créations
-            </div>
-          </div>
-
-          {/* Abonnés */}
-          <div className="group relative p-3 bg-background border border-border/60 rounded-2xl text-center space-y-1 shadow-sm overflow-hidden transition-all hover:border-[#4a90e2]/30">
-            <div className="absolute inset-x-0 top-0 h-[2px] bg-[#4a90e2] scale-x-0 group-hover:scale-x-100 transition-transform duration-300 rounded-t-2xl" />
-            <div className="text-xl font-black text-foreground tabular-nums">
-              <FollowerCount userId={user.id} initialState={followerInfo} />
-            </div>
-            <div className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">
-              Abonnés
-            </div>
-          </div>
-
-          {/* Ventes */}
-          <div className="group relative p-3 bg-background border border-border/60 rounded-2xl text-center space-y-1 shadow-sm overflow-hidden transition-all hover:border-[#6ab344]/30">
-            <div className="absolute inset-x-0 top-0 h-[2px] bg-[#6ab344] scale-x-0 group-hover:scale-x-100 transition-transform duration-300 rounded-t-2xl" />
-            <div className="text-xl font-black text-foreground tabular-nums flex items-center justify-center gap-1.5">
-              <ShoppingBag className="size-4 text-[#6ab344] shrink-0" />
-              {user.saleCount || 0}
-            </div>
-            <div className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">
-              Ventes
-            </div>
-          </div>
-        </div>
+        {/* ✅ Stats traduites */}
+        <ProfileStats
+          postsCount={formatNumber(user._count.posts) as unknown as number}
+          followersNode={<FollowerCount userId={user.id} initialState={followerInfo} />}
+          salesCount={user.saleCount || 0}
+        />
       </div>
     </div>
   );

@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { NotificationType } from "@prisma/client";
 import { Heart, MessageCircle, User2, ShoppingBag } from "lucide-react";
 import Link from "next/link";
+import { useLanguage } from "@/components/LanguageProvider";
 
 interface NotificationProps {
   notification: NotificationData;
@@ -18,32 +19,35 @@ type NotificationConfig = {
 };
 
 export default function Notification({ notification }: NotificationProps) {
+  const { t } = useLanguage();
+
+  // ✅ Messages traduits via les clés de traduction
   const notificationTypeMap: Partial<Record<NotificationType, NotificationConfig>> & {
     [key: string]: NotificationConfig;
   } = {
     FOLLOW: {
-      message: "a rejoint ta vitrine",
+      message: t.joined_store,
       icon: <User2 className="size-3.5 text-[#4a90e2]" />,
       iconBg: "bg-[#4a90e2]/10 border-[#4a90e2]/20",
       dot: "bg-[#4a90e2]",
       href: `/users/${notification.issuer.username}`,
     },
     COMMENT: {
-      message: "a laissé un avis sur ton article",
+      message: t.left_review,
       icon: <MessageCircle className="size-3.5 text-amber-500" />,
       iconBg: "bg-amber-500/10 border-amber-500/20",
       dot: "bg-amber-500",
       href: `/posts/${notification.postId}`,
     },
     LIKE: {
-      message: "a aimé ta création",
+      message: t.liked_creation,
       icon: <Heart className="size-3.5 text-rose-500 fill-rose-500/20" />,
       iconBg: "bg-rose-500/10 border-rose-500/20",
       dot: "bg-rose-500",
       href: `/posts/${notification.postId}`,
     },
     ORDER: {
-      message: "a validé un achat avec toi !",
+      message: t.validated_purchase,
       icon: <ShoppingBag className="size-3.5 text-[#6ab344]" />,
       iconBg: "bg-[#6ab344]/10 border-[#6ab344]/20",
       dot: "bg-[#6ab344]",
@@ -59,7 +63,6 @@ export default function Notification({ notification }: NotificationProps) {
   };
 
   const config = notificationTypeMap[notification.type];
-
   if (!config || notification.type === "REPORT_DELETION") return null;
 
   return (
@@ -71,15 +74,13 @@ export default function Notification({ notification }: NotificationProps) {
           !notification.read && "bg-[#4a90e2]/[0.03] dark:bg-[#4a90e2]/[0.05]",
         )}
       >
-        {/* Avatar + badge */}
+        {/* Avatar + badge type */}
         <div className="relative shrink-0">
           <UserAvatar avatarUrl={notification.issuer.avatarUrl} size={42} />
-          <div
-            className={cn(
-              "absolute -bottom-1 -right-1 p-[5px] rounded-lg border shadow-sm flex items-center justify-center",
-              config.iconBg,
-            )}
-          >
+          <div className={cn(
+            "absolute -bottom-1 -right-1 p-[5px] rounded-lg border shadow-sm flex items-center justify-center",
+            config.iconBg,
+          )}>
             {config.icon}
           </div>
         </div>
@@ -90,6 +91,7 @@ export default function Notification({ notification }: NotificationProps) {
             <span className="font-black text-foreground group-hover:text-[#4a90e2] transition-colors">
               {notification.issuer.displayName}
             </span>{" "}
+            {/* ✅ Message traduit */}
             <span className="text-muted-foreground font-medium">
               {config.message}
             </span>
@@ -103,6 +105,7 @@ export default function Notification({ notification }: NotificationProps) {
           )}
         </div>
 
+        {/* Point non lu */}
         {!notification.read && (
           <div className="shrink-0 mt-1.5">
             <span className={cn("block size-2 rounded-full animate-pulse", config.dot)} />

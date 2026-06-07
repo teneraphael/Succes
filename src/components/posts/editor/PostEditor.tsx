@@ -22,9 +22,11 @@ import {
   Select, SelectContent, SelectItem,
   SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import { useLanguage } from "@/components/LanguageProvider";
 
 export default function PostEditor() {
   const { user } = useSession();
+  const { t } = useLanguage();
   const mutation = useSubmitPostMutation();
   const router = useRouter();
   const { toast } = useToast();
@@ -57,12 +59,10 @@ export default function PostEditor() {
   const editor = useEditor({
     extensions: [
       StarterKit.configure({ bold: false, italic: false }),
-      Placeholder.configure({
-        placeholder: "État, mode de livraison, détails additionnels...",
-      }),
+      // ✅ Placeholder traduit dynamiquement
+      Placeholder.configure({ placeholder: t.description_placeholder }),
     ],
     immediatelyRender: false,
-    // ✅ Gestion des sauts de ligne au collage
     editorProps: {
       handlePaste(view, event) {
         const text = event.clipboardData?.getData("text/plain");
@@ -110,7 +110,6 @@ export default function PostEditor() {
         mediaIds: attachments.map((a: any) => a.mediaId).filter(Boolean) as string[],
         stock: parseInt(stock),
         targetUserId: isAdmin && targetUserId !== "me" ? targetUserId : undefined,
-        // ✅ Pas de variantes — tableau vide
         attributes: [],
       },
       {
@@ -122,7 +121,8 @@ export default function PostEditor() {
           setStock("1");
           setTargetUserId("me");
           resetMediaUploads();
-          toast({ description: "Produit publié avec succès !" });
+          // ✅ Toast traduit
+          toast({ description: t.product_published });
           router.refresh();
         },
       },
@@ -134,7 +134,7 @@ export default function PostEditor() {
   return (
     <div className="flex flex-col gap-6">
 
-      {/* ✅ En-tête Seller Studio */}
+      {/* ✅ En-tête Seller Studio traduit */}
       <div className="flex items-center justify-between pb-4 border-b border-border/40">
         <div className="flex items-center gap-3">
           <div className="size-8 rounded-xl bg-[#4a90e2]/10 border border-[#4a90e2]/20 flex items-center justify-center">
@@ -142,15 +142,12 @@ export default function PostEditor() {
           </div>
           <div>
             <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-              Seller Studio
+              {t.seller_studio}
             </p>
-            <p className="text-[9px] text-muted-foreground/60 font-medium">
-              DealCity
-            </p>
+            <p className="text-[9px] text-muted-foreground/60 font-medium">DealCity</p>
           </div>
         </div>
 
-        {/* ✅ Sélecteur substitution admin */}
         {isAdmin && (
           <Select value={targetUserId} onValueChange={setTargetUserId}>
             <SelectTrigger className="h-9 w-[180px] rounded-2xl bg-muted border-none text-[10px] font-black uppercase outline-none focus:ring-0 italic">
@@ -170,12 +167,12 @@ export default function PostEditor() {
         )}
       </div>
 
-      {/* ✅ Champs principaux — nom, prix, whatsapp */}
+      {/* ✅ Champs traduits */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         <div className="relative md:col-span-1">
           <Tag className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
           <input
-            placeholder="Nom du produit"
+            placeholder={t.product_name}
             value={productName}
             onChange={(e) => setProductName(e.target.value)}
             className="w-full h-12 pl-12 rounded-2xl bg-[#f8faff] dark:bg-zinc-800/50 border border-[#4a90e2]/10 focus:border-[#4a90e2]/30 focus:ring-2 focus:ring-[#4a90e2]/8 outline-none transition-all text-sm font-black uppercase tracking-tight"
@@ -185,7 +182,7 @@ export default function PostEditor() {
         <div className="relative">
           <Banknote className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
           <input
-            placeholder="Prix (FCFA)"
+            placeholder={t.price}
             type="number"
             value={price}
             onChange={(e) => setPrice(e.target.value)}
@@ -196,7 +193,7 @@ export default function PostEditor() {
         <div className="relative">
           <Phone className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
           <input
-            placeholder="Numéro WhatsApp"
+            placeholder={t.whatsapp_number}
             type="tel"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
@@ -205,10 +202,10 @@ export default function PostEditor() {
         </div>
       </div>
 
-      {/* ✅ Stock */}
+      {/* ✅ Stock traduit */}
       <div className="relative max-w-[160px]">
         <input
-          placeholder="Stock"
+          placeholder={t.stock}
           type="number"
           min="0"
           value={stock}
@@ -216,11 +213,11 @@ export default function PostEditor() {
           className="w-full h-12 px-4 rounded-2xl bg-[#f8faff] dark:bg-zinc-800/50 border border-[#4a90e2]/10 focus:border-[#4a90e2]/30 outline-none transition-all text-sm font-black text-center"
         />
         <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[9px] font-black uppercase tracking-widest text-muted-foreground">
-          Stock
+          {t.stock}
         </span>
       </div>
 
-      {/* ✅ Éditeur description avec drag & drop */}
+      {/* Éditeur description */}
       <div
         {...getRootProps()}
         className={cn(
@@ -235,7 +232,7 @@ export default function PostEditor() {
         <input {...getInputProps()} />
       </div>
 
-      {/* ✅ Aperçu pièces jointes */}
+      {/* Aperçu pièces jointes */}
       {!!attachments.length && (
         <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4">
           {attachments.map((attachment: any) => (
@@ -248,11 +245,12 @@ export default function PostEditor() {
         </div>
       )}
 
-      {/* ✅ Barre du bas — upload + publier */}
+      {/* ✅ Barre du bas traduite */}
       <div className="flex items-center justify-between pt-4 border-t border-border/40">
         <AddAttachmentsButton
           onFilesSelected={startUpload}
           disabled={isUploading || attachments.length >= 10}
+          label={t.add_media}
         />
 
         <LoadingButton
@@ -262,14 +260,13 @@ export default function PostEditor() {
           className="rounded-2xl px-6 font-black text-xs uppercase italic tracking-widest bg-[#6ab344] hover:bg-[#5a9a38] text-white shadow-lg shadow-[#6ab344]/20 transition-all h-11 active:scale-[0.97]"
         >
           <Sparkles className="size-3.5 mr-1.5" />
-          Publier le Produit
+          {t.publish_product}
         </LoadingButton>
       </div>
     </div>
   );
 }
 
-// ✅ Aperçu pièce jointe avec édition luminosité + texte overlay
 function AttachmentStudio({ attachment, onRemove }: any) {
   const [src, setSrc] = useState("");
   const [isEditing, setIsEditing] = useState(false);
@@ -291,7 +288,6 @@ function AttachmentStudio({ attachment, onRemove }: any) {
   const isVideo = attachment.file.type.startsWith("video");
   const filterStyle = { filter: `brightness(${settings.brightness}%)` };
 
-  // ✅ Boucle vidéo sur la plage définie
   useEffect(() => {
     if (isVideo && videoRef.current) {
       const v = videoRef.current;
@@ -356,12 +352,11 @@ function AttachmentStudio({ attachment, onRemove }: any) {
         )}
       </div>
 
-      {/* ✅ Panneau édition — texte overlay + luminosité + découpe vidéo */}
       {isEditing && (
         <div className="p-3 bg-[#f8faff] dark:bg-zinc-900 rounded-2xl space-y-3 border border-[#4a90e2]/10">
           <div className="space-y-1.5">
             <div className="flex items-center gap-1 text-[9px] font-black uppercase text-muted-foreground">
-              <Type size={10} /> Texte publicitaire
+              <Type size={10} /> Texte
             </div>
             <input
               type="text"
@@ -374,9 +369,7 @@ function AttachmentStudio({ attachment, onRemove }: any) {
 
           {isVideo && (
             <div className="space-y-2 border-t border-border/40 pt-2">
-              <div className="text-[9px] font-black uppercase text-[#4a90e2]">
-                Découper la séquence
-              </div>
+              <div className="text-[9px] font-black uppercase text-[#4a90e2]">Decouper</div>
               <input type="range" min="0" max={duration} value={settings.videoStart}
                 onChange={(e) => setSettings({ ...settings, videoStart: parseInt(e.target.value) })}
                 className="w-full h-1 accent-[#4a90e2]"
@@ -389,9 +382,7 @@ function AttachmentStudio({ attachment, onRemove }: any) {
           )}
 
           <div className="border-t border-border/40 pt-2 space-y-1">
-            <span className="text-[9px] font-black uppercase text-muted-foreground">
-              Luminosité
-            </span>
+            <span className="text-[9px] font-black uppercase text-muted-foreground">Luminosite</span>
             <input type="range" min="50" max="150" value={settings.brightness}
               onChange={(e) => setSettings({ ...settings, brightness: parseInt(e.target.value) })}
               className="w-full h-1 rounded-full accent-[#4a90e2]"
@@ -403,8 +394,8 @@ function AttachmentStudio({ attachment, onRemove }: any) {
   );
 }
 
-// ✅ Bouton ajout médias — style DealCity
-function AddAttachmentsButton({ onFilesSelected, disabled }: any) {
+// ✅ Bouton ajout médias avec label traduit
+function AddAttachmentsButton({ onFilesSelected, disabled, label }: any) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   return (
     <>
@@ -416,7 +407,7 @@ function AddAttachmentsButton({ onFilesSelected, disabled }: any) {
       >
         <Camera className="size-5" />
         <span className="text-[10px] font-black uppercase tracking-widest hidden sm:block">
-          Ajouter des médias
+          {label}
         </span>
       </button>
       <input

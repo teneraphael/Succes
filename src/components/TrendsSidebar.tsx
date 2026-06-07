@@ -2,13 +2,14 @@ import { validateRequest } from "@/auth";
 import prisma from "@/lib/prisma";
 import { getUserDataSelect } from "@/lib/types";
 import { formatNumber, cn } from "@/lib/utils";
-import { Loader2, TrendingUp, Users } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { unstable_cache } from "next/cache";
 import Link from "next/link";
 import { Suspense } from "react";
 import FollowButton from "./FollowButton";
 import UserAvatar from "./UserAvatar";
 import UserTooltip from "./UserTooltip";
+import { WhoToFollowHeader, TrendingTopicsHeader } from "./TrendsSidebarClient";
 
 interface TrendsSidebarProps {
   className?: string;
@@ -19,7 +20,6 @@ export default function TrendsSidebar({ className }: TrendsSidebarProps) {
     <div className={cn("hidden md:block sticky top-[5.25rem] h-fit w-72 flex-none space-y-4 lg:w-80", className)}>
       <Suspense
         fallback={
-          // ✅ Skeleton DealCity pendant le chargement
           <div className="space-y-4">
             {[1, 2].map((i) => (
               <div key={i} className="rounded-2xl bg-card border border-border/60 p-5 space-y-4 animate-pulse">
@@ -62,15 +62,8 @@ async function WhoToFollow() {
 
   return (
     <div className="rounded-2xl bg-card border border-border/60 shadow-sm overflow-hidden">
-      {/* ✅ En-tête — style DealCity */}
-      <div className="flex items-center gap-2.5 px-5 py-4 border-b border-border/40">
-        <div className="size-7 rounded-lg bg-[#4a90e2]/10 border border-[#4a90e2]/20 flex items-center justify-center">
-          <Users className="size-3.5 text-[#4a90e2]" />
-        </div>
-        <p className="text-xs font-black uppercase tracking-widest text-foreground">
-          Suggestions
-        </p>
-      </div>
+      {/* ✅ En-tête traduit via composant client */}
+      <WhoToFollowHeader />
 
       <div className="p-4 space-y-4">
         {usersToFollow.map((u) => (
@@ -124,20 +117,12 @@ const getTrendingTopics = unstable_cache(
 
 async function TrendingTopics() {
   const trendingTopics = await getTrendingTopics();
-
   if (!trendingTopics.length) return null;
 
   return (
     <div className="rounded-2xl bg-card border border-border/60 shadow-sm overflow-hidden">
-      {/* ✅ En-tête — style DealCity */}
-      <div className="flex items-center gap-2.5 px-5 py-4 border-b border-border/40">
-        <div className="size-7 rounded-lg bg-[#4a90e2]/10 border border-[#4a90e2]/20 flex items-center justify-center">
-          <TrendingUp className="size-3.5 text-[#4a90e2]" />
-        </div>
-        <p className="text-xs font-black uppercase tracking-widest text-foreground">
-          Tendances
-        </p>
-      </div>
+      {/* ✅ En-tête traduit via composant client */}
+      <TrendingTopicsHeader />
 
       <div className="p-4 space-y-3">
         {trendingTopics.map(({ hashtag, count }, index) => {
@@ -148,7 +133,6 @@ async function TrendingTopics() {
               href={`/hashtag/${title}`}
               className="flex items-center gap-3 group"
             >
-              {/* ✅ Numéro coloré selon le rang */}
               <span className={[
                 "text-xs font-black italic w-4 text-center shrink-0",
                 index === 0 ? "text-red-500" :
@@ -169,7 +153,6 @@ async function TrendingTopics() {
                   {formatNumber(count)} {count === 1 ? "post" : "posts"}
                 </p>
               </div>
-              {/* ✅ Badge Hot pour le top 3 */}
               {index < 3 && (
                 <span className="text-[9px] bg-[#4a90e2]/10 text-[#4a90e2] px-1.5 py-0.5 rounded-full font-black uppercase tracking-widest shrink-0">
                   Hot

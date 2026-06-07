@@ -9,6 +9,7 @@ import Image from "next/image";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import PostScrollViewer from "@/components/PostScrollViewer";
+import { useLanguage } from "@/components/LanguageProvider";
 
 interface SearchResultsProps {
   query: string;
@@ -28,13 +29,8 @@ const extractInfo = (content: string) => {
 const isExternalImage = (url: string) =>
   url.includes("ufs.sh") || url.includes("utfs.io") || url.includes("lh3.googleusercontent.com");
 
-function ProductCard({
-  post,
-  onClick,
-}: {
-  post: any;
-  onClick: () => void;
-}) {
+function ProductCard({ post, onClick }: { post: any; onClick: () => void }) {
+  const { t } = useLanguage();
   const { productName, price, description } = extractInfo(post.content);
   const firstImage = post.attachments?.find((m: any) => m.type === "IMAGE")?.url;
   const isAvailable = (post.stock ?? 0) > 0 || post.variants?.some((v: any) => v.stock > 0);
@@ -63,10 +59,11 @@ function ProductCard({
           </div>
         )}
 
+        {/* ✅ Badge épuisé traduit */}
         {!isAvailable && (
           <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
             <span className="text-white text-[10px] font-black uppercase tracking-widest bg-red-500 px-2 py-1 rounded-full">
-              Épuisé
+              {t.out_of_stock}
             </span>
           </div>
         )}
@@ -138,6 +135,7 @@ function GridSkeleton() {
 
 export default function SearchResults({ query }: SearchResultsProps) {
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+  const { t } = useLanguage();
 
   const {
     data,
@@ -166,17 +164,18 @@ export default function SearchResults({ query }: SearchResultsProps) {
 
   return (
     <div className="w-full min-h-screen">
-      {/* Header */}
+
+      {/* ✅ Header traduit */}
       <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-md border-b border-border/40 px-4 py-3">
         <div className="flex items-center gap-2 max-w-2xl mx-auto">
           <Search className="size-4 text-muted-foreground flex-none" />
           <div className="flex-1">
             <p className="text-sm font-black text-foreground truncate">
-              {query ? `"${query}"` : "Tous les produits"}
+              {query ? `"${query}"` : t.no_results}
             </p>
             {posts.length > 0 && (
               <p className="text-[10px] text-muted-foreground font-bold">
-                {posts.length}+ résultats
+                {posts.length}+ {t.search_results}
               </p>
             )}
           </div>
@@ -186,25 +185,29 @@ export default function SearchResults({ query }: SearchResultsProps) {
       <AnimatePresence mode="wait">
         {status === "pending" && <GridSkeleton />}
 
+        {/* ✅ Erreur traduite */}
         {status === "error" && (
           <div className="flex flex-col items-center justify-center py-20 gap-3">
-            <p className="text-destructive font-bold text-sm">Erreur lors du chargement</p>
+            <p className="text-destructive font-bold text-sm">{t.error_loading}</p>
           </div>
         )}
 
+        {/* ✅ État vide traduit */}
         {status === "success" && !posts.length && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             className="flex flex-col items-center justify-center py-20 gap-4"
           >
-            <div className="size-16 rounded-full bg-muted flex items-center justify-center">
-              <Search className="size-7 text-muted-foreground" />
+            <div className="size-16 rounded-2xl bg-[#4a90e2]/10 border border-[#4a90e2]/20 flex items-center justify-center">
+              <Search className="size-7 text-[#4a90e2]" />
             </div>
             <div className="text-center">
-              <p className="font-black text-foreground">Aucun résultat</p>
+              <p className="font-black text-foreground uppercase tracking-tight">
+                {t.no_results}
+              </p>
               <p className="text-sm text-muted-foreground mt-1">
-                Aucun produit trouvé pour &quot;{query}&quot;
+                {t.no_results_desc} &quot;{query}&quot;
               </p>
             </div>
           </motion.div>
@@ -225,14 +228,13 @@ export default function SearchResults({ query }: SearchResultsProps) {
             </div>
             {isFetchingNextPage && (
               <div className="flex justify-center py-4">
-                <Loader2 className="size-5 animate-spin text-muted-foreground" />
+                <Loader2 className="size-5 animate-spin text-[#4a90e2]" />
               </div>
             )}
           </InfiniteScrollContainer>
         )}
       </AnimatePresence>
 
-      {/* ✅ Vue scroll plein écran */}
       {selectedIndex !== null && (
         <PostScrollViewer
           posts={posts}

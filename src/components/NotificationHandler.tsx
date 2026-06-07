@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { initializeApp, getApps } from 'firebase/app';
 import { getMessaging, getToken } from 'firebase/messaging';
 import { useSession } from "@/app/(main)/SessionProvider";
+import { useLanguage } from "@/components/LanguageProvider";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDYTmdZpLhw04HNXLmnnmKqJf7umAKu35g",
@@ -16,12 +17,12 @@ const firebaseConfig = {
 
 export default function NotificationPopup() {
   const { user } = useSession();
+  const { t } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
     if (user && typeof window !== 'undefined' && 'Notification' in window) {
       const hasAsked = localStorage.getItem('dealcity_notif_asked');
-      
       if (Notification.permission === 'default' && !hasAsked) {
         const timer = setTimeout(() => setIsOpen(true), 2000);
         return () => clearTimeout(timer);
@@ -30,49 +31,37 @@ export default function NotificationPopup() {
   }, [user]);
 
   const handleAccept = async () => {
-    if (!user) return; 
+    if (!user) return;
 
     try {
       const permission = await Notification.requestPermission();
-      
-      // On ferme la popup et on marque comme demandé peu importe le choix
+
       setIsOpen(false);
       localStorage.setItem('dealcity_notif_asked', 'true');
 
       if (permission === 'granted') {
-        // 1. Enregistrement du Service Worker
         const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
-        
-        // 2. ATTENTE CRUCIALE : On attend que le SW soit actif pour éviter l'AbortError
         await navigator.serviceWorker.ready;
 
         const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
         const messaging = getMessaging(app);
 
-        // 3. Récupération du token
         const token = await getToken(messaging, {
           serviceWorkerRegistration: registration,
-          vapidKey: 'BOFuO3gXPZPcvGvfbMGtxch6q9H4kmAqN2EDFzK6xMIjPoYeOd2VWe_5s1IOoRk4zrw4KeCFFyxXz0td1g9iSmY' 
+          vapidKey: 'BOFuO3gXPZPcvGvfbMGtxch6q9H4kmAqN2EDFzK6xMIjPoYeOd2VWe_5s1IOoRk4zrw4KeCFFyxXz0td1g9iSmY'
         });
 
         if (token) {
-          console.log("🚀 Token généré :", token.substring(0, 20) + "...");
-          
           const response = await fetch('/api/notifications/save-token', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userId: user.id, token: token }),
+            body: JSON.stringify({ userId: user.id, token }),
           });
-
-          if (response.ok) {
-            console.log("✅ Token enregistré en base de données pour DealCity");
-          } else {
-            console.error("❌ Erreur réponse API:", response.status);
-          }
+          if (!response.ok) console.error("Erreur API:", response.status);
         }
       }
     } catch (error) {
-      console.error("❌ Erreur FCM détaillée:", error);
+      console.error("Erreur FCM:", error);
     }
   };
 
@@ -87,27 +76,35 @@ export default function NotificationPopup() {
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 backdrop-blur-md p-4">
       <div className="w-full max-w-[360px] bg-[#0a0a0a] border border-zinc-800 rounded-[35px] overflow-hidden shadow-[0_0_50px_rgba(74,144,226,0.15)] animate-in zoom-in-95 duration-300">
         <div className="p-10 flex flex-col items-center text-center">
+
+          {/* Icône cloche */}
           <div className="w-24 h-24 bg-[#4a90e2]/10 rounded-full flex items-center justify-center mb-8 border border-[#4a90e2]/20">
             <span className="text-5xl">🔔</span>
           </div>
-          
-          <h2 className="text-white text-2xl font-extrabold mb-3">Restez connecté !</h2>
+
+          {/* ✅ Titre et description traduits */}
+          <h2 className="text-white text-2xl font-extrabold mb-3">
+            {t.notifications_enabled}
+          </h2>
           <p className="text-zinc-400 text-sm mb-10 leading-relaxed px-2">
-            Recevez une alerte immédiate dès qu&apos;un acheteur vous envoie un message ou qu&apos;une nouvelle offre est publiée.
+            {t.enable_notifications_desc}
           </p>
 
           <div className="flex flex-col w-full gap-4">
-            <button 
+            {/* ✅ Bouton activer traduit */}
+            <button
               onClick={handleAccept}
-              className="w-full bg-[#4a90e2] text-white font-black py-4 rounded-[40px] shadow-lg shadow-[#4a90e2]/30 active:scale-95 transition-all hover:brightness-110"
+              className="w-full bg-[#4a90e2] text-white font-black py-4 rounded-[40px] shadow-lg shadow-[#4a90e2]/30 active:scale-95 transition-all hover:brightness-110 uppercase tracking-widest text-sm"
             >
-              ACTIVER LES NOTIFS
+              {t.enable_notifications}
             </button>
-            <button 
+
+            {/* ✅ Bouton ignorer traduit */}
+            <button
               onClick={handleClose}
               className="text-zinc-600 text-[11px] font-bold uppercase tracking-widest hover:text-zinc-400 transition-colors py-2"
             >
-              IGNORER POUR LE MOMENT
+              {t.cancel}
             </button>
           </div>
         </div>

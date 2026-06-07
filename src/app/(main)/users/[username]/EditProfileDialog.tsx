@@ -29,6 +29,7 @@ import { useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import Resizer from "react-image-file-resizer";
 import { useUpdateProfileMutation } from "./mutations";
+import { useLanguage } from "@/components/LanguageProvider";
 
 interface EditProfileDialogProps {
   user: UserData;
@@ -36,11 +37,9 @@ interface EditProfileDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-export default function EditProfileDialog({
-  user,
-  open,
-  onOpenChange,
-}: EditProfileDialogProps) {
+export default function EditProfileDialog({ user, open, onOpenChange }: EditProfileDialogProps) {
+  const { t } = useLanguage();
+
   const form = useForm<UpdateUserProfileValues>({
     resolver: zodResolver(updateUserProfileSchema),
     defaultValues: {
@@ -78,24 +77,24 @@ export default function EditProfileDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg overflow-y-auto max-h-[90vh] p-0 rounded-3xl border border-border/60 shadow-xl gap-0">
 
-        {/* Header */}
+        {/* ✅ Header traduit */}
         <DialogHeader className="px-6 pt-6 pb-4 border-b border-border/40">
           <div className="flex items-center gap-3">
             <div className="size-8 rounded-xl bg-[#4a90e2]/10 border border-[#4a90e2]/20 flex items-center justify-center">
               <User className="size-4 text-[#4a90e2]" />
             </div>
             <DialogTitle className="text-sm font-black uppercase tracking-tight text-foreground">
-              Modifier le profil
+              {t.edit_public_profile}
             </DialogTitle>
           </div>
         </DialogHeader>
 
         <div className="px-6 py-5 space-y-5">
 
-          {/* Bannière */}
+          {/* ✅ Bannière traduite */}
           <div className="space-y-2">
             <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">
-              Image de couverture
+              {t.cover_image}
             </p>
             <CoverInput
               src={
@@ -104,13 +103,14 @@ export default function EditProfileDialog({
                   : (user as any).coverUrl || null
               }
               onImageCropped={setCroppedCover}
+              addCoverLabel={t.add_cover}
             />
           </div>
 
-          {/* Avatar */}
+          {/* ✅ Avatar traduit */}
           <div className="space-y-2">
             <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">
-              Photo de profil
+              {t.profile_photo}
             </p>
             <AvatarInput
               src={
@@ -126,6 +126,7 @@ export default function EditProfileDialog({
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
 
+              {/* ✅ Nom affiché traduit */}
               <FormField
                 control={form.control}
                 name="displayName"
@@ -135,12 +136,12 @@ export default function EditProfileDialog({
                       <div className="flex items-center gap-1.5 ml-1">
                         <User className="size-3 text-muted-foreground" />
                         <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                          Nom affiché
+                          {t.display_name}
                         </p>
                       </div>
                       <FormControl>
                         <Input
-                          placeholder="Votre nom affiché"
+                          placeholder={t.display_name}
                           {...field}
                           className="h-12 rounded-2xl bg-[#f8faff] dark:bg-zinc-800/50 border border-[#4a90e2]/10 dark:border-white/5 focus-visible:border-[#4a90e2]/40 focus-visible:ring-2 focus-visible:ring-[#4a90e2]/10 text-sm font-semibold transition-all"
                         />
@@ -151,6 +152,7 @@ export default function EditProfileDialog({
                 )}
               />
 
+              {/* ✅ Bio traduite */}
               <FormField
                 control={form.control}
                 name="bio"
@@ -160,12 +162,12 @@ export default function EditProfileDialog({
                       <div className="flex items-center gap-1.5 ml-1">
                         <FileText className="size-3 text-muted-foreground" />
                         <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                          Bio
+                          {t.bio}
                         </p>
                       </div>
                       <FormControl>
                         <Textarea
-                          placeholder="Parlez un peu de vous..."
+                          placeholder={t.bio_placeholder}
                           className="resize-none rounded-2xl bg-[#f8faff] dark:bg-zinc-800/50 border border-[#4a90e2]/10 dark:border-white/5 focus-visible:border-[#4a90e2]/40 focus-visible:ring-2 focus-visible:ring-[#4a90e2]/10 text-sm font-semibold transition-all min-h-[100px]"
                           rows={4}
                           {...field}
@@ -177,13 +179,14 @@ export default function EditProfileDialog({
                 )}
               />
 
+              {/* ✅ Bouton sauvegarder traduit */}
               <DialogFooter className="pt-2">
                 <LoadingButton
                   type="submit"
                   loading={mutation.isPending}
                   className="w-full h-12 bg-[#4a90e2] hover:bg-[#357abd] text-white rounded-2xl font-black uppercase italic tracking-tight text-sm shadow-lg shadow-[#4a90e2]/20 transition-all active:scale-[0.97]"
                 >
-                  Sauvegarder
+                  {t.save}
                 </LoadingButton>
               </DialogFooter>
             </form>
@@ -254,9 +257,10 @@ function AvatarInput({ src, onImageCropped }: AvatarInputProps) {
 interface CoverInputProps {
   src: string | null;
   onImageCropped: (blob: Blob | null) => void;
+  addCoverLabel: string;
 }
 
-function CoverInput({ src, onImageCropped }: CoverInputProps) {
+function CoverInput({ src, onImageCropped, addCoverLabel }: CoverInputProps) {
   const [imageToCrop, setImageToCrop] = useState<File>();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -283,7 +287,7 @@ function CoverInput({ src, onImageCropped }: CoverInputProps) {
         {src ? (
           <Image
             src={src}
-            alt="Bannière preview"
+            alt="Banniere preview"
             fill
             className="object-cover group-hover:opacity-80 transition-opacity"
             unoptimized
@@ -291,8 +295,9 @@ function CoverInput({ src, onImageCropped }: CoverInputProps) {
         ) : (
           <div className="flex flex-col items-center gap-1.5 text-[#4a90e2]/50">
             <Camera size={20} />
+            {/* ✅ Label traduit via prop */}
             <span className="text-[10px] font-black uppercase tracking-widest">
-              Ajouter une couverture
+              {addCoverLabel}
             </span>
           </div>
         )}

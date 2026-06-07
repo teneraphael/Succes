@@ -10,6 +10,7 @@ import CommentInput from "./CommentInput";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { useSession } from "@/app/(main)/SessionProvider";
 import Link from "next/link";
+import { useLanguage } from "@/components/LanguageProvider";
 
 interface CommentsProps {
   post: PostData;
@@ -17,6 +18,7 @@ interface CommentsProps {
 
 export default function Comments({ post }: CommentsProps) {
   const { user } = useSession();
+  const { t } = useLanguage();
   const [replyTarget, setReplyTarget] = useState<string | null>(null);
   const isDesktop = useMediaQuery("(min-width: 768px)");
 
@@ -42,31 +44,29 @@ export default function Comments({ post }: CommentsProps) {
     });
 
   const allComments = data?.pages.flatMap((page) => page.comments) || [];
-
-  // ✅ Séparation commentaires principaux et réponses (mentions @)
   const mainComments = allComments.filter((c) => !c.content.startsWith("@"));
   const replyComments = allComments.filter((c) => c.content.startsWith("@"));
 
   return (
     <div className="flex flex-col h-full max-h-[85vh] md:max-h-full bg-background overflow-hidden">
 
-      {/* ✅ Header mobile avec poignée de drag */}
+      {/* ✅ Header mobile traduit */}
       {!isDesktop && (
         <div className="border-b border-border/40 px-4 py-3 text-center shrink-0 bg-background">
           <div className="mx-auto mb-2.5 h-1 w-10 rounded-full bg-muted" />
           <div className="flex items-center justify-center gap-2">
             <MessageCircle className="size-4 text-[#4a90e2]" />
             <span className="text-sm font-black uppercase tracking-tight text-foreground">
-              Commentaires
+              {t.comments}
             </span>
           </div>
         </div>
       )}
 
-      {/* ✅ Zone scrollable des commentaires */}
+      {/* Zone scrollable */}
       <div className="flex-1 overflow-y-auto px-4 py-3 space-y-1 bg-background">
 
-        {/* Bouton charger plus */}
+        {/* ✅ Bouton charger plus traduit */}
         {hasNextPage && (
           <button
             disabled={isFetching}
@@ -76,12 +76,12 @@ export default function Comments({ post }: CommentsProps) {
             {isFetching ? (
               <Loader2 className="animate-spin size-3.5" />
             ) : (
-              "Voir plus"
+              t.load_more
             )}
           </button>
         )}
 
-        {/* ✅ Skeleton chargement */}
+        {/* Skeleton chargement */}
         {status === "pending" && (
           <div className="space-y-4 py-4">
             {[1, 2, 3].map((i) => (
@@ -96,19 +96,19 @@ export default function Comments({ post }: CommentsProps) {
           </div>
         )}
 
-        {/* ✅ État vide — style DealCity */}
+        {/* ✅ État vide traduit */}
         {status === "success" && !allComments.length && (
           <div className="flex flex-col items-center justify-center py-14 gap-3">
             <div className="size-12 rounded-2xl bg-[#4a90e2]/10 border border-[#4a90e2]/20 flex items-center justify-center">
               <MessageCircle className="size-5 text-[#4a90e2]" />
             </div>
             <p className="text-xs font-black uppercase tracking-widest text-muted-foreground">
-              Soyez le premier à commenter
+              {t.first_comment}
             </p>
           </div>
         )}
 
-        {/* ✅ Liste des commentaires avec réponses associées */}
+        {/* Liste commentaires */}
         <div className="space-y-1">
           {mainComments.map((mainComment) => {
             const associatedReplies = replyComments.filter((r) =>
@@ -126,7 +126,7 @@ export default function Comments({ post }: CommentsProps) {
         </div>
       </div>
 
-      {/* ✅ Zone saisie sticky en bas */}
+      {/* Zone saisie sticky */}
       <div className="shrink-0 sticky bottom-0 bg-background z-20">
         {user ? (
           <CommentInput
@@ -135,17 +135,17 @@ export default function Comments({ post }: CommentsProps) {
             onClearReply={() => setReplyTarget(null)}
           />
         ) : (
-          // ✅ Invite connexion — style DealCity
+          // ✅ Invite connexion traduite
           <div className="px-4 py-3 border-t border-border/40 bg-[#4a90e2]/5 text-center">
             <p className="text-xs text-muted-foreground font-medium">
-              Veuillez vous{" "}
+              {t.login_to_comment.split("Sign in").join("")}
               <Link
                 href="/login"
-                className="text-[#4a90e2] font-black hover:underline uppercase tracking-tight italic"
+                className="text-[#4a90e2] font-black hover:underline uppercase tracking-tight italic mx-1"
               >
-                connecter
-              </Link>{" "}
-              pour participer à la discussion.
+                {t.login}
+              </Link>
+              {t.login_to_comment.includes("to join") ? "to join the discussion." : "pour participer à la discussion."}
             </p>
           </div>
         )}

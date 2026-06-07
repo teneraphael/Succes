@@ -6,8 +6,11 @@ import kyInstance from "@/lib/ky";
 import { PostsPage } from "@/lib/types";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { Loader2, RefreshCw, Users } from "lucide-react";
+import { useLanguage } from "@/components/LanguageProvider";
 
 export default function FollowingFeed() {
+  const { t } = useLanguage();
+
   const {
     data,
     fetchNextPage,
@@ -27,22 +30,18 @@ export default function FollowingFeed() {
         .json<PostsPage>(),
     initialPageParam: null as string | null,
     getNextPageParam: (lastPage) => lastPage.nextCursor,
-    // ✅ 3 tentatives automatiques avec délai exponentiel (max 30s) si réseau instable
     retry: 3,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 
   const posts = data?.pages.flatMap((page) => page.posts) || [];
 
-  // ✅ Skeleton custom — cohérent avec le style DealCity
+  // ✅ Skeleton
   if (status === "pending") {
     return (
       <div className="space-y-5">
         {Array.from({ length: 3 }).map((_, i) => (
-          <div
-            key={i}
-            className="rounded-3xl border border-border/40 bg-card p-5 space-y-4 animate-pulse"
-          >
+          <div key={i} className="rounded-3xl border border-border/40 bg-card p-5 space-y-4 animate-pulse">
             <div className="flex items-center gap-3">
               <div className="size-10 rounded-full bg-muted shrink-0" />
               <div className="space-y-1.5 flex-1">
@@ -61,7 +60,7 @@ export default function FollowingFeed() {
     );
   }
 
-  // ✅ État erreur avec bouton réessayer — style DealCity
+  // ✅ Erreur traduite
   if (status === "error") {
     return (
       <div className="flex flex-col items-center justify-center py-16 gap-4">
@@ -70,10 +69,10 @@ export default function FollowingFeed() {
         </div>
         <div className="text-center space-y-1.5">
           <p className="font-black text-foreground text-sm uppercase tracking-tight">
-            Erreur de chargement
+            {t.error_loading}
           </p>
           <p className="text-xs text-muted-foreground font-medium">
-            Impossible de charger vos abonnements. Vérifiez votre connexion.
+            {t.no_posts}
           </p>
         </div>
         <button
@@ -82,14 +81,14 @@ export default function FollowingFeed() {
         >
           <RefreshCw className="size-3.5" />
           <span className="text-[10px] font-black uppercase tracking-widest">
-            Réessayer
+            {t.retry}
           </span>
         </button>
       </div>
     );
   }
 
-  // ✅ État vide — incite à suivre des vendeurs
+  // ✅ État vide traduit
   if (status === "success" && !posts.length && !hasNextPage) {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-4">
@@ -101,13 +100,12 @@ export default function FollowingFeed() {
         </div>
         <div className="text-center space-y-1.5">
           <p className="font-black text-foreground text-sm uppercase tracking-tight">
-            Aucun post pour l&apos;instant
+            {t.no_posts}
           </p>
           <p className="text-xs text-muted-foreground font-medium max-w-[220px] leading-relaxed">
-            Suivez des vendeurs pour voir leurs articles apparaître ici.
+            {t.private_section_desc}
           </p>
         </div>
-        {/* Badge DealCity */}
         <div className="flex items-center gap-2 px-4 py-2 bg-[#4a90e2]/5 border border-[#4a90e2]/10 rounded-full">
           <div className="size-1.5 rounded-full bg-[#6ab344] animate-pulse" />
           <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">
@@ -127,12 +125,12 @@ export default function FollowingFeed() {
         <Post key={post.id} post={post} />
       ))}
 
-      {/* ✅ Loader pagination — couleur DealCity */}
+      {/* ✅ Loader pagination traduit */}
       {isFetchingNextPage && (
         <div className="flex items-center justify-center gap-2 py-5">
           <Loader2 className="size-4 animate-spin text-[#4a90e2]" />
           <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-            Chargement...
+            {t.loading}
           </span>
         </div>
       )}
