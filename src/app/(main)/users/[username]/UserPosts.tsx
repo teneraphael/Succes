@@ -31,7 +31,11 @@ const isExternalImage = (url: string) =>
 function ProductCard({ post, index, onClick }: { post: any; index: number; onClick: () => void }) {
   const { t } = useLanguage();
   const { productName, price } = extractInfo(post.content);
+
+  // ✅ Priorité image, sinon première vidéo
   const firstImage = post.attachments?.find((m: any) => m.type === "IMAGE")?.url;
+  const firstVideo = post.attachments?.find((m: any) => m.type === "VIDEO")?.url;
+  const isVideo = !firstImage && !!firstVideo;
   const imageCount = post.attachments?.filter((m: any) => m.type === "IMAGE").length || 0;
   const isAvailable = (post.stock ?? 0) > 0 || post.variants?.some((v: any) => v.stock > 0);
 
@@ -44,6 +48,8 @@ function ProductCard({ post, index, onClick }: { post: any; index: number; onCli
       className="relative cursor-pointer rounded-2xl overflow-hidden bg-card border border-border/60 shadow-sm hover:shadow-md transition-all active:scale-[0.98] group"
     >
       <div className="relative w-full aspect-square overflow-hidden bg-zinc-100 dark:bg-zinc-900">
+
+        {/* ✅ Image en priorité */}
         {firstImage ? (
           <Image
             src={firstImage}
@@ -53,13 +59,31 @@ function ProductCard({ post, index, onClick }: { post: any; index: number; onCli
             className="object-cover transition-transform duration-500 group-hover:scale-105"
             unoptimized={isExternalImage(firstImage)}
           />
+        ) : isVideo ? (
+          // ✅ Miniature vidéo — lecture silencieuse en boucle
+          <video
+            src={firstVideo}
+            className="w-full h-full object-cover"
+            muted
+            autoPlay
+            loop
+            playsInline
+            preload="metadata"
+          />
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-muted/50">
             <ShoppingBag className="size-10 text-muted-foreground/30" />
           </div>
         )}
 
-        {/* ✅ Badge épuisé traduit */}
+        {/* ✅ Badge vidéo */}
+        {isVideo && (
+          <div className="absolute top-2 left-2 bg-black/60 text-white text-[8px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-wider backdrop-blur-sm">
+            ▶ Video
+          </div>
+        )}
+
+        {/* Badge épuisé */}
         {!isAvailable && (
           <div className="absolute inset-0 bg-black/50 flex items-center justify-center backdrop-blur-[1px]">
             <span className="text-white text-[9px] font-black uppercase tracking-widest bg-red-500 px-2 py-1 rounded-full">
@@ -68,12 +92,14 @@ function ProductCard({ post, index, onClick }: { post: any; index: number; onCli
           </div>
         )}
 
+        {/* Badge multiple images */}
         {imageCount > 1 && (
           <div className="absolute top-2 right-2 bg-black/60 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full backdrop-blur-sm">
             +{imageCount}
           </div>
         )}
 
+        {/* Compteur likes */}
         <div className="absolute bottom-2 left-2 bg-black/50 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full backdrop-blur-sm flex items-center gap-1">
           ❤️ {post._count?.likes || 0}
         </div>
@@ -143,7 +169,6 @@ export default function UserPosts({ userId }: UserPostsProps) {
 
   if (status === "pending") return <GridSkeleton />;
 
-  // ✅ Erreur traduite
   if (status === "error") {
     return (
       <p className="text-center text-destructive text-sm py-10">
@@ -152,7 +177,6 @@ export default function UserPosts({ userId }: UserPostsProps) {
     );
   }
 
-  // ✅ État vide traduit
   if (status === "success" && !posts.length) {
     return (
       <div className="flex flex-col items-center justify-center py-16 gap-4">

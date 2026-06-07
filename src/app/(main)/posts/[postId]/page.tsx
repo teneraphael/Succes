@@ -6,12 +6,11 @@ import UserAvatar from "@/components/UserAvatar";
 import UserTooltip from "@/components/UserTooltip";
 import prisma from "@/lib/prisma";
 import { getPostDataInclude, UserData } from "@/lib/types";
-import { Loader2, ChevronLeft, ChevronRight, Grid2X2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { cache, Suspense } from "react";
-
 
 interface PageProps {
   params: { postId: string };
@@ -26,51 +25,69 @@ const getPost = cache(async (postId: string, loggedInUserId?: string) => {
   return post;
 });
 
-// Récupérer les posts du même vendeur pour la navigation
-const getSellerPosts = cache(async (userId: string, currentPostId: string) => {
-  const posts = await prisma.post.findMany({
-    where: { userId },
-    orderBy: { createdAt: "desc" },
-    select: { id: true },
-    take: 50,
-  });
-  return posts.map((p) => p.id);
-});
-
-export async function generateMetadata({
-  params: { postId },
-}: PageProps): Promise<Metadata> {
+export async function generateMetadata({ params: { postId } }: PageProps): Promise<Metadata> {
   const post = await getPost(postId);
 
-  const firstImage = post.attachments.find((m) => m.type === "IMAGE")?.url;
-  const productMatch = post.content.match(/🛍️ PRODUIT : (.*)/);
-  const priceMatch = post.content.match(/💰 PRIX : (.*?) FCFA/);
-  const productName = productMatch ? productMatch[1] : post.user.displayName;
-  const price = priceMatch ? `${priceMatch[1]} FCFA` : "";
-  const shareTitle = `${productName} - ${price}`.trim();
+  const origin = process.env.NEXT_PUBLIC_BASE_URL || "https://dealcity.app";
+
+  // ✅ Extraction infos produit
+  const productMatch = post.content.match(/🛍️\s*PRODUIT\s*:\s*(.*)/i);
+  const priceMatch = post.content.match(/💰\s*PRIX\s*:\s*(.*?)\s*FCFA/i);
+  const productName = productMatch ? productMatch[1].trim() : post.user.displayName;
+  const price = priceMatch ? `${priceMatch[1].trim()} FCFA` : "";
+  const shareTitle = price ? `${productName} — ${price}` : productName;
+
   const description =
     post.content.split("📝 DESCRIPTION :")[1]?.trim().slice(0, 150) ||
     post.content.slice(0, 150);
-  const ogImage = firstImage ?? null;
+
+  // ✅ Priorité og:image :
+  // 1. Première image du post
+  // 2. Thumbnail de la vidéo (si thumbnailUrl existe dans le modèle)
+  // 3. Avatar du vendeur
+  // 4. Logo DealCity par défaut
+  const firstImage = post.attachments.find((m) => m.type === "IMAGE")?.url;
+  const firstVideo = post.attachments.find((m) => m.type === "VIDEO");
+  const videoThumbnail = (firstVideo as any)?.thumbnailUrl || null;
+
+  const ogImage =
+    firstImage ||
+    videoThumbnail ||
+    post.user.avatarUrl ||
+    `${origin}/icons/icon-512.png`;
+
+  // ✅ Badge vidéo dans le titre si post vidéo uniquement
+  const isVideoOnly = !firstImage && !!firstVideo;
+  const finalTitle = isVideoOnly ? `▶ ${shareTitle}` : shareTitle;
 
   return {
-    title: shareTitle,
+    title: finalTitle,
     description,
+
+    // ✅ Open Graph — Facebook, WhatsApp, LinkedIn
     openGraph: {
-      title: shareTitle,
+      title: finalTitle,
       description,
-      url: `https://dealcity.app/posts/${postId}`,
+      url: `${origin}/posts/${postId}`,
       siteName: "DealCity",
       type: "article",
-      images: ogImage
-        ? [{ url: ogImage, width: 1200, height: 630, type: "image/jpeg" }]
-        : [],
+      locale: "fr_CM",
+      images: [
+        {
+          url: ogImage,
+          width: 1200,
+          height: 630,
+          alt: productName,
+        },
+      ],
     },
+
+    // ✅ Twitter Card — TikTok bio link
     twitter: {
       card: "summary_large_image",
-      title: shareTitle,
+      title: finalTitle,
       description,
-      images: ogImage ? [ogImage] : [],
+      images: [ogImage],
     },
   };
 }
@@ -102,6 +119,7 @@ export default async function Page({ params: { postId } }: PageProps) {
     </main>
   );
 }
+
 interface UserInfoSidebarProps {
   user: UserData;
 }
@@ -111,29 +129,36 @@ async function UserInfoSidebar({ user }: UserInfoSidebarProps) {
   if (!loggedInUser) return null;
 
   return (
-    <div className="space-y-5 rounded-2xl bg-card p-5 shadow-sm border">
-      <div className="text-xl font-bold">À propos du vendeur</div>
+    <div className="space-y-5 rounded-2xl bg-card p-5 shadow-sm border border-border/60">
+      <div className="flex items-center gap-2.5">
+        <div className="size-7 rounded-lg bg-[#4a90e2]/10 border border-[#4a90e2]/20 flex items-center justify-center">
+          <UserAvatar avatarUrl={user.avatarUrl} size={28} />
+        </div>
+        <p className="text-xs font-black uppercase tracking-widest text-foreground">
+          A propos du vendeur
+        </p>
+      </div>
+
       <UserTooltip user={user}>
-        <Link
-          href={`/users/${user.username}`}
-          className="flex items-center gap-3"
-        >
-          <UserAvatar avatarUrl={user.avatarUrl} className="flex-none" />
-          <div>
-            <p className="line-clamp-1 break-all font-semibold hover:underline">
+        <Link href={`/users/${user.username}`} className="flex items-center gap-3 group">
+          <UserAvatar avatarUrl={user.avatarUrl} size={40} className="shrink-0" />
+          <div className="min-w-0">
+            <p className="line-clamp-1 break-all text-sm font-bold text-foreground group-hover:text-[#4a90e2] transition-colors">
               {user.displayName}
             </p>
-            <p className="line-clamp-1 break-all text-muted-foreground text-sm">
+            <p className="line-clamp-1 break-all text-xs text-muted-foreground">
               @{user.username}
             </p>
           </div>
         </Link>
       </UserTooltip>
+
       <Linkify>
-        <div className="line-clamp-6 whitespace-pre-line break-words text-muted-foreground text-sm">
+        <div className="line-clamp-6 whitespace-pre-line break-words text-xs text-muted-foreground leading-relaxed">
           {user.bio}
         </div>
       </Linkify>
+
       {user.id !== loggedInUser.id && (
         <FollowButton
           userId={user.id}

@@ -17,21 +17,18 @@ import UserPosts from "./UserPosts";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import BookmarksFeed from "@/app/(main)/bookmarks/Bookmarks";
 import ZoomableImage from "@/components/ZoomableImage";
-import { Calendar, Store, ShieldCheck, CheckCircle2 } from "lucide-react";
+import { Calendar, ShieldCheck, CheckCircle2 } from "lucide-react";
 import ShareProfileButton from "./ShareProfileButton";
 import MoreOptionsButton from "./MoreOptionsButton";
 import {
-  ProfileTabs,
-  ProfileStats,
-  OnlineBadge,
-  MemberSince,
-  DefaultBio,
+  ProfileTabs, ProfileStats, OnlineBadge, MemberSince, DefaultBio,
 } from "./UserProfileClient";
 
 interface PageProps {
   params: Promise<{ username: string }>;
 }
 
+// ✅ getUser sans nécessiter un loggedInUserId — accessible publiquement
 const getUser = cache(async (username: string, loggedInUserId: string) => {
   const user = await prisma.user.findFirst({
     where: { username: { equals: username, mode: "insensitive" } },
@@ -41,37 +38,133 @@ const getUser = cache(async (username: string, loggedInUserId: string) => {
   return user;
 });
 
+// ✅ Version publique pour les métadonnées — pas besoin d'être connecté
+const getUserPublic = cache(async (username: string) => {
+  return prisma.user.findFirst({
+    where: { username: { equals: username, mode: "insensitive" } },
+    select: {
+      id: true,
+      displayName: true,
+      username: true,
+      avatarUrl: true,
+      coverUrl: true,
+      bio: true,
+      isSeller: true,
+      _count: {
+        select: {
+          posts: true,
+          followers: true,
+        },
+      },
+      // ✅ 3 premiers produits pour l'og:description
+      posts: {
+        take: 3,
+        orderBy: { createdAt: "desc" },
+        select: { content: true },
+      },
+    },
+  });
+});
+
+// ✅ Metadata optimisée pour Facebook, Instagram, TikTok, WhatsApp
 export async function generateMetadata(props: PageProps): Promise<Metadata> {
   const { username } = await props.params;
-  const { user: loggedInUser } = await validateRequest();
-  if (!loggedInUser) return {};
-  try {
-    const user = await getUser(username, loggedInUser.id);
-    return { title: `${user.displayName} — DealCity` };
-  } catch {
-    return { title: "Profil introuvable" };
-  }
+
+  const user = await getUserPublic(username);
+  if (!user) return { title: "Profil introuvable — DealCity" };
+
+  const origin = process.env.NEXT_PUBLIC_BASE_URL || "https://dealcity.app";
+
+  // ✅ Extraction des noms de produits pour la description
+  const productNames = user.posts
+    .map((p) => {
+      const match = p.content.match(/🛍️\s*PRODUIT\s*:\s*(.*)/i);
+      return match ? match[1].trim() : null;
+    })
+    .filter(Boolean)
+    .slice(0, 3);
+
+  // ✅ Description riche pour les réseaux sociaux
+  const description = user.isSeller
+    ? productNames.length > 0
+      ? `🛍️ ${productNames.join(" · ")} — Boutique de ${user.displayName} sur DealCity Cameroun. ${user._count.posts} produits disponibles.`
+      : `Boutique de ${user.displayName} sur DealCity — ${user._count.posts} produits disponibles. Commandez via WhatsApp !`
+    : user.bio || `Profil de ${user.displayName} sur DealCity Cameroun.`;
+
+  // ✅ Image OG — cover si disponible, sinon avatar, sinon image par défaut
+  const ogImage = user.coverUrl || user.avatarUrl || `${origin}/icons/icon-512.png`;
+
+  return {
+    title: user.isSeller
+      ? `${user.displayName} — Boutique DealCity`
+      : `${user.displayName} — DealCity`,
+    description,
+
+    // ✅ Open Graph — Facebook, WhatsApp, LinkedIn
+    openGraph: {
+      type: "profile",
+      title: user.isSeller
+        ? `🛍️ ${user.displayName} — Boutique sur DealCity`
+        : `${user.displayName} sur DealCity`,
+      description,
+      url: `${origin}/users/${user.username}`,
+      siteName: "DealCity",
+      locale: "fr_CM",
+      images: [
+        {
+          url: ogImage,
+          width: 1200,
+          height: 630,
+          alt: `Boutique de ${user.displayName} sur DealCity`,
+        },
+      ],
+    },
+
+    // ✅ Twitter Card — pour TikTok bio link et Twitter
+    twitter: {
+      card: "summary_large_image",
+      title: user.isSeller
+        ? `🛍️ ${user.displayName} — DealCity`
+        : `${user.displayName} — DealCity`,
+      description,
+      images: [ogImage],
+    },
+
+    // ✅ Autres métadonnées utiles
+    alternates: {
+      canonical: `${origin}/users/${user.username}`,
+    },
+    robots: {
+      index: true,
+      follow: true,
+    },
+  };
 }
 
 export default async function Page(props: PageProps) {
   const { username } = await props.params;
   const { user: loggedInUser } = await validateRequest();
 
-  if (!loggedInUser) redirect("/login");
-  if (username.toLowerCase() === "me") redirect(`/users/${loggedInUser.username}`);
+  // ✅ Redirige "me" vers le profil connecté
+  if (username.toLowerCase() === "me") {
+    if (!loggedInUser) redirect("/login");
+    redirect(`/users/${loggedInUser.username}`);
+  }
 
-  const user = await getUser(username, loggedInUser.id);
-  const isUserProfile = user.id === loggedInUser.id;
+  // ✅ Page publique — pas de redirect si non connecté
+  const user = await getUser(username, loggedInUser?.id ?? "");
+  const isUserProfile = loggedInUser ? user.id === loggedInUser.id : false;
 
   return (
     <main className="flex w-full min-w-0 gap-0 lg:gap-8 items-start">
       <div className="w-full min-w-0 flex-1 space-y-4 lg:space-y-6">
-        <UserProfile user={user as any} loggedInUserId={loggedInUser.id} />
+        <UserProfile
+          user={user as any}
+          loggedInUserId={loggedInUser?.id ?? ""}
+        />
 
         <div className="w-full">
           <Tabs defaultValue="posts" className="w-full">
-
-            {/* ✅ Onglets traduits via composant client */}
             <ProfileTabs isUserProfile={isUserProfile} />
 
             <TabsContent value="posts" className="outline-none pt-4 w-full">
@@ -140,8 +233,6 @@ async function UserProfile({ user, loggedInUserId }: UserProfileProps) {
             <div className="absolute -top-6 -left-6 w-32 h-32 rounded-full bg-[#6ab344]/10 blur-2xl" />
           </div>
         )}
-
-        {/* ✅ Badge en ligne traduit */}
         <OnlineBadge />
       </div>
 
@@ -168,10 +259,12 @@ async function UserProfile({ user, loggedInUserId }: UserProfileProps) {
           </div>
 
           <div className="flex items-center gap-2 pb-1">
-            {user.id === loggedInUserId ? (
+            {loggedInUserId && user.id === loggedInUserId ? (
               <EditProfileButton user={user} />
             ) : (
-              <FollowButton userId={user.id} initialState={followerInfo} />
+              loggedInUserId && (
+                <FollowButton userId={user.id} initialState={followerInfo} />
+              )
             )}
             <ShareProfileButton username={user.username} />
             <MoreOptionsButton />
@@ -191,7 +284,6 @@ async function UserProfile({ user, loggedInUserId }: UserProfileProps) {
             <span className="text-border/70 select-none">·</span>
             <div className="flex items-center gap-1">
               <Calendar className="size-3 opacity-60" />
-              {/* ✅ Date membre traduite */}
               <MemberSince dateFormatted={dateFormatted} />
             </div>
           </div>
@@ -203,16 +295,10 @@ async function UserProfile({ user, loggedInUserId }: UserProfileProps) {
             Market
           </div>
           <p className="text-xs text-muted-foreground font-medium leading-relaxed flex-1">
-            {user.bio ? (
-              <Linkify>{user.bio}</Linkify>
-            ) : (
-              // ✅ Bio par défaut traduite
-              <DefaultBio />
-            )}
+            {user.bio ? <Linkify>{user.bio}</Linkify> : <DefaultBio />}
           </p>
         </div>
 
-        {/* ✅ Stats traduites */}
         <ProfileStats
           postsCount={formatNumber(user._count.posts) as unknown as number}
           followersNode={<FollowerCount userId={user.id} initialState={followerInfo} />}
