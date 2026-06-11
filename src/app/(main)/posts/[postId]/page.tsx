@@ -41,20 +41,29 @@ export async function generateMetadata({ params: { postId } }: PageProps): Promi
     post.content.split("📝 DESCRIPTION :")[1]?.trim().slice(0, 150) ||
     post.content.slice(0, 150);
 
-  // ✅ Priorité og:image :
-  // 1. Première image du post
-  // 2. Thumbnail de la vidéo (si thumbnailUrl existe dans le modèle)
-  // 3. Avatar du vendeur
-  // 4. Logo DealCity par défaut
+  // ✅ Gestion robuste des images (Correction bug aperçu vidéo vide/flou)
   const firstImage = post.attachments.find((m) => m.type === "IMAGE")?.url;
   const firstVideo = post.attachments.find((m) => m.type === "VIDEO");
   const videoThumbnail = (firstVideo as any)?.thumbnailUrl || null;
 
-  const ogImage =
-    firstImage ||
-    videoThumbnail ||
-    post.user.avatarUrl ||
-    `${origin}/icons/icon-512.png`;
+  let rawOgImage = "";
+
+  if (firstImage) {
+    // 1. Si le post contient une image, on la prend en priorité
+    rawOgImage = firstImage;
+  } else if (firstVideo) {
+    // 2. Si c'est une vidéo, on prend sa miniature. 
+    // Si la miniature n'existe pas, on met une image par défaut spéciale vidéo pour WhatsApp
+    rawOgImage = videoThumbnail || "/images/default-video-preview.png";
+  } else {
+    // 3. Si aucun média, on prend l'avatar ou l'icône de l'application
+    rawOgImage = post.user.avatarUrl || "/icons/icon-512.png";
+  }
+
+  // 🔥 CORRECTIF : Si l'URL choisie est un chemin relatif, on force l'URL absolue pour WhatsApp
+  if (rawOgImage.startsWith("/")) {
+    rawOgImage = `${origin}${rawOgImage}`;
+  }
 
   // ✅ Badge vidéo dans le titre si post vidéo uniquement
   const isVideoOnly = !firstImage && !!firstVideo;
@@ -74,7 +83,7 @@ export async function generateMetadata({ params: { postId } }: PageProps): Promi
       locale: "fr_CM",
       images: [
         {
-          url: ogImage,
+          url: rawOgImage,
           width: 1200,
           height: 630,
           alt: productName,
@@ -82,12 +91,12 @@ export async function generateMetadata({ params: { postId } }: PageProps): Promi
       ],
     },
 
-    // ✅ Twitter Card — TikTok bio link
+    // ✅ Twitter Card
     twitter: {
       card: "summary_large_image",
       title: finalTitle,
       description,
-      images: [ogImage],
+      images: [rawOgImage],
     },
   };
 }
