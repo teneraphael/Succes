@@ -11,6 +11,12 @@ const useAutoplayOnVisible = (videoRef, threshold = 0.5) => {
     const callback = (entries) => {
       entries.forEach(entry => {
         if (entry.isIntersecting) {
+          // ✅ ÉTAPE 1 : On vérifie si la vidéo a un attribut "src" valide et n'est pas vide (readyState > 0)
+          // Si le "src" a été retiré par le cleanup du composant, on avorte pour éviter le crash.
+          if (!videoElement.src || videoElement.src === window.location.href || videoElement.readyState === 0) {
+            return;
+          }
+
           // On tente de lancer la vidéo
           const playPromise = videoElement.play();
           
@@ -22,12 +28,23 @@ const useAutoplayOnVisible = (videoRef, threshold = 0.5) => {
                */
               console.warn("Autoplay avec son bloqué, passage en muet auto.");
               videoElement.muted = true;
-              videoElement.play();
+              
+              // ✅ ÉTAPE 2 : On revérifie la source avant le deuxième play de secours
+              if (videoElement.src && videoElement.src !== window.location.href && videoElement.readyState > 0) {
+                videoElement.play().catch(fallbackError => {
+                  console.warn(
+                    "La lecture en mode muet a échoué ou a été interrompue (ex: scroll trop rapide) :", 
+                    fallbackError.message
+                  );
+                });
+              }
             });
           }
         } else {
           // Mise en pause quand on scrolle et que la vidéo sort de l'écran
-          videoElement.pause();
+          if (videoElement.src && videoElement.src !== window.location.href && videoElement.readyState > 0) {
+            videoElement.pause();
+          }
         }
       });
     };

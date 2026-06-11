@@ -25,10 +25,12 @@ const VideoPost = ({ src, className, style, setIsGlobalPlaying, muted: forcedMut
   const [isPaused, setIsPaused] = useState(false);
   const [progress, setProgress] = useState(0);
 
-  // ✅ Gestion événements globaux + nettoyage
+  // ✅ Gestion événements globaux + nettoyage sécurisé
   useEffect(() => {
     const handleVisibilityChange = () => {
-      if (document.hidden && videoRef.current) videoRef.current.pause();
+      if (document.hidden && videoRef.current) {
+        videoRef.current.pause();
+      }
     };
 
     const handleGlobalMuteChange = (e: any) => {
@@ -41,14 +43,33 @@ const VideoPost = ({ src, className, style, setIsGlobalPlaying, muted: forcedMut
     return () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       window.removeEventListener(MUTE_EVENT, handleGlobalMuteChange);
+      
       if (videoRef.current) {
+        // ✅ CORRECTION : On met en pause proprement sans vider brutalement le 'src' 
+        // pour ne pas faire planter l'Intersection Observer asynchrone pendant le scroll
         videoRef.current.pause();
-        videoRef.current.removeAttribute('src');
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-        videoRef.current.load();
       }
     };
   }, []);
+
+  // ✅ Charger la source de manière contrôlée
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !src) return;
+
+    // Assigner la source et charger la métadonnée
+    video.src = src;
+    video.load();
+
+    return () => {
+      // Nettoyage au démontage ou changement de source
+      video.pause();
+      video.removeAttribute('src');
+      try {
+        video.load();
+      } catch (_) {}
+    };
+  }, [src]);
 
   useAutoplayOnVisible(videoRef, 0.5);
 
@@ -68,7 +89,7 @@ const VideoPost = ({ src, className, style, setIsGlobalPlaying, muted: forcedMut
   const handleTimeUpdate = () => {
     if (videoRef.current) {
       const currentProgress = (videoRef.current.currentTime / videoRef.current.duration) * 100;
-      setProgress(currentProgress);
+      setProgress(isNaN(currentProgress) ? 0 : currentProgress);
     }
   };
 
@@ -82,10 +103,13 @@ const VideoPost = ({ src, className, style, setIsGlobalPlaying, muted: forcedMut
   const handleVideoClick = useCallback(async (e: React.MouseEvent) => {
     e.stopPropagation();
     const video = videoRef.current;
-    if (!video) return;
+    if (!video || !video.src || video.readyState === 0) return;
     try {
-      if (video.paused) { await video.play(); }
-      else { video.pause(); }
+      if (video.paused) { 
+        await video.play(); 
+      } else { 
+        video.pause(); 
+      }
     } catch (err) {
       console.warn("Interaction video bloquee par le navigateur:", err);
     }
@@ -97,9 +121,8 @@ const VideoPost = ({ src, className, style, setIsGlobalPlaying, muted: forcedMut
       {/* Lecteur vidéo */}
       <video
         ref={videoRef}
-        src={src}
-        className="w-full h-full object-cover block cursor-pointer transition-transform duration-500"
-        style={style}
+        className="absolute inset-0 w-full h-full object-cover block cursor-pointer transition-transform duration-500"
+        style={{ ...style, objectFit: 'cover' }}
         loop
         muted={isMuted && !forcedMuted}
         playsInline
@@ -119,7 +142,6 @@ const VideoPost = ({ src, className, style, setIsGlobalPlaying, muted: forcedMut
           if (setIsGlobalPlaying) setIsGlobalPlaying(false);
         }}
       >
-        {/* ✅ Message navigateur traduit */}
         {t.error_loading}
       </video>
 
@@ -144,7 +166,7 @@ const VideoPost = ({ src, className, style, setIsGlobalPlaying, muted: forcedMut
         </div>
       )}
 
-      {/* ✅ Bouton son avec aria-label traduit */}
+      {/* Bouton son */}
       {!forcedMuted && (
         <button
           onClick={toggleMute}
@@ -159,7 +181,7 @@ const VideoPost = ({ src, className, style, setIsGlobalPlaying, muted: forcedMut
         </button>
       )}
 
-      {/* ✅ Badge type média traduit */}
+      {/* Badge type média */}
       <div className="absolute bottom-4 left-4 z-20 rounded-lg bg-black/40 px-2.5 py-1 text-[9px] font-black uppercase text-zinc-100 tracking-widest backdrop-blur-md pointer-events-none border border-white/5 shadow-sm">
         {t.videos}
       </div>

@@ -109,7 +109,6 @@ export default function Post({ post }: PostProps) {
   const visualAttachments = post.attachments.filter((m: any) => m.type !== "AUDIO");
   const finalAudioUrl = post.audioUrl || audioMedia?.url;
 
-  // ✅ Message WhatsApp traduit selon la langue active
   const handleWhatsApp = () => {
     if (!isAvailable) {
       toast({ variant: "destructive", description: t.product_unavailable, duration: 2000 });
@@ -183,7 +182,6 @@ export default function Post({ post }: PostProps) {
               {productName}
             </h3>
           )}
-          {/* ✅ Badge stock traduit */}
           {isAvailable ? (
             <span className="inline-flex text-[9px] font-black uppercase tracking-widest text-[#6ab344] bg-[#6ab344]/10 px-2 py-0.5 rounded-md border border-[#6ab344]/20">
               {t.available} ({currentStock})
@@ -229,7 +227,7 @@ export default function Post({ post }: PostProps) {
         />
       </div>
 
-      {/* ✅ Bouton WhatsApp : Remplacement de t.order_whatsapp par l'alternative de discussion */}
+      {/* Bouton WhatsApp */}
       <div className="px-5 pt-1">
         <button
           onClick={handleWhatsApp}
@@ -311,45 +309,72 @@ function MediaPreviews({ attachments, audioUrl, postId, attributes, selectedAttr
       {count > 0 && (
         <div className="relative w-full bg-zinc-950 overflow-hidden">
           {audioUrl && <audio src={audioUrl} loop className="hidden" />}
-          <div
-            onClick={() => router.push(`/posts/${postId}/photos`, { scroll: false })}
-            className={cn(
-              "grid gap-[2px] w-full cursor-pointer hover:opacity-95 transition-opacity",
-              count === 1 ? "grid-cols-1" : "grid-cols-2",
-              count >= 3 ? "aspect-square" : "aspect-video"
-            )}
-          >
-            {displayedMedia.map((m: any, i: number) => (
-              <motion.div
-                key={m.id || i}
-                layoutId={`post-image-${m.id}`}
-                className={cn(
-                  "relative overflow-hidden bg-zinc-900",
-                  count === 3 && i === 0 ? "row-span-2" : "",
-                  count === 1 ? "h-[480px]" : "h-full"
-                )}
-              >
-                {m.type === "IMAGE" ? (
-                  <Image
-                    src={m.url}
-                    alt="Product"
-                    fill
-                    sizes="(max-width: 768px) 100vw, 600px"
-                    className="object-cover transition-transform duration-500 hover:scale-105"
-                    priority={i === 0}
-                    unoptimized={isExternalImage(m.url)}
-                  />
-                ) : (
-                  <VideoPost src={m.url} />
-                )}
-                {count > 4 && i === 3 && (
-                  <div className="absolute inset-0 bg-black/70 flex items-center justify-center z-10 backdrop-blur-[2px]">
-                    <span className="text-white text-2xl font-black italic">+{count - 3}</span>
-                  </div>
-                )}
-              </motion.div>
-            ))}
-          </div>
+          
+          {/* S'il y a un seul média */}
+          {count === 1 ? (
+            <div 
+              onClick={() => router.push(`/posts/${postId}/photos`, { scroll: false })}
+              className="w-full h-[500px] md:h-[580px] relative cursor-pointer overflow-hidden bg-zinc-950"
+            >
+              {displayedMedia[0].type === "IMAGE" ? (
+                <Image
+                  src={displayedMedia[0].url}
+                  alt="Product"
+                  fill
+                  sizes="(max-width: 768px) 100vw, 600px"
+                  className="object-cover"
+                  priority
+                  unoptimized={isExternalImage(displayedMedia[0].url)}
+                />
+              ) : (
+                // ✅ ENVELOPPE CORRECTE : On remet un conteneur absolu strict pour que la vidéo s'affiche à 100% sans disparaître ni faire de barre noire
+                <div className="absolute inset-0 w-full h-full [&_video]:w-full [&_video]:h-full [&_video]:object-cover">
+                  <VideoPost src={displayedMedia[0].url} />
+                </div>
+              )}
+            </div>
+          ) : (
+            /* Comportement Mosaïque si plusieurs images/vidéos */
+            <div
+              onClick={() => router.push(`/posts/${postId}/photos`, { scroll: false })}
+              className={cn(
+                "grid gap-[2px] w-full cursor-pointer hover:opacity-95 transition-opacity grid-cols-2 aspect-square"
+              )}
+            >
+              {displayedMedia.map((m: any, i: number) => (
+                <motion.div
+                  key={m.id || i}
+                  layoutId={`post-image-${m.id}`}
+                  className={cn(
+                    "relative overflow-hidden bg-zinc-900",
+                    count === 3 && i === 0 ? "row-span-2" : "",
+                    "h-full"
+                  )}
+                >
+                  {m.type === "IMAGE" ? (
+                    <Image
+                      src={m.url}
+                      alt="Product"
+                      fill
+                      sizes="(max-width: 768px) 100vw, 600px"
+                      className="object-cover transition-transform duration-500 hover:scale-105"
+                      priority={i === 0}
+                      unoptimized={isExternalImage(m.url)}
+                    />
+                  ) : (
+                    <div className="absolute inset-0 w-full h-full [&_video]:w-full [&_video]:h-full [&_video]:object-cover">
+                      <VideoPost src={m.url} />
+                    </div>
+                  )}
+                  {count > 4 && i === 3 && (
+                    <div className="absolute inset-0 bg-black/70 flex items-center justify-center z-10 backdrop-blur-[2px]">
+                      <span className="text-white text-2xl font-black italic">+{count - 3}</span>
+                    </div>
+                  )}
+                </motion.div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
