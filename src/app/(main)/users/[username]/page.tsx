@@ -5,6 +5,7 @@ import Linkify from "@/components/Linkify";
 import TrendsSidebar from "@/components/TrendsSidebar";
 import UserAvatar from "@/components/UserAvatar";
 import prisma from "@/lib/prisma";
+import ProfileStickyHeader from "./ProfileStickyHeader";
 import { FollowerInfo, getUserDataSelect, UserData } from "@/lib/types";
 import { formatNumber } from "@/lib/utils";
 import { formatDate } from "date-fns";
@@ -95,6 +96,7 @@ export default async function Page(props: PageProps) {
   const isUserProfile = loggedInUser ? user.id === loggedInUser.id : false;
 
   return (
+    
     <main className="flex w-full min-w-0 gap-0 lg:gap-8 items-start">
       <div className="w-full min-w-0 flex-1">
         
@@ -102,7 +104,12 @@ export default async function Page(props: PageProps) {
         <UserProfileCover user={user as any} />
 
         {/* ✅ Header sticky — avatar + nom restent visibles pendant le scroll */}
-        <UserProfileStickyHeader user={user as any} loggedInUserId={loggedInUser?.id ?? ""} />
+       <ProfileStickyHeader
+  displayName={user.displayName}
+  username={user.username}
+  avatarUrl={user.avatarUrl}
+  isAdmin={user.username.toLowerCase() === "dealcity"}
+/>
 
         {/* ✅ Infos complètes — scrolle normalement */}
         <UserProfileBody
@@ -173,59 +180,6 @@ async function UserProfileCover({ user }: { user: UserData & { coverUrl?: string
   );
 }
 
-// ✅ Header sticky — avatar mini + nom + boutons — style X/Twitter
-async function UserProfileStickyHeader({ user, loggedInUserId }: UserProfileProps) {
-  const { user: loggedInUser } = await validateRequest();
-  const isAdmin = user.username.toLowerCase() === "dealcity";
-
-  const followerInfo: FollowerInfo = {
-    followers: user._count.followers,
-    isFollowedByUser: user.followers.some(({ followerId }) => followerId === loggedInUserId),
-  };
-
-  return (
-    <div className="sticky top-[3.5rem] sm:top-[4rem] z-30 w-full bg-card/90 backdrop-blur-md border-b border-border/40 px-4 sm:px-6 py-2.5 flex items-center justify-between gap-3">
-      {/* ✅ Avatar mini + nom */}
-      <div className="flex items-center gap-3 min-w-0">
-        <div className="p-[2px] rounded-full bg-gradient-to-br from-[#4a90e2] to-[#6ab344] shrink-0">
-          <div className="p-0.5 bg-card rounded-full">
-            <ZoomableImage
-              src={user.avatarUrl || "/icons/icon-192.png"}
-              alt="Avatar"
-              size={36}
-              className="size-8 rounded-full object-cover"
-            />
-          </div>
-        </div>
-        <div className="min-w-0">
-          <div className="flex items-center gap-1.5">
-            <p className="text-sm font-black text-foreground truncate leading-none">
-              {user.displayName}
-            </p>
-            {isAdmin && (
-              <CheckCircle2 className="size-3.5 text-[#4a90e2] fill-[#4a90e2]/15 stroke-[2.5] shrink-0" />
-            )}
-          </div>
-          <p className="text-[10px] text-muted-foreground font-bold">
-            @{user.username}
-          </p>
-        </div>
-      </div>
-
-      {/* ✅ Boutons actions */}
-      <div className="flex items-center gap-2 shrink-0">
-        {loggedInUserId && user.id === loggedInUserId ? (
-          <EditProfileButton user={user} />
-        ) : (
-          loggedInUserId && (
-            <FollowButton userId={user.id} initialState={followerInfo} />
-          )
-        )}
-        <ShareProfileButton username={user.username} />
-      </div>
-    </div>
-  );
-}
 
 // ✅ Corps du profil — bio, stats, infos complètes
 async function UserProfileBody({ user, loggedInUserId }: UserProfileProps) {
