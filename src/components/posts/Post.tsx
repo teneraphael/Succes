@@ -54,10 +54,10 @@ interface PostProps {
 }
 
 const extractInfo = (content: string) => {
-  const productMatch = content.match(/🛍️\s*PRODUIT\s*:\s*(.*)/i);
-  const priceMatch = content.match(/💰\s*PRIX\s*:\s*(.*?)\s*FCFA/i);
-  const descMatch = content.match(/📝\s*DESCRIPTION\s*:\s*\n?([\s\S]*?)(?=\n\n🎵|$)/i);
-  const whatsappMatch = content.match(/📞\s*WHATSAPP\s*:\s*(.*)/i);
+  const productMatch = content.match(/\s*PRODUIT\s*:\s*(.*)/i);
+  const priceMatch = content.match(/\s*PRIX\s*:\s*(.*?)\s*FCFA/i);
+  const descMatch = content.match(/\s*DESCRIPTION\s*:\s*\n?([\s\S]*?)(?=\n\n🎵|$)/i);
+  const whatsappMatch = content.match(/\s*WHATSAPP\s*:\s*(.*)/i);
   return {
     productName: productMatch ? productMatch[1].trim() : null,
     price: priceMatch ? priceMatch[1].trim() : null,

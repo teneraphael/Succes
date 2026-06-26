@@ -29,7 +29,7 @@ export default function UserProfileStickyHeader({
 
   return (
     <div className={`
-      sticky top-[3.5rem] sm:top-[4rem] z-30 w-full
+      sticky top-[3.5rem] z-30 w-full
       bg-card/90 backdrop-blur-md border-b border-border/40
       px-4 sm:px-6 py-2.5
       flex items-center justify-between gap-3

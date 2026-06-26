@@ -62,12 +62,12 @@ export async function generateMetadata(props: PageProps): Promise<Metadata> {
 
   const origin = process.env.NEXT_PUBLIC_BASE_URL || "https://dealcity.app";
   const productNames = user.posts
-    .map((p) => { const m = p.content.match(/🛍️\s*PRODUIT\s*:\s*(.*)/i); return m ? m[1].trim() : null; })
+    .map((p) => { const m = p.content.match(/\s*PRODUIT\s*:\s*(.*)/i); return m ? m[1].trim() : null; })
     .filter(Boolean).slice(0, 3);
 
   const description = user.isSeller
     ? productNames.length > 0
-      ? `🛍️ ${productNames.join(" · ")} — Boutique de ${user.displayName} sur DealCity Cameroun. ${user._count.posts} produits disponibles.`
+      ? ` ${productNames.join(" · ")} — Boutique de ${user.displayName} sur DealCity Cameroun. ${user._count.posts} produits disponibles.`
       : `Boutique de ${user.displayName} sur DealCity — ${user._count.posts} produits disponibles. Commandez via WhatsApp !`
     : user.bio || `Profil de ${user.displayName} sur DealCity Cameroun.`;
 
@@ -78,13 +78,13 @@ export async function generateMetadata(props: PageProps): Promise<Metadata> {
     description,
     openGraph: {
       type: "profile",
-      title: user.isSeller ? `🛍️ ${user.displayName} — Boutique sur DealCity` : `${user.displayName} sur DealCity`,
+      title: user.isSeller ? ` ${user.displayName} — Boutique sur DealCity` : `${user.displayName} sur DealCity`,
       description, url: `${origin}/users/${user.username}`, siteName: "DealCity", locale: "fr_CM",
       images: [{ url: ogImage, width: 1200, height: 630, alt: `Boutique de ${user.displayName} sur DealCity` }],
     },
     twitter: {
       card: "summary_large_image",
-      title: user.isSeller ? `🛍️ ${user.displayName} — DealCity` : `${user.displayName} — DealCity`,
+      title: user.isSeller ? ` ${user.displayName} — DealCity` : `${user.displayName} — DealCity`,
       description, images: [ogImage],
     },
     alternates: { canonical: `${origin}/users/${user.username}` },
@@ -106,6 +106,7 @@ export default async function Page(props: PageProps) {
 
   return (
     <main className="flex w-full min-w-0 gap-0 lg:gap-8 items-start">
+      {/* ✅ Pas de space-y ici — le sticky header gère son propre espacement */}
       <div className="w-full min-w-0 flex-1">
 
         <UserProfile
@@ -151,7 +152,7 @@ async function UserProfile({ user, loggedInUserId }: UserProfileProps) {
 
   return (
     <>
-      {/* ✅ Sticky header — avatar + nom restent visibles au scroll */}
+      {/* ✅ Sticky header — s'affiche au scroll */}
       <UserProfileStickyHeader
         user={user}
         loggedInUserId={loggedInUserId}
@@ -159,11 +160,11 @@ async function UserProfile({ user, loggedInUserId }: UserProfileProps) {
         isAdmin={isAdmin}
       />
 
-      {/* ✅ Carte profil complète */}
-      <div className="w-full bg-card text-foreground rounded-none sm:rounded-3xl overflow-hidden border border-border/60 shadow-sm relative">
+      {/* ✅ Carte profil — pas de margin-top, pas de gap avec sticky */}
+      <div className="w-full top-[-3.5rem] bg-card text-foreground rounded-none sm:rounded-3xl overflow-hidden border border-border/60 shadow-sm relative">
 
-        {/* Bannière */}
-        <div className="h-36 sm:h-52 w-full relative overflow-hidden">
+        {/* ✅ Bannière — hauteur réduite pour éviter le décalage avatar */}
+        <div className="h-32 sm:h-44 w-full relative overflow-hidden">
           {user.coverUrl ? (
             <ZoomableImage
               src={user.coverUrl}
@@ -194,7 +195,8 @@ async function UserProfile({ user, loggedInUserId }: UserProfileProps) {
           <OnlineBadge />
         </div>
 
-        <div className="px-4 sm:px-6 pb-6 -mt-14 relative z-10 space-y-4">
+        {/* ✅ -mt-10 sm:-mt-12 — avatar sort moins de la bannière */}
+        <div className="px-4 sm:px-6 pb-6 -mt-10 sm:-mt-12 relative z-10 space-y-4">
 
           {/* Avatar + boutons */}
           <div className="flex items-end justify-between gap-3">
@@ -204,8 +206,8 @@ async function UserProfile({ user, loggedInUserId }: UserProfileProps) {
                   <ZoomableImage
                     src={user.avatarUrl || "/icons/icon-192.png"}
                     alt="Avatar"
-                    size={96}
-                    className="size-20 sm:size-24 rounded-full object-cover cursor-zoom-in"
+                    size={88}
+                    className="size-[80px] sm:size-[88px] rounded-full object-cover cursor-zoom-in"
                   />
                 </div>
               </div>
