@@ -50,39 +50,41 @@ export default function BecomeSellerPage() {
   };
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    if (!user) return;
+  e.preventDefault();
+  if (!user) return;
 
-    setLoading(true);
-    const formData = new FormData(e.currentTarget);
-    const values = Object.fromEntries(formData.entries());
+  setLoading(true);
+  const formData = new FormData(e.currentTarget);
+  const values = Object.fromEntries(formData.entries());
 
-    const phone = values.phoneNumber as string;
-    if (phone && phone.length < 9) {
-      toast({ variant: "destructive", description: "Veuillez entrer un numero valide (ex: 2376xxxxxxxx)." });
-      setLoading(false);
-      return;
-    }
-
-    try {
-      const response = await fetch("/api/users/become-seller", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(values),
-      });
-
-      if (!response.ok) throw new Error("Erreur lors de l'inscription");
-
-      toast({ description: "Felicitations ! Votre boutique DealCity Pro est prete." });
-      router.refresh();
-      router.push(`/users/${user.username}`);
-    } catch (error) {
-      toast({ variant: "destructive", description: "Une erreur est survenue. Veuillez reessayer." });
-    } finally {
-      setLoading(false);
-    }
+  const phone = values.phoneNumber as string;
+  if (phone && phone.length < 9) {
+    toast({ variant: "destructive", description: "Veuillez entrer un numero valide (ex: 2376xxxxxxxx)." });
+    setLoading(false);
+    return;
   }
 
+  try {
+    const response = await fetch("/api/users/become-seller", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(values),
+    });
+
+    if (!response.ok) throw new Error("Erreur lors de l'inscription");
+
+    toast({ description: "Felicitations ! Votre boutique DealCity Pro est prete." });
+
+    // ✅ Redirection vers l'accueil — plus fiable que /users/username
+    // router.refresh() seul ne suffit pas avant la navigation
+    router.push("/");
+    router.refresh();
+
+  } catch (error) {
+    toast({ variant: "destructive", description: "Une erreur est survenue. Veuillez reessayer." });
+    setLoading(false);
+  }
+}
   if (!user || user.isSeller) return null;
 
   return (

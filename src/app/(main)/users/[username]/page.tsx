@@ -5,7 +5,6 @@ import Linkify from "@/components/Linkify";
 import TrendsSidebar from "@/components/TrendsSidebar";
 import UserAvatar from "@/components/UserAvatar";
 import prisma from "@/lib/prisma";
-import ProfileStickyHeader from "./ProfileStickyHeader";
 import { FollowerInfo, getUserDataSelect, UserData } from "@/lib/types";
 import { formatNumber } from "@/lib/utils";
 import { formatDate } from "date-fns";
@@ -21,6 +20,7 @@ import ZoomableImage from "@/components/ZoomableImage";
 import { Calendar, ShieldCheck, CheckCircle2 } from "lucide-react";
 import ShareProfileButton from "./ShareProfileButton";
 import MoreOptionsButton from "./MoreOptionsButton";
+import UserProfileStickyHeader from "./UserProfileStickyHeader";
 import {
   ProfileTabs, ProfileStats, OnlineBadge, MemberSince, DefaultBio,
 } from "./UserProfileClient";
@@ -42,8 +42,13 @@ const getUserPublic = cache(async (username: string) => {
   return prisma.user.findFirst({
     where: { username: { equals: username, mode: "insensitive" } },
     select: {
-      id: true, displayName: true, username: true,
-      avatarUrl: true, coverUrl: true, bio: true, isSeller: true,
+      id: true,
+      displayName: true,
+      username: true,
+      avatarUrl: true,
+      coverUrl: true,
+      bio: true,
+      isSeller: true,
       _count: { select: { posts: true, followers: true } },
       posts: { take: 3, orderBy: { createdAt: "desc" }, select: { content: true } },
     },
@@ -77,7 +82,11 @@ export async function generateMetadata(props: PageProps): Promise<Metadata> {
       description, url: `${origin}/users/${user.username}`, siteName: "DealCity", locale: "fr_CM",
       images: [{ url: ogImage, width: 1200, height: 630, alt: `Boutique de ${user.displayName} sur DealCity` }],
     },
-    twitter: { card: "summary_large_image", title: user.isSeller ? `🛍️ ${user.displayName} — DealCity` : `${user.displayName} — DealCity`, description, images: [ogImage] },
+    twitter: {
+      card: "summary_large_image",
+      title: user.isSeller ? `🛍️ ${user.displayName} — DealCity` : `${user.displayName} — DealCity`,
+      description, images: [ogImage],
+    },
     alternates: { canonical: `${origin}/users/${user.username}` },
     robots: { index: true, follow: true },
   };
@@ -96,23 +105,10 @@ export default async function Page(props: PageProps) {
   const isUserProfile = loggedInUser ? user.id === loggedInUser.id : false;
 
   return (
-    
     <main className="flex w-full min-w-0 gap-0 lg:gap-8 items-start">
       <div className="w-full min-w-0 flex-1">
-        
-        {/* ✅ Bannière + cover — scrolle normalement */}
-        <UserProfileCover user={user as any} />
 
-        {/* ✅ Header sticky — avatar + nom restent visibles pendant le scroll */}
-       <ProfileStickyHeader
-  displayName={user.displayName}
-  username={user.username}
-  avatarUrl={user.avatarUrl}
-  isAdmin={user.username.toLowerCase() === "dealcity"}
-/>
-
-        {/* ✅ Infos complètes — scrolle normalement */}
-        <UserProfileBody
+        <UserProfile
           user={user as any}
           loggedInUserId={loggedInUser?.id ?? ""}
         />
@@ -120,11 +116,9 @@ export default async function Page(props: PageProps) {
         <div className="w-full mt-4 lg:mt-6">
           <Tabs defaultValue="posts" className="w-full">
             <ProfileTabs isUserProfile={isUserProfile} />
-
             <TabsContent value="posts" className="outline-none pt-4 w-full">
               <UserPosts userId={user.id} />
             </TabsContent>
-
             {isUserProfile && (
               <TabsContent value="bookmarks" className="outline-none pt-5 w-full">
                 <BookmarksFeed />
@@ -144,115 +138,133 @@ interface UserProfileProps {
   loggedInUserId: string;
 }
 
-// ✅ Bannière de couverture — scrolle normalement
-async function UserProfileCover({ user }: { user: UserData & { coverUrl?: string | null } }) {
-  return (
-    <div className="h-36 sm:h-52 w-full relative overflow-hidden rounded-none sm:rounded-t-3xl">
-      {user.coverUrl ? (
-        <ZoomableImage
-          src={user.coverUrl}
-          alt="Banniere de couverture"
-          fill
-          priority
-          className="object-cover cursor-zoom-in"
-        />
-      ) : (
-        <div className="absolute inset-0 bg-gradient-to-br from-[#0a1f3a] via-[#1a3a6b] to-[#0d4a8a]">
-          <div
-            className="absolute inset-0 opacity-20"
-            style={{
-              backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.6) 1px, transparent 1px)",
-              backgroundSize: "22px 22px",
-            }}
-          />
-          <div className="absolute bottom-4 right-6 flex items-end gap-[6px] opacity-10">
-            <div className="w-3 h-8 bg-white rounded-sm" />
-            <div className="w-3 h-14 bg-white rounded-sm" />
-            <div className="w-3 h-18 bg-white rounded-sm" />
-            <div className="w-3 h-10 bg-white rounded-sm" />
-          </div>
-          <div className="absolute -bottom-8 -right-8 w-48 h-48 rounded-full bg-[#4a90e2]/20 blur-3xl" />
-          <div className="absolute -top-6 -left-6 w-32 h-32 rounded-full bg-[#6ab344]/10 blur-2xl" />
-        </div>
-      )}
-      <OnlineBadge />
-    </div>
-  );
-}
+async function UserProfile({ user, loggedInUserId }: UserProfileProps) {
+  const followerInfo: FollowerInfo = {
+    followers: user._count.followers,
+    isFollowedByUser: user.followers.some(
+      ({ followerId }) => followerId === loggedInUserId,
+    ),
+  };
 
-
-// ✅ Corps du profil — bio, stats, infos complètes
-async function UserProfileBody({ user, loggedInUserId }: UserProfileProps) {
   const isAdmin = user.username.toLowerCase() === "dealcity";
   const dateFormatted = formatDate(user.createdAt, "MMMM yyyy", { locale: fr });
 
-  const followerInfo: FollowerInfo = {
-    followers: user._count.followers,
-    isFollowedByUser: user.followers.some(({ followerId }) => followerId === loggedInUserId),
-  };
-
   return (
-    <div className="w-full bg-card border-x border-b border-border/60 sm:rounded-b-3xl px-4 sm:px-6 pb-6 space-y-4">
-
-      {/* Avatar grand + boutons — visible uniquement avant sticky */}
-      <div className="flex items-end justify-between gap-3 -mt-10 sm:-mt-14">
-        <div className="relative">
-          <div className="p-[3px] rounded-full bg-gradient-to-br from-[#4a90e2] to-[#6ab344] shadow-lg shadow-[#4a90e2]/20">
-            <div className="p-0.5 bg-card rounded-full">
-              <ZoomableImage
-                src={user.avatarUrl || "/icons/icon-192.png"}
-                alt="Avatar"
-                size={96}
-                className="size-20 sm:size-24 rounded-full object-cover cursor-zoom-in"
-              />
-            </div>
-          </div>
-          {isAdmin && (
-            <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 bg-[#4a90e2] text-white text-[8px] font-black px-2.5 py-0.5 rounded-full flex items-center gap-1 shadow-md uppercase tracking-widest whitespace-nowrap">
-              <ShieldCheck className="size-2.5 stroke-[3]" /> Admin
-            </div>
-          )}
-        </div>
-
-        <div className="flex items-center gap-2 pb-1">
-          <MoreOptionsButton />
-        </div>
-      </div>
-
-      {/* Nom + username */}
-      <div className="space-y-1">
-        <h1 className="text-xl sm:text-2xl font-black tracking-tight flex items-center gap-2 text-foreground leading-none">
-          {user.displayName}
-          {isAdmin && (
-            <CheckCircle2 className="size-[18px] text-[#4a90e2] fill-[#4a90e2]/15 stroke-[2.5] shrink-0" />
-          )}
-        </h1>
-        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs">
-          <span className="text-[#4a90e2] font-bold">@{user.username}</span>
-          <span className="text-border/70 select-none">·</span>
-          <div className="flex items-center gap-1">
-            <Calendar className="size-3 opacity-60" />
-            <MemberSince dateFormatted={dateFormatted} />
-          </div>
-        </div>
-      </div>
-
-      {/* Bio */}
-      <div className="flex items-start gap-3 p-3.5 rounded-2xl bg-background border border-[#4a90e2]/10 shadow-sm">
-        <div className="shrink-0 px-2 py-0.5 bg-[#4a90e2]/10 border border-[#4a90e2]/20 rounded-lg text-[8px] font-black text-[#4a90e2] tracking-widest uppercase mt-0.5">
-          Market
-        </div>
-        <p className="text-xs text-muted-foreground font-medium leading-relaxed flex-1">
-          {user.bio ? <Linkify>{user.bio}</Linkify> : <DefaultBio />}
-        </p>
-      </div>
-
-      {/* Stats */}
-      <ProfileStats
-        postsCount={formatNumber(user._count.posts) as unknown as number}
-        followersNode={<FollowerCount userId={user.id} initialState={followerInfo} />}
-        salesCount={user.saleCount || 0}
+    <>
+      {/* ✅ Sticky header — avatar + nom restent visibles au scroll */}
+      <UserProfileStickyHeader
+        user={user}
+        loggedInUserId={loggedInUserId}
+        followerInfo={followerInfo}
+        isAdmin={isAdmin}
       />
-    </div>
+
+      {/* ✅ Carte profil complète */}
+      <div className="w-full bg-card text-foreground rounded-none sm:rounded-3xl overflow-hidden border border-border/60 shadow-sm relative">
+
+        {/* Bannière */}
+        <div className="h-36 sm:h-52 w-full relative overflow-hidden">
+          {user.coverUrl ? (
+            <ZoomableImage
+              src={user.coverUrl}
+              alt="Banniere de couverture"
+              fill
+              priority
+              className="object-cover cursor-zoom-in"
+            />
+          ) : (
+            <div className="absolute inset-0 bg-gradient-to-br from-[#0a1f3a] via-[#1a3a6b] to-[#0d4a8a]">
+              <div
+                className="absolute inset-0 opacity-20"
+                style={{
+                  backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.6) 1px, transparent 1px)",
+                  backgroundSize: "22px 22px",
+                }}
+              />
+              <div className="absolute bottom-4 right-6 flex items-end gap-[6px] opacity-10">
+                <div className="w-3 h-8 bg-white rounded-sm" />
+                <div className="w-3 h-14 bg-white rounded-sm" />
+                <div className="w-3 h-18 bg-white rounded-sm" />
+                <div className="w-3 h-10 bg-white rounded-sm" />
+              </div>
+              <div className="absolute -bottom-8 -right-8 w-48 h-48 rounded-full bg-[#4a90e2]/20 blur-3xl" />
+              <div className="absolute -top-6 -left-6 w-32 h-32 rounded-full bg-[#6ab344]/10 blur-2xl" />
+            </div>
+          )}
+          <OnlineBadge />
+        </div>
+
+        <div className="px-4 sm:px-6 pb-6 -mt-14 relative z-10 space-y-4">
+
+          {/* Avatar + boutons */}
+          <div className="flex items-end justify-between gap-3">
+            <div className="relative">
+              <div className="p-[3px] rounded-full bg-gradient-to-br from-[#4a90e2] to-[#6ab344] shadow-lg shadow-[#4a90e2]/20">
+                <div className="p-0.5 bg-card rounded-full">
+                  <ZoomableImage
+                    src={user.avatarUrl || "/icons/icon-192.png"}
+                    alt="Avatar"
+                    size={96}
+                    className="size-20 sm:size-24 rounded-full object-cover cursor-zoom-in"
+                  />
+                </div>
+              </div>
+              {isAdmin && (
+                <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 bg-[#4a90e2] text-white text-[8px] font-black px-2.5 py-0.5 rounded-full flex items-center gap-1 shadow-md uppercase tracking-widest whitespace-nowrap">
+                  <ShieldCheck className="size-2.5 stroke-[3]" /> Admin
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2 pb-1">
+              {loggedInUserId && user.id === loggedInUserId ? (
+                <EditProfileButton user={user} />
+              ) : (
+                loggedInUserId && (
+                  <FollowButton userId={user.id} initialState={followerInfo} />
+                )
+              )}
+              <ShareProfileButton username={user.username} />
+              <MoreOptionsButton />
+            </div>
+          </div>
+
+          {/* Nom + username */}
+          <div className="space-y-1">
+            <h1 className="text-xl sm:text-2xl font-black tracking-tight flex items-center gap-2 text-foreground leading-none">
+              {user.displayName}
+              {isAdmin && (
+                <CheckCircle2 className="size-[18px] text-[#4a90e2] fill-[#4a90e2]/15 stroke-[2.5] shrink-0" />
+              )}
+            </h1>
+            <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs">
+              <span className="text-[#4a90e2] font-bold">@{user.username}</span>
+              <span className="text-border/70 select-none">·</span>
+              <div className="flex items-center gap-1">
+                <Calendar className="size-3 opacity-60" />
+                <MemberSince dateFormatted={dateFormatted} />
+              </div>
+            </div>
+          </div>
+
+          {/* Bio */}
+          <div className="flex items-start gap-3 p-3.5 rounded-2xl bg-background border border-[#4a90e2]/10 shadow-sm">
+            <div className="shrink-0 px-2 py-0.5 bg-[#4a90e2]/10 border border-[#4a90e2]/20 rounded-lg text-[8px] font-black text-[#4a90e2] tracking-widest uppercase mt-0.5">
+              Market
+            </div>
+            <p className="text-xs text-muted-foreground font-medium leading-relaxed flex-1">
+              {user.bio ? <Linkify>{user.bio}</Linkify> : <DefaultBio />}
+            </p>
+          </div>
+
+          {/* Stats */}
+          <ProfileStats
+            postsCount={formatNumber(user._count.posts) as unknown as number}
+            followersNode={<FollowerCount userId={user.id} initialState={followerInfo} />}
+            salesCount={user.saleCount || 0}
+          />
+        </div>
+      </div>
+    </>
   );
 }
