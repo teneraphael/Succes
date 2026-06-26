@@ -161,10 +161,10 @@ async function UserProfile({ user, loggedInUserId }: UserProfileProps) {
       />
 
       {/* ✅ Carte profil — pas de margin-top, pas de gap avec sticky */}
-      <div className="w-full top-[-3.5rem] bg-card text-foreground rounded-none sm:rounded-3xl overflow-hidden border border-border/60 shadow-sm relative">
+      <div className="w-full top-[-3.8rem] bg-card text-foreground rounded-none sm:rounded-3xl overflow-hidden border border-border/60 shadow-sm relative">
 
         {/* ✅ Bannière — hauteur réduite pour éviter le décalage avatar */}
-        <div className="h-32 sm:h-44 w-full relative overflow-hidden">
+        <div className="h-32 sm:h-48 w-full relative overflow-hidden">
           {user.coverUrl ? (
             <ZoomableImage
               src={user.coverUrl}
