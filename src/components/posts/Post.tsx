@@ -21,6 +21,8 @@ import { useMediaQuery } from "@/hooks/use-media-query";
 import { Drawer, DrawerContent, DrawerTrigger } from "@/components/ui/drawer";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useLanguage } from "@/components/LanguageProvider";
+// ✅ IMPORTATION DE L'ACTION D'INCRÉMENTATION
+import { incrementWhatsAppClicks } from "@/app/(main)/users/[username]/actions"; 
 
 function ExpandableDescription({ text, limit = 120 }: { text: string; limit?: number }) {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -121,8 +123,8 @@ export default function Post({ post }: PostProps) {
   const visualAttachments = post.attachments.filter((m: any) => m.type !== "AUDIO");
   const finalAudioUrl = post.audioUrl || audioMedia?.url;
 
-  // ✅ handleWhatsApp avec tracking CHAT
-  const handleWhatsApp = useCallback(() => {
+  // ✅ handleWhatsApp mis à jour avec incrémentation du compteur du vendeur
+  const handleWhatsApp = useCallback(async () => {
     if (!isAvailable) {
       toast({ variant: "destructive", description: t.product_unavailable, duration: 2000 });
       return;
@@ -133,7 +135,16 @@ export default function Post({ post }: PostProps) {
       return;
     }
 
-    // ✅ Tracker le clic WhatsApp — signal fort pour l'algorithme
+    // ✅ 1. Incrémentation du compteur de clics WhatsApp globale de l'auteur du Post
+    if (post.user?.id) {
+      try {
+        await incrementWhatsAppClicks(post.user.id);
+      } catch (err) {
+        console.error("Erreur compteur clic vendeur:", err);
+      }
+    }
+
+    // ✅ 2. Tracker l'interaction système — signal pour l'algorithme
     trackInteraction(post.id, "CHAT");
 
     const choiceLabel = Object.entries(selectedAttributes).map(([key, val]) => `${key}: ${val}`).join(", ");
@@ -245,7 +256,7 @@ export default function Post({ post }: PostProps) {
         />
       </div>
 
-      {/* ✅ Bouton WhatsApp avec tracking CHAT */}
+      {/* Bouton WhatsApp */}
       <div className="px-5 pt-1">
         <button
           onClick={handleWhatsApp}
@@ -328,7 +339,7 @@ function MediaPreviews({ attachments, audioUrl, postId, attributes, selectedAttr
         <div className="relative w-full bg-zinc-950 overflow-hidden">
           {audioUrl && <audio src={audioUrl} loop className="hidden" />}
 
-          {/* ✅ 1 seul média */}
+          {/* 1 seul média */}
           {count === 1 ? (
             <div
               onClick={() => router.push(`/posts/${postId}/photos`, { scroll: false })}
@@ -351,7 +362,7 @@ function MediaPreviews({ attachments, audioUrl, postId, attributes, selectedAttr
               )}
             </div>
           ) : (
-            /* ✅ Mosaïque plusieurs médias */
+            /* Mosaïque plusieurs médias */
             <div
               onClick={() => router.push(`/posts/${postId}/photos`, { scroll: false })}
               className="grid gap-[2px] w-full cursor-pointer hover:opacity-95 transition-opacity grid-cols-2 aspect-square"

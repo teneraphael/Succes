@@ -106,7 +106,6 @@ export default async function Page(props: PageProps) {
 
   return (
     <main className="flex w-full min-w-0 gap-0 lg:gap-8 items-start">
-      {/* ✅ Pas de space-y ici — le sticky header gère son propre espacement */}
       <div className="w-full min-w-0 flex-1">
 
         <UserProfile
@@ -152,7 +151,7 @@ async function UserProfile({ user, loggedInUserId }: UserProfileProps) {
 
   return (
     <>
-      {/* ✅ Sticky header — s'affiche au scroll */}
+      {/* Sticky header — s'affiche au scroll */}
       <UserProfileStickyHeader
         user={user}
         loggedInUserId={loggedInUserId}
@@ -160,10 +159,10 @@ async function UserProfile({ user, loggedInUserId }: UserProfileProps) {
         isAdmin={isAdmin}
       />
 
-      {/* ✅ Carte profil — pas de margin-top, pas de gap avec sticky */}
-      <div className="w-full top-[-3.8rem] bg-card text-foreground rounded-none sm:rounded-3xl overflow-hidden border border-border/60 shadow-sm relative">
+      {/* ✅ CORRECTION : Utilisation de '-mt-14' au lieu de 'top-[-3.8rem]' pour éliminer l'espace blanc en haut de la bannière sans casser le flux */}
+      <div className="w-full -mt-14 bg-card text-foreground rounded-none sm:rounded-3xl overflow-hidden border border-border/60 shadow-sm relative">
 
-        {/* ✅ Bannière — hauteur réduite pour éviter le décalage avatar */}
+        {/* Bannière */}
         <div className="h-32 sm:h-48 w-full relative overflow-hidden">
           {user.coverUrl ? (
             <ZoomableImage
@@ -195,7 +194,7 @@ async function UserProfile({ user, loggedInUserId }: UserProfileProps) {
           <OnlineBadge />
         </div>
 
-        {/* ✅ -mt-10 sm:-mt-12 — avatar sort moins de la bannière */}
+        {/* Avatar sort moins de la bannière */}
         <div className="px-4 sm:px-6 pb-6 -mt-10 sm:-mt-12 relative z-10 space-y-4">
 
           {/* Avatar + boutons */}
