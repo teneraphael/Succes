@@ -101,12 +101,12 @@ export default function PostEditor() {
   function onSubmit() {
     if (!isFormValid) return;
 
-    const stockInfo = `\n📦 QUANTITÉ GLOBALE : ${stock}`;
-    const whatsappInfo = phone ? `\n📞 WHATSAPP : ${phone}` : "";
+    const stockInfo = `\n QUANTITÉ GLOBALE : ${stock}`;
+    const whatsappInfo = phone ? `\n WHATSAPP : ${phone}` : "";
 
     mutation.mutate(
       {
-        content: `🛍️ PRODUIT : ${productName}\n💰 PRIX : ${price} FCFA${stockInfo}${whatsappInfo}\n\n📝 DESCRIPTION :\n${description}`,
+        content: ` PRODUIT : ${productName}\n PRIX : ${price} FCFA${stockInfo}${whatsappInfo}\n\n DESCRIPTION :\n${description}`,
         mediaIds: attachments.map((a: any) => a.mediaId).filter(Boolean) as string[],
         stock: parseInt(stock),
         targetUserId: isAdmin && targetUserId !== "me" ? targetUserId : undefined,

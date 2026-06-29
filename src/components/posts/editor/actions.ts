@@ -45,7 +45,7 @@ function generateCombinations(attributes: DynamicAttributeInput[]) {
 }
 
 function extractPriceFromContent(content: string): number {
-  const priceMatch = content.match(/💰\s*PRIX\s*:\s*(.*?)\s*FCFA/i);
+  const priceMatch = content.match(/\s*PRIX\s*:\s*(.*?)\s*FCFA/i);
   if (priceMatch) {
     const cleanPrice = priceMatch[1].replace(/\D/g, "");
     return cleanPrice ? parseInt(cleanPrice) : 0;

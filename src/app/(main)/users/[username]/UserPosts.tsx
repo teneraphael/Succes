@@ -17,8 +17,8 @@ interface UserPostsProps {
 }
 
 const extractInfo = (content: string) => {
-  const productMatch = content.match(/🛍️\s*PRODUIT\s*:\s*(.*)/i);
-  const priceMatch = content.match(/💰\s*PRIX\s*:\s*(.*?)\s*FCFA/i);
+  const productMatch = content.match(/\s*PRODUIT\s*:\s*(.*)/i);
+  const priceMatch = content.match(/\s*PRIX\s*:\s*(.*?)\s*FCFA/i);
   return {
     productName: productMatch ? productMatch[1].trim() : null,
     price: priceMatch ? priceMatch[1].trim() : null,
