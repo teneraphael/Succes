@@ -136,13 +136,7 @@ export default function Post({ post }: PostProps) {
     }
 
     // ✅ 1. Incrémentation du compteur via l'action serveur en lui passant l'ID du Post
-    if (post.id) {
-      try {
-        await incrementWhatsAppClicks(post.id); // 🚀 Correction ici : post.id au lieu de post.user.id
-      } catch (err) {
-        console.error("Erreur compteur clic vendeur:", err);
-      }
-    }
+  
 
     // ✅ 2. Tracker l'interaction système — signal pour l'algorithme
     trackInteraction(post.id, "CHAT");
