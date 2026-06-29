@@ -29,10 +29,24 @@ interface PageProps {
   params: Promise<{ username: string }>;
 }
 
+// ✅ Optimisation : On inclut le décompte des interactions "CHAT" (WhatsApp) à travers les posts
 const getUser = cache(async (username: string, loggedInUserId: string) => {
   const user = await prisma.user.findFirst({
     where: { username: { equals: username, mode: "insensitive" } },
-    select: getUserDataSelect(loggedInUserId),
+    select: {
+      ...getUserDataSelect(loggedInUserId),
+      posts: {
+        select: {
+          _count: {
+            select: {
+              interactions: {
+                where: { type: "CHAT" } // Filtre uniquement les clics WhatsApp
+              }
+            }
+          }
+        }
+      }
+    },
   });
   if (!user) notFound();
   return user;
@@ -134,7 +148,7 @@ export default async function Page(props: PageProps) {
 }
 
 interface UserProfileProps {
-  user: UserData & { coverUrl?: string | null; saleCount?: number };
+  user: UserData & { coverUrl?: string | null; posts: { _count: { interactions: number } }[] };
   loggedInUserId: string;
 }
 
@@ -149,17 +163,20 @@ async function UserProfile({ user, loggedInUserId }: UserProfileProps) {
   const isAdmin = user.username.toLowerCase() === "dealcity";
   const dateFormatted = formatDate(user.createdAt, "MMMM yyyy", { locale: fr });
 
+  // 📊 Somme dynamique de tous les clics WhatsApp enregistrés sur les posts du vendeur
+  const totalWhatsAppClicks = user.posts?.reduce((acc, currentPost) => {
+    return acc + (currentPost._count?.interactions || 0);
+  }, 0) || 0;
+
   return (
     <>
-      {/* Sticky header — s'affiche au scroll */}
       <UserProfileStickyHeader
-        user={user}
+        user={user as any}
         loggedInUserId={loggedInUserId}
         followerInfo={followerInfo}
         isAdmin={isAdmin}
       />
 
-      {/* ✅ CORRECTION : Utilisation de '-mt-14' au lieu de 'top-[-3.8rem]' pour éliminer l'espace blanc en haut de la bannière sans casser le flux */}
       <div className="w-full -mt-14 bg-card text-foreground rounded-none sm:rounded-3xl overflow-hidden border border-border/60 shadow-sm relative">
 
         {/* Bannière */}
@@ -194,7 +211,6 @@ async function UserProfile({ user, loggedInUserId }: UserProfileProps) {
           <OnlineBadge />
         </div>
 
-        {/* Avatar sort moins de la bannière */}
         <div className="px-4 sm:px-6 pb-6 -mt-10 sm:-mt-12 relative z-10 space-y-4">
 
           {/* Avatar + boutons */}
@@ -219,7 +235,7 @@ async function UserProfile({ user, loggedInUserId }: UserProfileProps) {
 
             <div className="flex items-center gap-2 pb-1">
               {loggedInUserId && user.id === loggedInUserId ? (
-                <EditProfileButton user={user} />
+                <EditProfileButton user={user as any} />
               ) : (
                 loggedInUserId && (
                   <FollowButton userId={user.id} initialState={followerInfo} />
@@ -262,7 +278,7 @@ async function UserProfile({ user, loggedInUserId }: UserProfileProps) {
           <ProfileStats
             postsCount={formatNumber(user._count.posts) as unknown as number}
             followersNode={<FollowerCount userId={user.id} initialState={followerInfo} />}
-            salesCount={user.saleCount || 0}
+            salesCount={totalWhatsAppClicks} // ✅ Injecte le vrai décompte cumulé en base
           />
         </div>
       </div>

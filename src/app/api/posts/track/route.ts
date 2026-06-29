@@ -72,40 +72,38 @@ export async function POST(req: Request) {
       });
     }
 
-    // 4️⃣ Enregistrement de l'interaction (Isolé pour ne jamais bloquer le processus)
-    if (user) {
-      try {
-        // Recherche d'un deal existant
-        let targetDeal = await prisma.deal.findFirst({ select: { id: true } });
+    // 4️⃣ Enregistrement de l'interaction (✅ CORRIGÉ : Fonctionne pour connectés ET anonymes)
+    try {
+      // Recherche d'un deal existant
+      let targetDeal = await prisma.deal.findFirst({ select: { id: true } });
 
-        // 🚨 SOLUTION SÉCURITÉ : Si aucun deal n'existe sur ta plateforme, on en crée un par défaut
-        // pour éviter que la contrainte d'intégrité de ton schéma Prisma ne rejette la requête.
-        if (!targetDeal) {
-          targetDeal = await prisma.deal.create({
-            data: {
-              title: "Deal Global Système",
-              price: 0,
-              category: "SYSTEM",
-              userId: post.userId, // Relié à l'ID de l'auteur du post
-            },
-            select: { id: true },
-          });
-        }
-
-        // Création de l'interaction utilisateur
-        await prisma.userInteraction.create({
+      // Si aucun deal n'existe sur ta plateforme, on en crée un par défaut
+      if (!targetDeal) {
+        targetDeal = await prisma.deal.create({
           data: {
-            type: type,
-            userId: user.id,
-            postId: id,
-            dealId: targetDeal.id,
+            title: "Deal Global Système",
+            price: 0,
+            category: "SYSTEM",
+            userId: post.userId, 
           },
+          select: { id: true },
         });
-      } catch (interactionError: any) {
-        // Si l'interaction échoue pour une raison X ou Y, on l'attrape ici.
-        // Cela évite de crash la route et garantit la réponse au Front-end.
-        console.error("⚠️ [INTERACTION SKIPPED]:", interactionError.message);
       }
+
+      // Création de l'interaction utilisateur
+      await prisma.userInteraction.create({
+        data: {
+          type: type,
+          postId: id,
+          dealId: targetDeal.id,
+          // ✅ Si l'utilisateur est connecté, on met son ID. 
+          // Si c'est un visiteur anonyme, on lie l'interaction à l'auteur du post pour ne pas briser la contrainte Prisma 'userId'
+          userId: user?.id ?? post.userId, 
+        },
+      });
+    } catch (interactionError: any) {
+      // Évite de crash la route si l'écriture en base échoue
+      console.error("⚠️ [INTERACTION SKIPPED]:", interactionError.message);
     }
 
     return NextResponse.json({ success: true });
@@ -115,7 +113,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: true });
     }
     console.error("❌ ERREUR_TRACKING_DEALCITY:", error);
-    // On renvoie un statut 200 même ici pour garantir que le bouton WhatsApp côté client s'exécute quoi qu'il arrive
     return NextResponse.json({ success: true, warning: "Erreur interne interceptée" });
   }
 }

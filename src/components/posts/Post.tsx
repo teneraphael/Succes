@@ -135,10 +135,10 @@ export default function Post({ post }: PostProps) {
       return;
     }
 
-    // ✅ 1. Incrémentation du compteur de clics WhatsApp globale de l'auteur du Post
-    if (post.user?.id) {
+    // ✅ 1. Incrémentation du compteur via l'action serveur en lui passant l'ID du Post
+    if (post.id) {
       try {
-        await incrementWhatsAppClicks(post.user.id);
+        await incrementWhatsAppClicks(post.id); // 🚀 Correction ici : post.id au lieu de post.user.id
       } catch (err) {
         console.error("Erreur compteur clic vendeur:", err);
       }
