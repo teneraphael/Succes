@@ -6,7 +6,6 @@ import { NextRequest } from "next/server";
 export async function GET(req: NextRequest) {
   try {
     const cursor = req.nextUrl.searchParams.get("cursor") || undefined;
-
     const pageSize = 10;
 
     const { user } = await validateRequest();
@@ -19,7 +18,15 @@ export async function GET(req: NextRequest) {
       where: {
         recipientId: user.id,
       },
-      include: notificationsInclude,
+      // ✅ On fusionne notificationsInclude en y ajoutant les attachments du post
+      include: {
+        ...notificationsInclude,
+        post: {
+          include: {
+            attachments: true,
+          },
+        },
+      },
       orderBy: { createdAt: "desc" },
       take: pageSize + 1,
       cursor: cursor ? { id: cursor } : undefined,

@@ -3,16 +3,29 @@ import SearchField from "@/components/SearchField";
 import UserButton from "@/components/UserButton";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { LogIn, Bell } from "lucide-react";
+import { LogIn } from "lucide-react";
+import prisma from "@/lib/prisma";
+import NotificationsButton from "./NotificationsButton"; // 👈 Ajuste le chemin vers ton bouton
 
 export default async function Navbar() {
   const { user } = await validateRequest();
+
+  // ✅ Récupération du compteur initial directement depuis la BDD (Server-side)
+  let unreadNotificationsCount = 0;
+  if (user) {
+    unreadNotificationsCount = await prisma.notification.count({
+      where: {
+        recipientId: user.id,
+        read: false,
+      },
+    });
+  }
 
   return (
     <header className="sticky top-0 z-50 bg-card/80 backdrop-blur-md border-b border-border/40 shadow-sm px-4 py-3 select-none">
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 sm:gap-5">
 
-        {/* ✅ Logo DealCity — barres animées + texte vert */}
+        {/* Logo DealCity — barres animées + texte vert */}
         <Link
           href="/"
           aria-label="Retour à l'accueil"
@@ -29,26 +42,18 @@ export default async function Navbar() {
           </span>
         </Link>
 
-        {/* ✅ Barre de recherche centrale */}
+        {/* Barre de recherche centrale */}
         <div className="flex-1 max-w-[160px] xs:max-w-xs sm:max-w-md">
           <SearchField />
         </div>
 
-        {/* ✅ Actions — notifications + profil ou connexion */}
+        {/* Actions — notifications + profil ou connexion */}
         <nav className="flex items-center gap-1.5 sm:gap-2" aria-label="Menu principal">
 
-          {/* Notifications — point rouge animé */}
-          <Link
-            href="/notifications"
-            aria-label="Notifications"
-            className="relative p-2 rounded-xl text-muted-foreground hover:text-[#4a90e2] hover:bg-[#4a90e2]/8 transition-all active:scale-90"
-          >
-            <Bell className="size-5" />
-            {/* ✅ Point rouge uniquement si connecté */}
-            {user && (
-              <span className="absolute top-1.5 right-1.5 size-2 rounded-full bg-red-500 ring-2 ring-card animate-pulse" />
-            )}
-          </Link>
+          {/* ✅ Remplacement par ton NotificationsButton dynamique */}
+          <NotificationsButton 
+            initialState={{ unreadCount: unreadNotificationsCount }} 
+          />
 
           {/* Profil ou bouton connexion */}
           {user ? (
@@ -57,7 +62,7 @@ export default async function Navbar() {
               className="shadow-sm border border-[#4a90e2]/10 transition-transform active:scale-95"
             />
           ) : (
-            // ✅ Bouton connexion — bleu DealCity
+            // Bouton connexion — bleu DealCity
             <Link
               href="/login"
               className={cn(

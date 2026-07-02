@@ -125,6 +125,7 @@ export const notificationsInclude = {
   post: {
     select: {
       content: true,
+      attachments: true,
     },
   },
 } satisfies Prisma.NotificationInclude;

@@ -15,13 +15,14 @@ interface SearchResultsProps {
   query: string;
 }
 
+// ✅ Regex robustes — gèrent les emojis optionnels et variantes unicode
 const extractInfo = (content: string) => {
-  const productMatch = content.match(/🛍️\s*PRODUIT\s*:\s*(.*)/i);
-  const priceMatch = content.match(/💰\s*PRIX\s*:\s*(.*?)\s*FCFA/i);
-  const descMatch = content.match(/📝\s*DESCRIPTION\s*:\s*\n?([\s\S]*?)(?=\n\n|$)/i);
+  const productMatch = content.match(/PRODUIT\s*:\s*([^\n]+)/i);
+  const priceMatch = content.match(/PRIX\s*:\s*([\d\s,._]+)\s*FCFA/i);
+  const descMatch = content.match(/DESCRIPTION\s*:\s*\n?([\s\S]*?)(?=\n\n|📞|🔗|$)/i);
   return {
     productName: productMatch ? productMatch[1].trim() : null,
-    price: priceMatch ? priceMatch[1].trim() : null,
+    price: priceMatch ? priceMatch[1].trim().replace(/\s/g, "") : null,
     description: descMatch ? descMatch[1].trim().slice(0, 80) : content.slice(0, 80),
   };
 };
@@ -33,7 +34,6 @@ function ProductCard({ post, onClick }: { post: any; onClick: () => void }) {
   const { t } = useLanguage();
   const { productName, price, description } = extractInfo(post.content);
 
-  // ✅ Priorité image, sinon première vidéo
   const firstImage = post.attachments?.find((m: any) => m.type === "IMAGE")?.url;
   const firstVideo = post.attachments?.find((m: any) => m.type === "VIDEO")?.url;
   const isVideo = !firstImage && !!firstVideo;
@@ -50,7 +50,6 @@ function ProductCard({ post, onClick }: { post: any; onClick: () => void }) {
     >
       <div className="relative w-full aspect-square overflow-hidden bg-zinc-100 dark:bg-zinc-900">
 
-        {/* ✅ Image en priorité */}
         {firstImage ? (
           <Image
             src={firstImage}
@@ -61,7 +60,6 @@ function ProductCard({ post, onClick }: { post: any; onClick: () => void }) {
             unoptimized={isExternalImage(firstImage)}
           />
         ) : isVideo ? (
-          // ✅ Miniature vidéo — lecture silencieuse en boucle
           <video
             src={firstVideo}
             className="w-full h-full object-cover"
@@ -77,7 +75,6 @@ function ProductCard({ post, onClick }: { post: any; onClick: () => void }) {
           </div>
         )}
 
-        {/* ✅ Badge vidéo */}
         {isVideo && (
           <div className="absolute top-2 left-2">
             <span className="bg-black/60 text-white text-[8px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-wider backdrop-blur-sm">
@@ -86,7 +83,6 @@ function ProductCard({ post, onClick }: { post: any; onClick: () => void }) {
           </div>
         )}
 
-        {/* Badge épuisé */}
         {!isAvailable && (
           <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
             <span className="text-white text-[10px] font-black uppercase tracking-widest bg-red-500 px-2 py-1 rounded-full">
@@ -95,7 +91,6 @@ function ProductCard({ post, onClick }: { post: any; onClick: () => void }) {
           </div>
         )}
 
-        {/* Badge vérifié — seulement si pas de badge vidéo */}
         {post.user?.isVerified && !isVideo && (
           <div className="absolute top-2 left-2">
             <span className="bg-blue-500 text-white text-[8px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-wider">
@@ -104,7 +99,6 @@ function ProductCard({ post, onClick }: { post: any; onClick: () => void }) {
           </div>
         )}
 
-        {/* Badge multiple images */}
         {imageCount > 1 && (
           <div className="absolute top-2 right-2">
             <span className="bg-black/60 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full">
@@ -194,7 +188,6 @@ export default function SearchResults({ query }: SearchResultsProps) {
   return (
     <div className="w-full min-h-screen">
 
-      {/* Header */}
       <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-md border-b border-border/40 px-4 py-3">
         <div className="flex items-center gap-2 max-w-2xl mx-auto">
           <Search className="size-4 text-muted-foreground flex-none" />

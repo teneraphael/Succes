@@ -13,16 +13,21 @@ import { useEffect } from "react";
 import Notification from "./Notification";
 import { useLanguage } from "@/components/LanguageProvider";
 
+// ✅ Squelette mis à jour avec l'emplacement de la miniature à droite
 function NotificationsSkeleton() {
   return (
     <div className="w-full bg-card border-y sm:border border-border/60 rounded-none sm:rounded-2xl overflow-hidden divide-y divide-border/40">
       {Array.from({ length: 5 }).map((_, i) => (
-        <div key={i} className="flex items-start gap-3 px-4 py-4 animate-pulse">
-          <div className="size-10 rounded-full bg-muted shrink-0" />
-          <div className="flex-1 space-y-2 pt-1">
-            <div className="h-3 bg-muted rounded w-2/3" />
-            <div className="h-8 bg-muted rounded-xl w-full" />
+        <div key={i} className="flex items-center justify-between gap-4 px-4 py-4 animate-pulse">
+          <div className="flex items-start gap-3 flex-1 min-w-0">
+            <div className="size-10 rounded-full bg-muted shrink-0" />
+            <div className="flex-1 space-y-2 pt-1">
+              <div className="h-3 bg-muted rounded w-1/3" />
+              <div className="h-3.5 bg-muted rounded w-2/3" />
+            </div>
           </div>
+          {/* Emplacement de la miniature du produit à droite */}
+          <div className="size-11 rounded-xl bg-muted shrink-0" />
         </div>
       ))}
     </div>
@@ -118,7 +123,7 @@ export default function Notifications() {
 
   return (
     <InfiniteScrollContainer
-      className="w-full bg-card border-y sm:border border-border/60 rounded-none sm:rounded-2xl overflow-hidden"
+      className="w-full bg-card border-y sm:border border-border/60 rounded-none sm:rounded-2xl overflow-hidden divide-y divide-border/30"
       onBottomReached={() => hasNextPage && !isFetching && fetchNextPage()}
     >
       {notifications.map((notification) => (
