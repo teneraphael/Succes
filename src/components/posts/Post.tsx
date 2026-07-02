@@ -284,7 +284,7 @@ export default function Post({ post }: PostProps) {
       ease: "easeInOut"
     }}
   >
-    👆
+    👆🏿
   </motion.div>
 )}
   </button>
