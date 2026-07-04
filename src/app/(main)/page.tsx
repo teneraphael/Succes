@@ -15,38 +15,43 @@ export default async function Home() {
       <div className="w-full min-w-0 space-y-4">
 
         {/* ✅ Hero banner — visiteur non connecté */}
-        {!user && (
+{!user && (
   <div className="relative w-full overflow-hidden rounded-none sm:rounded-3xl bg-white border border-gray-100 px-6 py-8 shadow-sm">
 
-    {/* Grille de points décorative subtile (adaptée au fond clair) */}
+    {/* Grille de points décorative subtile */}
     <div
       className="absolute inset-0 opacity-40 pointer-events-none"
       style={{
-        backgroundImage: "radial-gradient(#3b82f6 1px, transparent 1px)",
+        backgroundImage: "radial-gradient(#3a81f3 1px, transparent 1px)",
         backgroundSize: "24px 24px",
       }}
     />
     
     {/* Cercles lumineux discrets en version claire */}
-    <div className="absolute -top-10 -right-10 w-48 h-48 rounded-full bg-blue-500/5 blur-3xl pointer-events-none" />
-    <div className="absolute -bottom-8 -left-8 w-36 h-36 rounded-full bg-emerald-500/5 blur-3xl pointer-events-none" />
+    <div className="absolute -top-10 -right-10 w-48 h-48 rounded-full bg-[#3a81f3]/5 blur-3xl pointer-events-none" />
+    <div className="absolute -bottom-8 -left-8 w-36 h-36 rounded-full bg-[#1aa04b]/5 blur-3xl pointer-events-none" />
 
     <div className="relative space-y-5">
-      {/* Logo + titre (Identique à l'en-tête de ton app) */}
+      {/* Logo DealCity reproduit fidèlement selon image_ada9f0.jpg */}
       <div className="flex items-center gap-3">
-        <div className="flex items-end gap-[3px]">
-          <div className="w-[5px] h-3 bg-[#3a81f3] rounded-sm" />
-          <div className="w-[5px] h-5 bg-[#3a81f3] rounded-sm" />
-          <div className="w-[5px] h-6 bg-[#3a81f3] rounded-sm" />
-          <div className="w-[5px] h-4 bg-[#3a81f3] rounded-sm" />
+        {/* L'icône à 4 barres bleues avec extrémités totalement arrondies */}
+        <div className="flex items-end gap-[4px] h-8 pb-1">
+          <div className="w-[5px] h-4 bg-[#3a81f3] rounded-full" />
+          <div className="w-[5px] h-6 bg-[#3a81f3] rounded-full" />
+          <div className="w-[5px] h-8 bg-[#3a81f3] rounded-full" />
+          <div className="w-[5px] h-5 bg-[#3a81f3] rounded-full" />
         </div>
+        
+        {/* Nom de la marque */}
         <span className="text-xl font-bold text-[#1aa04b] tracking-tight">DealCity</span>
-        <span className="text-[9px] font-bold bg-blue-50 text-blue-600 border border-blue-100 px-2 py-0.5 rounded-full uppercase tracking-wider">
+        
+        {/* Badge Pays */}
+        <span className="text-[9px] font-bold bg-blue-50 text-[#3a81f3] border border-blue-100 px-2 py-0.5 rounded-full uppercase tracking-wider">
           Cameroun
         </span>
       </div>
 
-      {/* Message d'accroche réajusté pour fond clair */}
+      {/* Message d'accroche */}
       <div className="space-y-2">
         <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight leading-tight">
           La marketplace qui<br />
@@ -58,7 +63,7 @@ export default async function Home() {
         </p>
       </div>
 
-      {/* 3 stats rapides (Boutons avec le style "Pour vous" et "Suivre" de ton app) */}
+      {/* 3 stats rapides */}
       <div className="flex flex-wrap items-center gap-2">
         {[
           { icon: ShoppingBag, label: "Produits", bg: "bg-blue-50 text-[#3a81f3] border-blue-100" },
@@ -72,7 +77,7 @@ export default async function Home() {
         ))}
       </div>
 
-      {/* CTA (Boutons calqués sur les boutons "SUIVRE" et "DASHBOARD" de ton app) */}
+      {/* Boutons d'action (Style aux couleurs exactes de l'app) */}
       <div className="flex items-center gap-3 pt-2">
         <Link
           href="/login"
