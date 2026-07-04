@@ -289,7 +289,7 @@ export default function Post({ post }: PostProps) {
       times: [0, 0.25, 0.5, 0.7, 1],
     }}
   >
-     👆🏾 ,k
+     👆🏾
   </motion.div>
 )}
   </button>

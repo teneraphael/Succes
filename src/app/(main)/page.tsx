@@ -89,38 +89,45 @@ export default async function Home() {
           </div>
         )}
 
-        {/* ✅ Bannière vendeur connecté non-vendeur */}
-        {user && !user.isSeller && <WelcomeMessage />}
+       {/* ✅ Bannière vendeur actif — couleurs DealCity */}
+{user?.isSeller && (
+  <div className="relative w-full overflow-hidden rounded-none sm:rounded-3xl px-5 py-4 border border-[#4a90e2]/20"
+    style={{
+      background: "linear-gradient(135deg, #f0f7ff 0%, #f0fff4 100%)",
+    }}
+  >
+    {/* Mode sombre */}
+    <div className="absolute inset-0 rounded-none sm:rounded-3xl dark:bg-gradient-to-r dark:from-[#0a1628] dark:via-[#0d1f3a] dark:to-[#0a1628] opacity-0 dark:opacity-100 pointer-events-none" />
 
-        {/* ✅ Bannière vendeur actif — motivante */}
-        {user?.isSeller && (
-          <div className="relative w-full overflow-hidden rounded-none sm:rounded-3xl bg-gradient-to-r from-[#0a1f0a] via-[#0d2d0d] to-[#0a1f0a] px-5 py-4 border border-[#6ab344]/15">
-            <div className="absolute -top-6 -right-6 w-32 h-32 rounded-full bg-[#6ab344]/8 blur-2xl pointer-events-none" />
-            <div className="relative flex items-center justify-between gap-4">
-              <div className="space-y-0.5">
-                <div className="flex items-center gap-2">
-                  <div className="size-1.5 rounded-full bg-[#6ab344] animate-pulse" />
-                  <p className="text-[10px] font-black uppercase tracking-widest text-[#6ab344]">
-                    Boutique active
-                  </p>
-                </div>
-                <p className="text-sm font-black text-white">
-                  Bonjour, {user.displayName} 👋
-                </p>
-                <p className="text-[10px] text-white/40 font-medium">
-                  Gérez vos produits et suivez vos stats
-                </p>
-              </div>
-              <Link
-                href="/seller/dashboard"
-                className="shrink-0 flex items-center gap-1.5 bg-[#6ab344] hover:bg-[#5a9a38] text-white px-4 py-2 rounded-xl font-black uppercase text-[9px] tracking-widest active:scale-95 transition-all shadow-lg shadow-[#6ab344]/20"
-              >
-                <Zap className="size-3" />
-                Dashboard
-              </Link>
-            </div>
-          </div>
-        )}
+    {/* Cercle décoratif */}
+    <div className="absolute -top-6 -right-6 w-32 h-32 rounded-full bg-[#4a90e2]/8 blur-2xl pointer-events-none" />
+    <div className="absolute -bottom-4 -left-4 w-24 h-24 rounded-full bg-[#6ab344]/8 blur-2xl pointer-events-none" />
+
+    <div className="relative flex items-center justify-between gap-4">
+      <div className="space-y-0.5">
+        <div className="flex items-center gap-2">
+          <div className="size-1.5 rounded-full bg-[#6ab344] animate-pulse" />
+          <p className="text-[10px] font-black uppercase tracking-widest text-[#6ab344]">
+            Boutique active
+          </p>
+        </div>
+        <p className="text-sm font-black text-[#0a1628] dark:text-white">
+          Bonjour, {user.displayName} 👋
+        </p>
+        <p className="text-[10px] text-[#4a90e2] font-bold">
+          Gérez vos produits et suivez vos stats
+        </p>
+      </div>
+      <Link
+        href="/seller/dashboard"
+        className="shrink-0 flex items-center gap-1.5 bg-[#4a90e2] hover:bg-[#357abd] text-white px-4 py-2 rounded-xl font-black uppercase text-[9px] tracking-widest active:scale-95 transition-all shadow-lg shadow-[#4a90e2]/20"
+      >
+        <Zap className="size-3" />
+        Dashboard
+      </Link>
+    </div>
+  </div>
+)}
 
         <FeedTabs
           userId={user?.id}
