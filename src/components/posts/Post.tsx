@@ -273,11 +273,23 @@ export default function Post({ post }: PostProps) {
 {/* ✅ Pulse ring animé — plus soft que l'emoji doigt */}
 {isAvailable && (
   <motion.div
-    className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none z-20"
-    animate={{ scale: [1, 1.4, 1], opacity: [0.6, 0, 0.6] }}
-    transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+    className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none z-20 text-xl select-none"
+    initial={{ opacity: 0, x: 30, y: 10 }}
+    animate={{
+      opacity: [0, 1, 1, 1, 0],
+      x: [30, 0, 0, 0, -10],
+      y: [10, 0, 4, 0, -5],
+      scale: [0.8, 1, 0.85, 1, 0.9],
+    }}
+    transition={{
+      duration: 1.8,
+      repeat: Infinity,
+      repeatDelay: 2,
+      ease: "easeInOut",
+      times: [0, 0.25, 0.5, 0.7, 1],
+    }}
   >
-    <div className="w-5 h-5 rounded-full bg-white/40" />
+     👆🏾 ,k
   </motion.div>
 )}
   </button>
