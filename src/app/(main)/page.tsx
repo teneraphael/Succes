@@ -16,78 +16,80 @@ export default async function Home() {
 
         {/* ✅ Hero banner — visiteur non connecté */}
         {!user && (
-          <div className="relative w-full overflow-hidden rounded-none sm:rounded-3xl bg-gradient-to-br from-[#0a1628] via-[#0d2244] to-[#0a1628] px-5 py-7">
+  <div className="relative w-full overflow-hidden rounded-none sm:rounded-3xl bg-white border border-gray-100 px-6 py-8 shadow-sm">
 
-            {/* Grille de points décorative */}
-            <div
-              className="absolute inset-0 opacity-20 pointer-events-none"
-              style={{
-                backgroundImage: "radial-gradient(rgba(74,144,226,0.4) 1px, transparent 1px)",
-                backgroundSize: "24px 24px",
-              }}
-            />
-            {/* Cercles lumineux */}
-            <div className="absolute -top-10 -right-10 w-48 h-48 rounded-full bg-[#4a90e2]/10 blur-3xl pointer-events-none" />
-            <div className="absolute -bottom-8 -left-8 w-36 h-36 rounded-full bg-[#6ab344]/10 blur-3xl pointer-events-none" />
+    {/* Grille de points décorative subtile (adaptée au fond clair) */}
+    <div
+      className="absolute inset-0 opacity-40 pointer-events-none"
+      style={{
+        backgroundImage: "radial-gradient(#3b82f6 1px, transparent 1px)",
+        backgroundSize: "24px 24px",
+      }}
+    />
+    
+    {/* Cercles lumineux discrets en version claire */}
+    <div className="absolute -top-10 -right-10 w-48 h-48 rounded-full bg-blue-500/5 blur-3xl pointer-events-none" />
+    <div className="absolute -bottom-8 -left-8 w-36 h-36 rounded-full bg-emerald-500/5 blur-3xl pointer-events-none" />
 
-            <div className="relative space-y-4">
-              {/* Logo + titre */}
-              <div className="flex items-center gap-3">
-                <div className="flex items-end gap-[4px]">
-                  <div className="w-[6px] h-3 bg-[#4a90e2] rounded-sm" />
-                  <div className="w-[6px] h-5 bg-[#4a90e2] rounded-sm" />
-                  <div className="w-[6px] h-7 bg-[#4a90e2] rounded-sm" />
-                  <div className="w-[6px] h-4 bg-[#4a90e2] rounded-sm" />
-                </div>
-                <span className="text-xl font-black text-[#6ab344] tracking-tight">DealCity</span>
-                <span className="text-[9px] font-black bg-[#4a90e2]/20 text-[#4a90e2] border border-[#4a90e2]/30 px-2 py-0.5 rounded-full uppercase tracking-widest">
-                  Cameroun
-                </span>
-              </div>
+    <div className="relative space-y-5">
+      {/* Logo + titre (Identique à l'en-tête de ton app) */}
+      <div className="flex items-center gap-3">
+        <div className="flex items-end gap-[3px]">
+          <div className="w-[5px] h-3 bg-[#3a81f3] rounded-sm" />
+          <div className="w-[5px] h-5 bg-[#3a81f3] rounded-sm" />
+          <div className="w-[5px] h-6 bg-[#3a81f3] rounded-sm" />
+          <div className="w-[5px] h-4 bg-[#3a81f3] rounded-sm" />
+        </div>
+        <span className="text-xl font-bold text-[#1aa04b] tracking-tight">DealCity</span>
+        <span className="text-[9px] font-bold bg-blue-50 text-blue-600 border border-blue-100 px-2 py-0.5 rounded-full uppercase tracking-wider">
+          Cameroun
+        </span>
+      </div>
 
-              <div className="space-y-1.5">
-                <h1 className="text-2xl font-black text-white tracking-tight leading-tight">
-                  La marketplace qui<br />
-                  <span className="text-[#4a90e2]">connecte</span> vendeurs<br />
-                  et acheteurs
-                </h1>
-                <p className="text-xs text-white/50 font-medium leading-relaxed max-w-xs">
-                  Découvrez des milliers de produits · Commandez via WhatsApp · 100% Camerounais
-                </p>
-              </div>
+      {/* Message d'accroche réajusté pour fond clair */}
+      <div className="space-y-2">
+        <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight leading-tight">
+          La marketplace qui<br />
+          <span className="text-[#3a81f3]">connecte</span> vendeurs<br />
+          et acheteurs
+        </h1>
+        <p className="text-xs text-gray-500 font-medium leading-relaxed max-w-xs">
+          Découvrez des milliers de produits · Discutez via WhatsApp · 100% Camerounais
+        </p>
+      </div>
 
-              {/* 3 stats rapides */}
-              <div className="flex items-center gap-3">
-                {[
-                  { icon: ShoppingBag, label: "Produits", color: "text-[#4a90e2]" },
-                  { icon: TrendingUp, label: "Vendeurs", color: "text-[#6ab344]" },
-                  { icon: Zap, label: "Via WhatsApp", color: "text-amber-400" },
-                ].map(({ icon: Icon, label, color }) => (
-                  <div key={label} className="flex items-center gap-1.5 bg-white/5 border border-white/10 rounded-xl px-2.5 py-1.5">
-                    <Icon className={`size-3 ${color}`} />
-                    <span className="text-[9px] font-black text-white/70 uppercase tracking-wider">{label}</span>
-                  </div>
-                ))}
-              </div>
-
-              {/* CTA */}
-              <div className="flex items-center gap-3 pt-1">
-                <Link
-                  href="/login"
-                  className="flex items-center gap-2 bg-[#4a90e2] hover:bg-[#357abd] text-white px-5 py-2.5 rounded-xl font-black uppercase text-[10px] tracking-widest shadow-lg shadow-[#4a90e2]/25 active:scale-95 transition-all"
-                >
-                  Se connecter
-                </Link>
-                <Link
-                  href="/signup"
-                  className="flex items-center gap-2 bg-white/8 hover:bg-white/15 border border-white/15 text-white px-5 py-2.5 rounded-xl font-black uppercase text-[10px] tracking-widest active:scale-95 transition-all"
-                >
-                  S&apos;inscrire
-                </Link>
-              </div>
-            </div>
+      {/* 3 stats rapides (Boutons avec le style "Pour vous" et "Suivre" de ton app) */}
+      <div className="flex flex-wrap items-center gap-2">
+        {[
+          { icon: ShoppingBag, label: "Produits", bg: "bg-blue-50 text-[#3a81f3] border-blue-100" },
+          { icon: TrendingUp, label: "Vendeurs", bg: "bg-emerald-50 text-[#1aa04b] border-emerald-100" },
+          { icon: Zap, label: "Via WhatsApp", bg: "bg-gray-50 text-gray-600 border-gray-100" },
+        ].map(({ icon: Icon, label, bg }) => (
+          <div key={label} className={`flex items-center gap-1.5 border rounded-full px-3 py-1 ${bg}`}>
+            <Icon className="size-3.5" />
+            <span className="text-[10px] font-bold tracking-wide">{label}</span>
           </div>
-        )}
+        ))}
+      </div>
+
+      {/* CTA (Boutons calqués sur les boutons "SUIVRE" et "DASHBOARD" de ton app) */}
+      <div className="flex items-center gap-3 pt-2">
+        <Link
+          href="/login"
+          className="flex items-center gap-2 bg-[#3a81f3] hover:bg-[#2a6fd1] text-white px-6 py-2.5 rounded-full font-bold uppercase text-[11px] tracking-wider shadow-sm transition-all text-center justify-center flex-1 sm:flex-none"
+        >
+          Se connecter
+        </Link>
+        <Link
+          href="/signup"
+          className="flex items-center gap-2 bg-[#1aa04b] hover:bg-[#15803c] text-white px-6 py-2.5 rounded-full font-bold uppercase text-[11px] tracking-wider shadow-sm transition-all text-center justify-center flex-1 sm:flex-none"
+        >
+          S&apos;inscrire
+        </Link>
+      </div>
+    </div>
+  </div>
+)}
 
        {/* ✅ Bannière vendeur actif — couleurs DealCity */}
 {user?.isSeller && (
