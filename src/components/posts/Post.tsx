@@ -270,21 +270,14 @@ export default function Post({ post }: PostProps) {
 
     {/* ✅ Main animée simulant un clic en boucle */}
     {/* ✅ La main est maintenant visible partout (iPhone, Android, PC) */}
+{/* ✅ Pulse ring animé — plus soft que l'emoji doigt */}
 {isAvailable && (
   <motion.div
-    className="absolute right-4 top-[28%] text-lg pointer-events-none z-20 select-none"
-    animate={{
-      y: [0, 2, 0],
-      scale: [1, 0.82, 1]
-    }}
-    transition={{
-      duration: 1.5,
-      repeat: Infinity,
-      repeatType: "loop",
-      ease: "easeInOut"
-    }}
+    className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none z-20"
+    animate={{ scale: [1, 1.4, 1], opacity: [0.6, 0, 0.6] }}
+    transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
   >
-    👆🏿
+    <div className="w-5 h-5 rounded-full bg-white/40" />
   </motion.div>
 )}
   </button>
