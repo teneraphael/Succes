@@ -22,27 +22,80 @@ export default function FollowButton({ userId, initialState }: FollowButtonProps
   const queryClient = useQueryClient();
   const { data } = useFollowerInfo(userId, initialState);
   const queryKey: QueryKey = ["follower-info", userId];
-
-  const { mutate, isPending } = useMutation({
-    mutationFn: () =>
-      data.isFollowedByUser
-        ? kyInstance.delete(`/api/users/${userId}/followers`)
-        : kyInstance.post(`/api/users/${userId}/followers`),
+const { mutate, isPending } = useMutation<
+    void,
+    Error,
+    void,
+    { previousState: FollowerInfo | undefined; previousPostFeed: any }
+  >({
+    // ✅ En ajoutant une fonction asynchrone explicite qui ne retourne rien (void)
+    mutationFn: async () => {
+      if (data.isFollowedByUser) {
+        await kyInstance.delete(`/api/users/${userId}/followers`);
+      } else {
+        await kyInstance.post(`/api/users/${userId}/followers`);
+      }
+    },
     onMutate: async () => {
+      // 1. On annule les requêtes en cours pour éviter les conflits d'écrasement
       await queryClient.cancelQueries({ queryKey });
-      const previousState = queryClient.getQueryData<FollowerInfo>(queryKey);
+      await queryClient.cancelQueries({ queryKey: ["post-feed"] });
 
-      // ✅ Mise à jour optimiste
+      const previousState = queryClient.getQueryData<FollowerInfo>(queryKey);
+      const previousPostFeed = queryClient.getQueryData<any>(["post-feed"]);
+
+      const willFollow = !previousState?.isFollowedByUser;
+
+      // 2. Mise à jour optimiste de l'état de suivi individuel
       queryClient.setQueryData<FollowerInfo>(queryKey, () => ({
         followers: (previousState?.followers || 0) + (previousState?.isFollowedByUser ? -1 : 1),
-        isFollowedByUser: !previousState?.isFollowedByUser,
+        isFollowedByUser: willFollow,
       }));
 
-      return { previousState };
+      // 3. Mise à jour optimiste dans tout le flux de posts en cache
+      if (previousPostFeed) {
+        queryClient.setQueryData(["post-feed"], (old: any) => {
+          if (!old || !old.pages) return old;
+          return {
+            ...old,
+            pages: old.pages.map((page: any) => {
+              if (!page.posts) return page;
+              return {
+                ...page,
+                posts: page.posts.map((post: any) => {
+                  if (post.user.id === userId) {
+                    return {
+                      ...post,
+                      user: {
+                        ...post.user,
+                        isFollowedByUser: willFollow,
+                      },
+                    };
+                  }
+                  return post;
+                }),
+              };
+            }),
+          };
+        });
+      }
+
+      return { previousState, previousPostFeed };
+    },
+    onSuccess: () => {
+      // On force la synchronisation réelle avec le serveur en arrière-plan
+      queryClient.invalidateQueries({ queryKey });
+      queryClient.invalidateQueries({ queryKey: ["post-feed"] });
     },
     onError(error, variables, context) {
-      // ✅ Rollback si erreur réseau
-      queryClient.setQueryData(queryKey, context?.previousState);
+      // Rollback complet des deux caches si la requête échoue (ex: perte réseau)
+      if (context?.previousState) {
+        queryClient.setQueryData(queryKey, context.previousState);
+      }
+      if (context?.previousPostFeed) {
+        queryClient.setQueryData(["post-feed"], context.previousPostFeed);
+      }
+      
       console.error(error);
       toast({
         variant: "destructive",
@@ -56,7 +109,6 @@ export default function FollowButton({ userId, initialState }: FollowButtonProps
   return (
     <button
       onClick={() => {
-        // ✅ Bloque l'action si non connecté
         if (!loggedInUser) {
           toast({
             variant: "destructive",
@@ -79,7 +131,6 @@ export default function FollowButton({ userId, initialState }: FollowButtonProps
       ) : (
         <UserPlus className="size-3.5" />
       )}
-      {/* ✅ Labels traduits */}
       {isPending ? "..." : isFollowing ? t.unfollow : t.follow}
     </button>
   );

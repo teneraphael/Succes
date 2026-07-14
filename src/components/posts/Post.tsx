@@ -10,7 +10,7 @@ import Link from "next/link";
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/use-toast";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import Comments from "../comments/Comments";
 import UserAvatar from "../UserAvatar";
 import UserTooltip from "../UserTooltip";
@@ -83,67 +83,78 @@ async function trackInteraction(postId: string, type: "VIEW" | "CHAT" | "FAVORIT
   } catch {}
 }
 
-// ✅ Bouton Follow inline — compact pour le feed
+// ✅ Bouton Follow inline avec transition de validation visuelle pour l'utilisateur
 function InlineFollowButton({ userId }: { userId: string }) {
   const { user: loggedInUser } = useSession();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const queryKey: QueryKey = ["follower-info", userId];
 
+  // Le hook récupère automatiquement l'état réel depuis la BDD à chaque chargement
   const { data } = useFollowerInfo(userId, {
     followers: 0,
     isFollowedByUser: false,
   });
 
-  const { mutate, isPending } = useMutation({
-    mutationFn: () =>
-      data.isFollowedByUser
-        ? kyInstance.delete(`/api/users/${userId}/followers`)
-        : kyInstance.post(`/api/users/${userId}/followers`),
+  const { mutate, isPending } = useMutation<void, Error, void, { prev: any }>({
+    mutationFn: async () => {
+      // On envoie la requête à l'API (à toi d'ajuster ta route si besoin pour gérer le unfollow)
+      await kyInstance.post(`/api/users/${userId}/followers`);
+    },
     onMutate: async () => {
       await queryClient.cancelQueries({ queryKey });
       const prev = queryClient.getQueryData<any>(queryKey);
+      
+      // Mise à jour optimiste
       queryClient.setQueryData(queryKey, {
-        followers: (prev?.followers || 0) + (prev?.isFollowedByUser ? -1 : 1),
-        isFollowedByUser: !prev?.isFollowedByUser,
+        followers: (prev?.followers || 0) + (data.isFollowedByUser ? -1 : 1),
+        isFollowedByUser: !data.isFollowedByUser,
       });
       return { prev };
     },
+    onSuccess: () => {
+      // Invalider pour être sûr de la donnée réelle
+      queryClient.invalidateQueries({ queryKey });
+    },
     onError(_, __, ctx) {
-      queryClient.setQueryData(queryKey, ctx?.prev);
+      if (ctx?.prev) {
+        queryClient.setQueryData(queryKey, ctx.prev);
+      }
       toast({ variant: "destructive", description: "Erreur, réessayez." });
     },
   });
 
-  // ✅ Ne pas afficher si c'est son propre post ou si non connecté
+  // Ne pas afficher si c'est son propre post ou si non connecté
   if (!loggedInUser || loggedInUser.id === userId) return null;
 
-  const isFollowing = data.isFollowedByUser;
+  // Si l'utilisateur est déjà suivi (d'après la BDD), on affiche le badge "Suivi !"
+  // On ne masque rien, on affiche juste l'état correct.
+  if (data.isFollowedByUser) {
+    return (
+      <div className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest bg-[#6ab344]/15 text-[#6ab344] border border-[#6ab344]/35">
+        <UserCheck className="size-3 shrink-0" />
+        Suivi !
+      </div>
+    );
+  }
 
+  // Si pas suivi, on affiche le bouton "Suivre"
   return (
-    <button
+    <motion.button
+      whileTap={{ scale: 0.95 }}
       onClick={(e) => {
         e.preventDefault();
         e.stopPropagation();
         mutate();
       }}
       disabled={isPending}
-      className={cn(
-        "flex items-center gap-1 px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all active:scale-95 disabled:opacity-50",
-        isFollowing
-          ? "bg-muted text-muted-foreground hover:bg-red-500/10 hover:text-red-500"
-          : "bg-[#4a90e2]/10 text-[#4a90e2] hover:bg-[#4a90e2]/20 border border-[#4a90e2]/20"
-      )}
+      className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all disabled:opacity-50 bg-[#4a90e2]/10 text-[#4a90e2] hover:bg-[#4a90e2]/20 border border-[#4a90e2]/20"
     >
-      {isFollowing
-        ? <UserCheck className="size-3" />
-        : <UserPlus className="size-3" />
-      }
-      {isPending ? "..." : isFollowing ? "Suivi" : "Suivre"}
-    </button>
+      <UserPlus className="size-3" />
+      {isPending ? "..." : "Suivre"}
+    </motion.button>
   );
 }
-
 export default function Post({ post, fullWidth = false }: PostProps) {
   const { user: loggedInUser } = useSession();
   const router = useRouter();
@@ -227,7 +238,7 @@ export default function Post({ post, fullWidth = false }: PostProps) {
       fullWidth ? "rounded-none" : "md:rounded-3xl max-w-xl mx-auto"
     )}>
 
-      {/* ✅ En-tête avec bouton Follow inline */}
+      {/* En-tête */}
       <div className="flex justify-between items-center gap-3 px-5">
         <div className="flex flex-wrap items-center gap-3 min-w-0">
           <UserTooltip user={post.user}>
@@ -246,7 +257,7 @@ export default function Post({ post, fullWidth = false }: PostProps) {
                 </span>
               )}
               {post.user.isVerified && <ShieldCheck className="size-4 text-[#4a90e2] fill-current shrink-0" />}
-              {/* ✅ Bouton Follow inline */}
+              {/* Bouton Follow inline */}
               <InlineFollowButton userId={post.user.id} />
             </div>
             <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-widest mt-0.5 opacity-80">
