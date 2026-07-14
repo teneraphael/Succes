@@ -3,7 +3,6 @@ import FollowButton from "@/components/FollowButton";
 import FollowerCount from "@/components/FollowerCount";
 import Linkify from "@/components/Linkify";
 import TrendsSidebar from "@/components/TrendsSidebar";
-import UserAvatar from "@/components/UserAvatar";
 import prisma from "@/lib/prisma";
 import { FollowerInfo, getUserDataSelect, UserData } from "@/lib/types";
 import { formatNumber } from "@/lib/utils";
@@ -14,10 +13,10 @@ import { notFound, redirect } from "next/navigation";
 import { cache } from "react";
 import EditProfileButton from "./EditProfileButton";
 import UserPosts from "./UserPosts";
-import { Tabs, TabsContent } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import BookmarksFeed from "@/app/(main)/bookmarks/Bookmarks";
 import ZoomableImage from "@/components/ZoomableImage";
-import { Calendar, ShieldCheck, CheckCircle2 } from "lucide-react";
+import { Calendar, ShieldCheck, CheckCircle2, Store } from "lucide-react"; // Importation de Store ajoutée
 import ShareProfileButton from "./ShareProfileButton";
 import MoreOptionsButton from "./MoreOptionsButton";
 import UserProfileStickyHeader from "./UserProfileStickyHeader";
@@ -29,23 +28,12 @@ interface PageProps {
   params: Promise<{ username: string }>;
 }
 
-// ✅ Optimisation : On inclut le décompte des interactions "CHAT" (WhatsApp) à travers les posts
 const getUser = cache(async (username: string, loggedInUserId: string) => {
   const user = await prisma.user.findFirst({
     where: { username: { equals: username, mode: "insensitive" } },
     select: {
       ...getUserDataSelect(loggedInUserId),
-      posts: {
-        select: {
-          _count: {
-            select: {
-              interactions: {
-                where: { type: "CHAT" } // Filtre uniquement les clics WhatsApp
-              }
-            }
-          }
-        }
-      }
+      posts: { select: { _count: { select: { interactions: { where: { type: "CHAT" } } } } } }
     },
   });
   if (!user) notFound();
@@ -56,13 +44,7 @@ const getUserPublic = cache(async (username: string) => {
   return prisma.user.findFirst({
     where: { username: { equals: username, mode: "insensitive" } },
     select: {
-      id: true,
-      displayName: true,
-      username: true,
-      avatarUrl: true,
-      coverUrl: true,
-      bio: true,
-      isSeller: true,
+      id: true, displayName: true, username: true, avatarUrl: true, coverUrl: true, bio: true, isSeller: true,
       _count: { select: { posts: true, followers: true } },
       posts: { take: 3, orderBy: { createdAt: "desc" }, select: { content: true } },
     },
@@ -73,37 +55,8 @@ export async function generateMetadata(props: PageProps): Promise<Metadata> {
   const { username } = await props.params;
   const user = await getUserPublic(username);
   if (!user) return { title: "Profil introuvable — DealCity" };
-
   const origin = process.env.NEXT_PUBLIC_BASE_URL || "https://dealcity.app";
-  const productNames = user.posts
-    .map((p) => { const m = p.content.match(/\s*PRODUIT\s*:\s*(.*)/i); return m ? m[1].trim() : null; })
-    .filter(Boolean).slice(0, 3);
-
-  const description = user.isSeller
-    ? productNames.length > 0
-      ? ` ${productNames.join(" · ")} — Boutique de ${user.displayName} sur DealCity Cameroun. ${user._count.posts} produits disponibles.`
-      : `Boutique de ${user.displayName} sur DealCity — ${user._count.posts} produits disponibles. Commandez via WhatsApp !`
-    : user.bio || `Profil de ${user.displayName} sur DealCity Cameroun.`;
-
-  const ogImage = user.coverUrl || user.avatarUrl || `${origin}/icons/icon-512.png`;
-
-  return {
-    title: user.isSeller ? `${user.displayName} — Boutique DealCity` : `${user.displayName} — DealCity`,
-    description,
-    openGraph: {
-      type: "profile",
-      title: user.isSeller ? ` ${user.displayName} — Boutique sur DealCity` : `${user.displayName} sur DealCity`,
-      description, url: `${origin}/users/${user.username}`, siteName: "DealCity", locale: "fr_CM",
-      images: [{ url: ogImage, width: 1200, height: 630, alt: `Boutique de ${user.displayName} sur DealCity` }],
-    },
-    twitter: {
-      card: "summary_large_image",
-      title: user.isSeller ? ` ${user.displayName} — DealCity` : `${user.displayName} — DealCity`,
-      description, images: [ogImage],
-    },
-    alternates: { canonical: `${origin}/users/${user.username}` },
-    robots: { index: true, follow: true },
-  };
+  return { title: `${user.displayName} — DealCity`, alternates: { canonical: `${origin}/users/${user.username}` } };
 }
 
 export default async function Page(props: PageProps) {
@@ -121,18 +74,33 @@ export default async function Page(props: PageProps) {
   return (
     <main className="flex w-full min-w-0 gap-0 lg:gap-8 items-start">
       <div className="w-full min-w-0 flex-1">
-
-        <UserProfile
-          user={user as any}
-          loggedInUserId={loggedInUser?.id ?? ""}
-        />
+        <UserProfile user={user as any} loggedInUserId={loggedInUser?.id ?? ""} />
 
         <div className="w-full mt-4 lg:mt-6">
           <Tabs defaultValue="posts" className="w-full">
             <ProfileTabs isUserProfile={isUserProfile} />
-            <TabsContent value="posts" className="outline-none pt-4 w-full">
+            
+            <TabsContent value="posts" className="outline-none pt-8 w-full">
+              {/* Header de section */}
+              <div className="relative flex items-center justify-center mb-8">
+                <div className="absolute inset-0 flex items-center" aria-hidden="true">
+                  <div className="w-full border-t border-border/50" />
+                </div>
+                <div className="relative flex items-center gap-3 px-6 bg-background">
+                  <div className="p-2 bg-primary/10 text-primary rounded-xl">
+                    <Store className="size-5" />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-xs font-black uppercase tracking-widest text-foreground">Catalogue Boutique</span>
+                    <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
+                      {user._count.posts} Articles disponibles
+                    </span>
+                  </div>
+                </div>
+              </div>
               <UserPosts userId={user.id} />
             </TabsContent>
+
             {isUserProfile && (
               <TabsContent value="bookmarks" className="outline-none pt-5 w-full">
                 <BookmarksFeed />
@@ -141,7 +109,6 @@ export default async function Page(props: PageProps) {
           </Tabs>
         </div>
       </div>
-
       <TrendsSidebar />
     </main>
   );

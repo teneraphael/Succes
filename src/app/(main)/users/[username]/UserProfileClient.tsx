@@ -5,24 +5,24 @@ import { Store, Heart } from "lucide-react";
 import { TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 // ✅ Onglets traduits
+// Dans votre fichier UserProfileClient.tsx
 export function ProfileTabs({ isUserProfile }: { isUserProfile: boolean }) {
   const { t } = useLanguage();
   return (
-    <TabsList className="bg-card border border-border/60 p-1.5 rounded-2xl flex items-center gap-1.5 w-full shadow-sm">
+    <TabsList className="bg-card border border-border/60 p-1 rounded-2xl flex items-center gap-1 w-full shadow-sm">
       <TabsTrigger
         value="posts"
-        className="flex-1 py-2.5 px-4 rounded-xl text-muted-foreground text-[11px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all duration-200 shadow-none data-[state=active]:bg-background data-[state=active]:text-[#4a90e2] data-[state=active]:border data-[state=active]:border-[#4a90e2]/20 data-[state=active]:shadow-sm"
+        className="flex-1 py-2.5 rounded-xl text-muted-foreground text-[11px] font-black uppercase tracking-[0.15em] flex items-center justify-center gap-2 transition-all duration-300 data-[state=active]:bg-primary/5 data-[state=active]:text-primary data-[state=active]:shadow-none"
       >
-        <Store className="size-3.5 text-[#4a90e2]" />
+        <Store className="size-3.5" />
         {t.catalogue}
       </TabsTrigger>
-
       {isUserProfile && (
         <TabsTrigger
           value="bookmarks"
-          className="flex-1 py-2.5 px-4 rounded-xl text-muted-foreground text-[11px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all duration-200 shadow-none data-[state=active]:bg-background data-[state=active]:text-rose-500 data-[state=active]:border data-[state=active]:border-rose-500/20 data-[state=active]:shadow-sm"
+          className="flex-1 py-2.5 rounded-xl text-muted-foreground text-[11px] font-black uppercase tracking-[0.15em] flex items-center justify-center gap-2 transition-all duration-300 data-[state=active]:bg-rose-500/5 data-[state=active]:text-rose-500 data-[state=active]:shadow-none"
         >
-          <Heart className="size-3.5 text-rose-400" />
+          <Heart className="size-3.5" />
           {t.favorites}
         </TabsTrigger>
       )}
