@@ -120,7 +120,7 @@ function InlineFollowButton({ userId }: { userId: string }) {
       // Si l'état actuel n'est pas suivi, cela signifie qu'on vient de s'abonner
       const isNowFollowed = !data.isFollowedByUser;
       toast({
-        description: isNowFollowed ? "Vous suivez désormais ce vendeur." : "Vous vous êtes désabonné.",
+        description: isNowFollowed ? "Vous suivez désormais ce vendeur." : "Vous suivez désormais ce vendeur.",
         duration: 2000,
       });
     },
