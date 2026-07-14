@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic"; // Recommandé pour les routes de flux de données
+
 import { validateRequest } from "@/auth";
 import prisma from "@/lib/prisma";
 import { getPostDataInclude, PostsPage } from "@/lib/types";
@@ -5,26 +7,29 @@ import { NextRequest } from "next/server";
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { userId: string } },
+  // 🚀 Next.js 15 : params est TOUJOURS une Promise
+  { params }: { params: Promise<{ userId: string }> },
 ) {
   try {
-    const cursor = req.nextUrl.searchParams.get("cursor") || undefined;
-    const pageSize = 10;
-
     const { user } = await validateRequest();
 
     if (!user) {
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Attendre params
+    // 1. Résolution correcte de la promise params
     const { userId } = await params;
+
+    // 2. Gestion de la pagination (cursor)
+    const cursor = req.nextUrl.searchParams.get("cursor") || undefined;
+    const pageSize = 10;
 
     const posts = await prisma.post.findMany({
       where: { userId },
       include: getPostDataInclude(user.id),
       orderBy: { createdAt: "desc" },
       take: pageSize + 1,
+      // Si cursor est présent, on l'utilise pour le saut de page
       cursor: cursor ? { id: cursor } : undefined,
     });
 
@@ -37,7 +42,7 @@ export async function GET(
 
     return Response.json(data);
   } catch (error) {
-    console.error(error);
+    console.error("GET User Posts Error:", error);
     return Response.json({ error: "Internal server error" }, { status: 500 });
   }
 }
