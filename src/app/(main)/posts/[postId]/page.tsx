@@ -30,50 +30,47 @@ export async function generateMetadata({ params: { postId } }: PageProps): Promi
 
   const origin = process.env.NEXT_PUBLIC_BASE_URL || "https://dealcity.app";
 
-  // ✅ Extraction infos produit
-  const productMatch = post.content.match(/🛍️\s*PRODUIT\s*:\s*(.*)/i);
-  const priceMatch = post.content.match(/💰\s*PRIX\s*:\s*(.*?)\s*FCFA/i);
+  // ✅ Regex robustes — sans emojis obligatoires
+  const productMatch = post.content.match(/PRODUIT\s*:\s*([^\n]+)/i);
+  const priceMatch = post.content.match(/PRIX\s*:\s*([\d\s,._]+)\s*FCFA/i);
+  const descMatch = post.content.match(/DESCRIPTION\s*:\s*\n?([\s\S]*?)(?=\n\n|📞|🔗|$)/i);
+
   const productName = productMatch ? productMatch[1].trim() : post.user.displayName;
-  const price = priceMatch ? `${priceMatch[1].trim()} FCFA` : "";
+  const price = priceMatch ? `${priceMatch[1].trim().replace(/\s/g, "")} FCFA` : "";
   const shareTitle = price ? `${productName} — ${price}` : productName;
+  const description = descMatch
+    ? descMatch[1].trim().slice(0, 150)
+    : post.content.slice(0, 150);
 
-  const description =
-    post.content.split("📝 DESCRIPTION :")[1]?.trim().slice(0, 150) ||
-    post.content.slice(0, 150);
-
-  // ✅ Gestion robuste des images (Correction bug aperçu vidéo vide/flou)
+  // ✅ Priorité og:image pour WhatsApp/Facebook :
+  // 1. Première image du post (idéal)
+  // 2. thumbnailUrl de la vidéo (champ Prisma existant dans Post)
+  // 3. thumbnailUrl sur l'objet Media vidéo
+  // 4. Avatar du vendeur (toujours disponible)
+  // 5. Logo DealCity (fallback absolu)
   const firstImage = post.attachments.find((m) => m.type === "IMAGE")?.url;
   const firstVideo = post.attachments.find((m) => m.type === "VIDEO");
-  const videoThumbnail = (firstVideo as any)?.thumbnailUrl || null;
+  const videoThumbnailOnMedia = (firstVideo as any)?.thumbnailUrl || null;
+  const videoThumbnailOnPost = post.thumbnailUrl || null;
 
-  let rawOgImage = "";
+  const ogImageRaw =
+    firstImage ||
+    videoThumbnailOnPost ||
+    videoThumbnailOnMedia ||
+    post.user.avatarUrl ||
+    "/icons/icon-512.png";
 
-  if (firstImage) {
-    // 1. Si le post contient une image, on la prend en priorité
-    rawOgImage = firstImage;
-  } else if (firstVideo) {
-    // 2. Si c'est une vidéo, on prend sa miniature. 
-    // Si la miniature n'existe pas, on met une image par défaut spéciale vidéo pour WhatsApp
-    rawOgImage = videoThumbnail || "/images/default-video-preview.png";
-  } else {
-    // 3. Si aucun média, on prend l'avatar ou l'icône de l'application
-    rawOgImage = post.user.avatarUrl || "/icons/icon-512.png";
-  }
+  // ✅ Forcer URL absolue — WhatsApp rejette les chemins relatifs
+  const ogImage = ogImageRaw.startsWith("/")
+    ? `${origin}${ogImageRaw}`
+    : ogImageRaw;
 
-  // 🔥 CORRECTIF : Si l'URL choisie est un chemin relatif, on force l'URL absolue pour WhatsApp
-  if (rawOgImage.startsWith("/")) {
-    rawOgImage = `${origin}${rawOgImage}`;
-  }
-
-  // ✅ Badge vidéo dans le titre si post vidéo uniquement
   const isVideoOnly = !firstImage && !!firstVideo;
   const finalTitle = isVideoOnly ? `▶ ${shareTitle}` : shareTitle;
 
   return {
     title: finalTitle,
     description,
-
-    // ✅ Open Graph — Facebook, WhatsApp, LinkedIn
     openGraph: {
       title: finalTitle,
       description,
@@ -81,22 +78,13 @@ export async function generateMetadata({ params: { postId } }: PageProps): Promi
       siteName: "DealCity",
       type: "article",
       locale: "fr_CM",
-      images: [
-        {
-          url: rawOgImage,
-          width: 1200,
-          height: 630,
-          alt: productName,
-        },
-      ],
+      images: [{ url: ogImage, width: 1200, height: 630, alt: productName }],
     },
-
-    // ✅ Twitter Card
     twitter: {
       card: "summary_large_image",
       title: finalTitle,
       description,
-      images: [rawOgImage],
+      images: [ogImage],
     },
   };
 }

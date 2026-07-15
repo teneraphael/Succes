@@ -8,6 +8,16 @@ import ffmpeg from "fluent-ffmpeg";
 import path from "path";
 import fs from "fs/promises";
 
+
+const ffmpegPath = path.join(
+  process.cwd(), 
+  "node_modules", 
+  "@ffmpeg-installer", 
+  "win32-x64", 
+  "ffmpeg.exe"
+);
+
+ffmpeg.setFfmpegPath(ffmpegPath);
 const f = createUploadthing();
 const utapi = new UTApi();
 
@@ -19,7 +29,7 @@ const LOGO_PATH = path.join(process.cwd(), "public", "logo.png");
 // 🪄 PROCESSOR DE FILIGRANE AVEC TON LOGO INTERNE
 async function processMediaWithLogoWatermark(fileUrl: string, fileType: string, fileName: string): Promise<{ buffer: Buffer; cleanUp?: () => Promise<void> }> {
   // Petite pause de sécurité de 300ms pour s'assurer que le fichier initial est totalement accessible sur le cloud
-  await new Promise((resolve) => setTimeout(resolve, 300));
+  await new Promise((resolve) => setTimeout(resolve, 500));
 
   const response = await fetch(fileUrl);
   if (!response.ok) {
@@ -74,6 +84,7 @@ async function processMediaWithLogoWatermark(fileUrl: string, fileType: string, 
           "[1:v]scale=150:-1[wm];[0:v][wm]overlay=W-w-20:H-h-20"
         ])
         .output(tempOutputPath)
+        .outputOptions("-preset ultrafast")
         .on("end", async () => {
           try {
             const processedBuffer = await fs.readFile(tempOutputPath);

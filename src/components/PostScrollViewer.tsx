@@ -137,12 +137,14 @@ export default function PostScrollViewer({
                 scrollSnapStop: "always",
                 minHeight: "100%",
               }}
-              className="flex flex-col justify-start overflow-y-auto"
+              className="flex flex-col items-center justify-center overflow-y-auto"
             >
-              {/* ✅ Plein écran bord à bord — suppression max-w-xl, mx-auto, px-2 */}
-              <div className="w-full">
-                <Post post={post} fullWidth />
-              </div>
+              {/* ✅ CORRECTION : Ajout de max-w-[480px] pour limiter la largeur sur desktop */}
+              <div className="w-full max-w-[480px]">
+  <div className="rounded-2xl overflow-hidden">
+    <Post post={post} fullWidth />
+  </div>
+</div>
             </div>
           ))}
 
