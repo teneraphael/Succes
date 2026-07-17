@@ -22,6 +22,6 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "src/lib/firebase.js", "src/hooks/notifications.js"],
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "src/lib/firebase.js", "src/hooks/notifications.js", "src/app/(main)/seller/stats/route.ts"],
   "exclude": ["node_modules"]
 }

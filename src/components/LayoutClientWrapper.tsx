@@ -4,11 +4,22 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import SidebarVendeur from "@/app/(main)/seller/SidebarVendeur";
 
-export default function LayoutClientWrapper({ children, navbar, menuBar, mobileMenu }: any) {
+interface LayoutClientWrapperProps {
+  children: React.ReactNode;
+  navbar: React.ReactNode;
+  menuBar: React.ReactNode;
+  mobileMenu: React.ReactNode;
+}
+
+export default function LayoutClientWrapper({ children, navbar, menuBar, mobileMenu }: LayoutClientWrapperProps) {
   const pathname = usePathname();
+  
   const isChatPage = pathname.startsWith("/messages");
-  // Nouvelle détection pour l'espace vendeur
   const isSellerPage = pathname.startsWith("/seller");
+  const isBecomeSellerPage = pathname === "/become-seller";
+
+  // On détermine si on doit afficher les menus latéraux
+  const showSidebars = !isChatPage && !isBecomeSellerPage;
 
   return (
     <div className={cn(
@@ -23,13 +34,13 @@ export default function LayoutClientWrapper({ children, navbar, menuBar, mobileM
         isChatPage 
           ? "max-w-none p-0 m-0 h-full" 
           : isSellerPage
-            ? "max-w-[1600px] mx-auto p-0 md:p-5 gap-5" // On élargit pour le dashboard
+            ? "max-w-[1600px] mx-auto p-0 md:p-5 gap-5"
             : "mx-auto max-w-7xl p-0 md:p-5 gap-5" 
       )}>
         
-        {!isChatPage && (
+        {/* Affichage conditionnel de la sidebar */}
+        {showSidebars && (
           <div className="hidden md:block">
-            {/* SWITCHER : Si URL /seller, on affiche SidebarVendeur, sinon le menuBar normal */}
             {isSellerPage ? (
               <SidebarVendeur className="sticky top-[5.25rem] hidden h-fit flex-none space-y-3 rounded-2xl bg-card px-3 py-5 shadow-sm sm:block lg:px-5 xl:w-80" />
             ) : (
@@ -46,7 +57,8 @@ export default function LayoutClientWrapper({ children, navbar, menuBar, mobileM
         </main>
       </div>
 
-      {!isChatPage && mobileMenu}
+      {/* Affichage conditionnel du menu mobile */}
+      {showSidebars && mobileMenu}
     </div>
   );
 }
