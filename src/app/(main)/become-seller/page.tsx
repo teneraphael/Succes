@@ -199,7 +199,7 @@ export default function BecomeSellerPage() {
   if (!user || user.isSeller) return null;
 
   return (
-    <div className="min-h-screen w-full flex overflow-hidden bg-[#f8fbff] dark:bg-[#09090b]">
+    <div className="fixed inset-0 z-50 flex w-screen h-dvh overflow-hidden bg-[#f8fbff] dark:bg-[#09090b]">
 
       {/* ✅ Colonne gauche — formulaire */}
       <div className="w-full lg:w-1/2 flex flex-col overflow-y-auto relative z-10">
