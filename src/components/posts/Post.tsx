@@ -9,6 +9,7 @@ import Link from "next/link";
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/use-toast";
+import { FollowerInfo } from "@/lib/types";
 import { motion } from "framer-motion";
 import Comments from "../comments/Comments";
 import UserAvatar from "../UserAvatar";
@@ -91,7 +92,10 @@ function InlineFollowButton({ userId }: { userId: string }) {
   const queryClient = useQueryClient();
   const queryKey: QueryKey = ["follower-info", userId];
 
-  const { data } = useFollowerInfo(userId, { followers: 0, isFollowedByUser: false });
+  const { data, isLoading } = useFollowerInfo(userId, {
+    followers: 0,
+    isFollowedByUser: false,
+  });
 
   const { mutate, isPending } = useMutation({
     mutationFn: () =>
@@ -100,37 +104,56 @@ function InlineFollowButton({ userId }: { userId: string }) {
         : kyInstance.post(`/api/users/${userId}/followers`),
     onMutate: async () => {
       await queryClient.cancelQueries({ queryKey });
-      const prev = queryClient.getQueryData<any>(queryKey);
-      queryClient.setQueryData(queryKey, {
-        followers: (prev?.followers || 0) + (prev?.isFollowedByUser ? -1 : 1),
-        isFollowedByUser: !prev?.isFollowedByUser,
-      });
-      return { prev };
+      const previousData = queryClient.getQueryData<FollowerInfo>(queryKey);
+      queryClient.setQueryData<FollowerInfo>(queryKey, (old) => ({
+        followers: (old?.followers || 0) + (old?.isFollowedByUser ? -1 : 1),
+        isFollowedByUser: !old?.isFollowedByUser,
+      }));
+      return { previousData };
     },
-    onError(_, __, ctx) {
-      queryClient.setQueryData(queryKey, ctx?.prev);
-      toast({ variant: "destructive", description: "Erreur, réessayez." });
+    onSuccess: () => {
+      toast({
+        description: "Vous suivez désormais ce vendeur.",
+        duration: 2000,
+      });
+    },
+    onError: (_, __, context) => {
+      queryClient.setQueryData(queryKey, context?.previousData);
+      toast({ variant: "destructive", description: "Une erreur est survenue." });
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey });
+      queryClient.invalidateQueries({ queryKey: ["user-profile", userId] });
     },
   });
 
-  if (!loggedInUser || loggedInUser.id === userId) return null;
+  if (!loggedInUser || loggedInUser.id === userId || isLoading) return null;
 
-  const isFollowing = data.isFollowedByUser;
+  // ✅ Déjà suivi — badge vert non cliquable
+  if (data.isFollowedByUser) {
+    return (
+      <div className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest bg-[#6ab344]/15 text-[#6ab344] border border-[#6ab344]/35 cursor-default">
+        <UserCheck className="size-3 shrink-0" />
+        Suivi !
+      </div>
+    );
+  }
 
+  // ✅ Pas encore suivi — bouton cliquable bleu
   return (
-    <button
-      onClick={(e) => { e.preventDefault(); e.stopPropagation(); mutate(); }}
+    <motion.button
+      whileTap={{ scale: 0.95 }}
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        mutate();
+      }}
       disabled={isPending}
-      className={cn(
-        "flex items-center gap-1 px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all active:scale-95 disabled:opacity-50",
-        isFollowing
-          ? "bg-muted text-muted-foreground hover:bg-red-500/10 hover:text-red-500"
-          : "bg-[#4a90e2]/10 text-[#4a90e2] hover:bg-[#4a90e2]/20 border border-[#4a90e2]/20"
-      )}
+      className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all disabled:opacity-50 bg-[#4a90e2]/10 text-[#4a90e2] hover:bg-[#4a90e2]/20 border border-[#4a90e2]/20"
     >
-      {isFollowing ? <UserCheck className="size-3" /> : <UserPlus className="size-3" />}
-      {isPending ? "..." : isFollowing ? "Suivi" : "Suivre"}
-    </button>
+      <UserPlus className="size-3" />
+      {isPending ? "..." : "Suivre"}
+    </motion.button>
   );
 }
 
