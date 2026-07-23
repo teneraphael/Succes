@@ -2,10 +2,9 @@
 
 import { useSession } from "@/app/(main)/SessionProvider";
 import { cn, formatRelativeDate } from "@/lib/utils";
-import { MessageSquare, ShieldCheck, UserPlus, UserCheck } from "lucide-react";
+import { MessageSquare, ShieldCheck } from "lucide-react";
 import Image from "next/image";
 import VideoPost from "../VideoPost";
-import { getSellerBadge } from "@/lib/badge";
 import Link from "next/link";
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
@@ -21,13 +20,11 @@ import { useMediaQuery } from "@/hooks/use-media-query";
 import { Drawer, DrawerContent, DrawerTrigger } from "@/components/ui/drawer";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useLanguage } from "@/components/LanguageProvider";
-import { useQueryClient, useMutation } from "@tanstack/react-query";
+import { useQueryClient, useMutation, QueryKey } from "@tanstack/react-query";
 import kyInstance from "@/lib/ky";
 import useFollowerInfo from "@/hooks/useFollowerInfo";
-import { FollowerInfo } from "@/lib/types";
-
-// Clé de cache partagée pour garantir la synchronisation entre Profil et Fil
-const getFollowerQueryKey = (userId: string) => ["follower-info", userId] as const;
+import { UserPlus, UserCheck } from "lucide-react";
+import SellerStars from "@/components/SellerStars";
 
 function ExpandableDescription({ text, limit = 120 }: { text: string; limit?: number }) {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -87,80 +84,53 @@ async function trackInteraction(postId: string, type: "VIEW" | "CHAT" | "FAVORIT
   } catch {}
 }
 
+// ✅ Bouton Follow inline compact
 function InlineFollowButton({ userId }: { userId: string }) {
   const { user: loggedInUser } = useSession();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const queryKey = getFollowerQueryKey(userId);
+  const queryKey: QueryKey = ["follower-info", userId];
 
-  const { data, isLoading } = useFollowerInfo(userId, {
-    followers: 0,
-    isFollowedByUser: false,
-  });
+  const { data } = useFollowerInfo(userId, { followers: 0, isFollowedByUser: false });
 
   const { mutate, isPending } = useMutation({
     mutationFn: () =>
       data.isFollowedByUser
         ? kyInstance.delete(`/api/users/${userId}/followers`)
         : kyInstance.post(`/api/users/${userId}/followers`),
-    
     onMutate: async () => {
       await queryClient.cancelQueries({ queryKey });
-      const previousData = queryClient.getQueryData<FollowerInfo>(queryKey);
-      
-      queryClient.setQueryData<FollowerInfo>(queryKey, (old) => ({
-        followers: (old?.followers || 0) + (old?.isFollowedByUser ? -1 : 1),
-        isFollowedByUser: !old?.isFollowedByUser,
-      }));
-
-      return { previousData };
-    },
-    onSuccess: () => {
-      // Si l'état actuel est suivi, cela signifie qu'on vient de se désabonner
-      // Si l'état actuel n'est pas suivi, cela signifie qu'on vient de s'abonner
-      const isNowFollowed = !data.isFollowedByUser;
-      toast({
-        description: isNowFollowed ? "Vous suivez désormais ce vendeur." : "Vous suivez désormais ce vendeur.",
-        duration: 2000,
+      const prev = queryClient.getQueryData<any>(queryKey);
+      queryClient.setQueryData(queryKey, {
+        followers: (prev?.followers || 0) + (prev?.isFollowedByUser ? -1 : 1),
+        isFollowedByUser: !prev?.isFollowedByUser,
       });
+      return { prev };
     },
-    onError: (err, _, context) => {
-      queryClient.setQueryData(queryKey, context?.previousData);
-      toast({ variant: "destructive", description: "Une erreur est survenue." });
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey });
-      queryClient.invalidateQueries({ queryKey: ["user-profile", userId] });
+    onError(_, __, ctx) {
+      queryClient.setQueryData(queryKey, ctx?.prev);
+      toast({ variant: "destructive", description: "Erreur, réessayez." });
     },
   });
 
-  if (!loggedInUser || loggedInUser.id === userId || isLoading) return null;
+  if (!loggedInUser || loggedInUser.id === userId) return null;
 
-  // État "Suivi !" : Non cliquable (div)
-  if (data.isFollowedByUser) {
-    return (
-      <div className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest bg-[#6ab344]/15 text-[#6ab344] border border-[#6ab344]/35 cursor-default">
-        <UserCheck className="size-3 shrink-0" />
-        Suivi !
-      </div>
-    );
-  }
+  const isFollowing = data.isFollowedByUser;
 
-  // État "Suivre" : Cliquable (motion.button)
   return (
-    <motion.button
-      whileTap={{ scale: 0.95 }}
-      onClick={(e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        mutate();
-      }}
+    <button
+      onClick={(e) => { e.preventDefault(); e.stopPropagation(); mutate(); }}
       disabled={isPending}
-      className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all disabled:opacity-50 bg-[#4a90e2]/10 text-[#4a90e2] hover:bg-[#4a90e2]/20 border border-[#4a90e2]/20"
+      className={cn(
+        "flex items-center gap-1 px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all active:scale-95 disabled:opacity-50",
+        isFollowing
+          ? "bg-muted text-muted-foreground hover:bg-red-500/10 hover:text-red-500"
+          : "bg-[#4a90e2]/10 text-[#4a90e2] hover:bg-[#4a90e2]/20 border border-[#4a90e2]/20"
+      )}
     >
-      <UserPlus className="size-3" />
-      {isPending ? "..." : "Suivre"}
-    </motion.button>
+      {isFollowing ? <UserCheck className="size-3" /> : <UserPlus className="size-3" />}
+      {isPending ? "..." : isFollowing ? "Suivi" : "Suivre"}
+    </button>
   );
 }
 
@@ -213,16 +183,13 @@ export default function Post({ post, fullWidth = false }: PostProps) {
       toast({ variant: "destructive", description: t.whatsapp_unavailable, duration: 2000 });
       return;
     }
-
     trackInteraction(post.id, "CHAT");
-
     const choiceLabel = Object.entries(selectedAttributes).map(([key, val]) => `${key}: ${val}`).join(", ");
     const origin = typeof window !== "undefined" ? window.location.origin : "https://dealcity.app";
     const postUrl = `${origin}/posts/${post.id}`;
     const shortDesc = cleanDescription
       ? cleanDescription.length > 200 ? cleanDescription.slice(0, 200) + "..." : cleanDescription
       : null;
-
     const lines: string[] = [];
     lines.push("Bonjour ! 👋");
     lines.push(`Je suis interesse(e) par votre produit sur *DealCity* :`);
@@ -236,7 +203,6 @@ export default function Post({ post, fullWidth = false }: PostProps) {
     lines.push(postUrl);
     lines.push("");
     lines.push("Est-ce que ce produit est toujours disponible ? Merci !");
-
     const cleanNumber = number.replace(/\D/g, "");
     window.open(`https://wa.me/${cleanNumber}?text=${encodeURIComponent(lines.join("\n"))}`, "_blank");
   }, [isAvailable, whatsappNumber, post, selectedAttributes, cleanDescription, productName, currentPrice, t, toast]);
@@ -247,6 +213,7 @@ export default function Post({ post, fullWidth = false }: PostProps) {
       fullWidth ? "rounded-none" : "md:rounded-3xl max-w-xl mx-auto"
     )}>
 
+      {/* ✅ En-tête avec étoiles vendeur */}
       <div className="flex justify-between items-center gap-3 px-5">
         <div className="flex flex-wrap items-center gap-3 min-w-0">
           <UserTooltip user={post.user}>
@@ -259,12 +226,14 @@ export default function Post({ post, fullWidth = false }: PostProps) {
               <Link href={`/users/${post.user.username}`} className="font-extrabold text-sm tracking-tight text-foreground hover:text-[#4a90e2] transition-colors truncate">
                 {post.user.displayName}
               </Link>
-              {getSellerBadge(post.user._count.sales) && (
-                <span className={cn("text-[9px] px-1.5 py-0.5 rounded-md font-black uppercase tracking-wider text-white shrink-0", getSellerBadge(post.user._count.sales)?.color)}>
-                  {getSellerBadge(post.user._count.sales)?.label}
-                </span>
+              {post.user.isVerified && (
+                <ShieldCheck className="size-4 text-[#4a90e2] fill-current shrink-0" />
               )}
-              {post.user.isVerified && <ShieldCheck className="size-4 text-[#4a90e2] fill-current shrink-0" />}
+              {/* ✅ Étoiles vendeur — remplace le badge texte */}
+              {post.user.isSeller && (
+                <SellerStars followerCount={post.user._count.followers} />
+              )}
+              {/* ✅ Bouton Follow inline */}
               <InlineFollowButton userId={post.user.id} />
             </div>
             <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-widest mt-0.5 opacity-80">
@@ -275,6 +244,7 @@ export default function Post({ post, fullWidth = false }: PostProps) {
         <PostMoreButton post={post} />
       </div>
 
+      {/* Nom + stock + prix */}
       <div className="px-5 flex items-start justify-between gap-4">
         <div className="space-y-1.5 flex-1">
           {productName && (
@@ -298,7 +268,9 @@ export default function Post({ post, fullWidth = false }: PostProps) {
             <span
               className={cn(
                 "text-2xl font-black tracking-tighter px-3.5 py-1 rounded-2xl block shadow-sm transform -rotate-1 border-2",
-                isAvailable ? "text-[#6ab344] bg-[#6ab344]/8 border-[#6ab344]/20" : "text-muted-foreground bg-neutral-100 border-neutral-200 line-through opacity-60"
+                isAvailable
+                  ? "text-[#6ab344] bg-[#6ab344]/8 border-[#6ab344]/20"
+                  : "text-muted-foreground bg-neutral-100 border-neutral-200 line-through opacity-60"
               )}
               style={{ fontFamily: "'Geist Mono', 'Courier New', monospace" }}
             >
@@ -308,12 +280,14 @@ export default function Post({ post, fullWidth = false }: PostProps) {
         )}
       </div>
 
+      {/* Description */}
       {cleanDescription && (
         <div className="px-5">
           <ExpandableDescription text={cleanDescription} />
         </div>
       )}
 
+      {/* Médias */}
       <div className="w-full overflow-hidden border-y border-border/40">
         <MediaPreviews
           attachments={visualAttachments}
@@ -325,6 +299,7 @@ export default function Post({ post, fullWidth = false }: PostProps) {
         />
       </div>
 
+      {/* Bouton WhatsApp */}
       <div className="px-5 pt-1">
         <button
           onClick={handleWhatsApp}
@@ -336,10 +311,36 @@ export default function Post({ post, fullWidth = false }: PostProps) {
               : "bg-neutral-200 text-neutral-400 shadow-none cursor-not-allowed opacity-50"
           )}
         >
+          <svg viewBox="0 0 24 24" className="size-5 fill-current relative z-10" xmlns="http://www.w3.org/2000/svg">
+            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+          </svg>
           <span className="relative z-10">{isAvailable ? t.chat_whatsapp : t.unavailable}</span>
+
+          {isAvailable && (
+            <motion.div
+              className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none z-20 text-xl select-none"
+              initial={{ opacity: 0, x: 30, y: 10 }}
+              animate={{
+                opacity: [0, 1, 1, 1, 0],
+                x: [30, 0, 0, 0, -10],
+                y: [10, 0, 4, 0, -5],
+                scale: [0.8, 1, 0.85, 1, 0.9],
+              }}
+              transition={{
+                duration: 1.8,
+                repeat: Infinity,
+                repeatDelay: 2,
+                ease: "easeInOut",
+                times: [0, 0.25, 0.5, 0.7, 1],
+              }}
+            >
+              👆🏾
+            </motion.div>
+          )}
         </button>
       </div>
 
+      {/* Likes, commentaires, bookmark */}
       <div className="flex items-center justify-between px-5 pt-3 border-t border-border/40">
         <div className="flex items-center gap-6">
           <LikeButton

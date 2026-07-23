@@ -1,19 +1,8 @@
-
-export function getSellerBadge(saleCount: number) {
-  if (saleCount >= 100) {
-    return { label: "Elite", color: "bg-purple-600" };
-  }
-  if (saleCount >= 50) {
-    return { label: "Expert", color: "bg-blue-600" };
-  }
-  if (saleCount >= 20) {
-    return { label: "Fiable", color: "bg-emerald-500" };
-  }
-   if (saleCount >= 10) {
-    return { label: "Fiable", color: "bg-zinc-500" };
-  }
-  if (saleCount < 10) {
-    return { label: "debutant", color: "bg-amber-500" };
-  }
-  return null;
+// ✅ Étoiles basées sur le nombre de followers (abonnés)
+export function getSellerStars(followerCount: number): number {
+  if (followerCount >= 500) return 5;
+  if (followerCount >= 200) return 4;
+  if (followerCount >= 100) return 3;
+  if (followerCount >= 50) return 2;
+  return 1; // ✅ Tout nouveau vendeur commence à 1 étoile
 }
