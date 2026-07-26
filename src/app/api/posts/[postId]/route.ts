@@ -13,22 +13,6 @@ export async function GET(
     // 1. Extraction du postId en premier (Next.js 15 asynchrone)
     const { postId } = await params;
 
-    // 2. Validation de l'utilisateur
-    // On appelle validateRequest qui va chercher le cookie auth_session
-    const { user: loggedInUser, session } = await validateRequest();
-
-    // Debug Console (Vérifie bien que l'ID s'affiche ici maintenant)
-    console.log("--- API DEBUG ---");
-    console.log("Post ID requis:", postId);
-    console.log("User Authentifié:", loggedInUser?.id || "AUCUN");
-
-    if (!loggedInUser || !session) {
-      return NextResponse.json(
-        { error: "Non autorisé - Session absente ou expirée" }, 
-        { status: 401 }
-      );
-    }
-
     if (!postId) {
       return NextResponse.json(
         { error: "ID du post manquant" }, 
@@ -36,10 +20,17 @@ export async function GET(
       );
     }
 
-    // 3. Récupération des données avec Prisma
+    // 2. Validation optionnelle de l'utilisateur (on ne bloque plus si non connecté)
+    const { user: loggedInUser } = await validateRequest();
+
+    console.log("--- API DEBUG ---");
+    console.log("Post ID requis:", postId);
+    console.log("User Authentifié:", loggedInUser?.id || "VISITEUR NON CONNECTÉ");
+
+    // 3. Récupération des données avec Prisma (on passe undefined si pas connecté)
     const post = await prisma.post.findUnique({
       where: { id: postId },
-      include: getPostDataInclude(loggedInUser.id),
+      include: getPostDataInclude(loggedInUser ? loggedInUser.id : undefined as any),
     });
 
     if (!post) {

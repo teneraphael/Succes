@@ -1,9 +1,10 @@
 "use client";
 
+import { usePost } from "@/hooks/use-post";
 import { X, ShoppingBag, Shield } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { use, useEffect, useState, useCallback } from "react";
+import { use, useEffect, useCallback } from "react";
 import { motion, LayoutGroup } from "framer-motion";
 import { useLanguage } from "@/components/LanguageProvider";
 import { useToast } from "@/components/ui/use-toast";
@@ -44,10 +45,7 @@ export default function PostPhotosPage({ params }: PageProps) {
   const { toast } = useToast();
   const { t } = useLanguage();
   const { postId } = use(params);
-
-  // Remplacement de usePost par un state local public
-  const [post, setPost] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const { data: post, isLoading, error } = usePost(postId);
 
   useEffect(() => {
     const originalStyle = window.getComputedStyle(document.body).overflow;
@@ -57,31 +55,11 @@ export default function PostPhotosPage({ params }: PageProps) {
     };
   }, []);
 
-  // Récupération publique du post (fonctionne même déconnecté)
-  useEffect(() => {
-    async function fetchPost() {
-      try {
-        const res = await fetch(`/api/posts/${postId}`);
-        if (!res.ok) throw new Error("Erreur");
-        const data = await res.json();
-        // Gérer selon la structure de retour de votre API (data direct ou data.post)
-        setPost(data.post || data);
-      } catch (err) {
-        setPost(null);
-      } finally {
-        setIsLoading(false);
-      }
-    }
-    if (postId) {
-      fetchPost();
-    }
-  }, [postId]);
-
   // Déclaration du callback WhatsApp
   const handleWhatsApp = useCallback(async () => {
     if (!post) return;
     
-    const postData = post;
+    const postData = post as any;
     const { productName, price: defaultPrice, cleanDescription, whatsappNumber } = extractInfo(postData.content);
     const currentStock = postData.stock ?? 0;
     const isAvailable = currentStock > 0;
@@ -121,7 +99,7 @@ export default function PostPhotosPage({ params }: PageProps) {
     window.open(`https://wa.me/${cleanNumber}?text=${encodeURIComponent(lines.join("\n"))}`, "_blank");
   }, [post, t, toast]);
 
-  if (isLoading) {
+  if (isLoading && !post) {
     return (
       <motion.div
         initial={{ opacity: 0 }}
@@ -143,27 +121,27 @@ export default function PostPhotosPage({ params }: PageProps) {
     );
   }
 
-  if (!post) {
-    return (
-      <div className="fixed inset-0 z-[100] bg-zinc-950 flex flex-col items-center justify-center gap-4 p-4">
-        <div className="size-14 rounded-2xl bg-white/10 flex items-center justify-center">
-          <ShoppingBag className="size-6 text-white/40" />
-        </div>
-        <p className="text-sm font-bold text-white/60">
-          Impossible de charger les images.
-        </p>
-        <button
-          onClick={() => router.back()}
-          className="px-6 py-2.5 rounded-full bg-[#4a90e2] text-white text-xs font-black uppercase tracking-widest hover:bg-[#357abd] transition-all active:scale-95"
-        >
-          Retour
-        </button>
+if (!post) {
+  return (
+    <div className="fixed inset-0 z-[100] bg-zinc-950 flex flex-col items-center justify-center gap-4 p-4">
+      <div className="size-14 rounded-2xl bg-white/10 flex items-center justify-center">
+        <ShoppingBag className="size-6 text-white/40" />
       </div>
-    );
-  }
+      <p className="text-sm font-bold text-white/60">
+        Impossible de charger les images.
+      </p>
+      <button
+        onClick={() => router.back()}
+        className="px-6 py-2.5 rounded-full bg-[#4a90e2] text-white text-xs font-black uppercase tracking-widest hover:bg-[#357abd] transition-all active:scale-95"
+      >
+        Retour
+      </button>
+    </div>
+  );
+}
 
-  const postData = post;
-  const visualAttachments = postData.attachments?.filter((a: any) => a.type !== "AUDIO") || [];
+  const postData = post as any;
+  const visualAttachments = postData.attachments.filter((a: any) => a.type !== "AUDIO");
   const { productName, price, cleanDescription } = extractInfo(postData.content);
   const currentStock = postData.stock ?? 0;
   const isAvailable = currentStock > 0;
@@ -189,7 +167,7 @@ export default function PostPhotosPage({ params }: PageProps) {
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.2, type: "spring", stiffness: 300, damping: 24 }}
           onClick={() => router.back()}
-          className="absolute top-5 left-5 z-[110] p-2.5 bg-white/15 hover:bg-white/25 backdrop-blur-md rounded-xl text-white transition-all active:scale-90 border border-white/10 shadow-lg"
+          className="absolute top-5 left-5 z-[110] p-2.5 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-xl text-white transition-all active:scale-90 border border-white/10"
         >
           <X className="size-5" />
         </motion.button>
@@ -199,11 +177,11 @@ export default function PostPhotosPage({ params }: PageProps) {
           <div className="w-full max-w-4xl">
             {visualAttachments.map((m: any, index: number) => (
               <motion.div
-                key={m.id || index}
-                layoutId={`post-image-${m.id || index}`}
+                key={m.id}
+                layoutId={`post-image-${m.id}`}
                 style={{ borderRadius: index === 0 ? 0 : undefined }}
                 transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                className="relative w-full h-[80vh] md:h-screen snap-center flex items-center justify-center bg-black"
+                className="relative w-full h-[80vh] md:h-screen snap-center"
               >
                 <Image
                   src={m.url}
@@ -251,29 +229,27 @@ export default function PostPhotosPage({ params }: PageProps) {
           className="hidden md:flex w-[400px] bg-zinc-900 border-l border-white/8 flex-col p-6 overflow-y-auto gap-6 shrink-0"
         >
           {/* Vendeur */}
-          {postData.user && (
-            <div className="flex items-center gap-3 p-4 bg-white/5 rounded-2xl border border-white/8">
-              <Image
-                src={postData.user.avatarUrl || "/icons/icon-192.png"}
-                width={44}
-                height={44}
-                className="rounded-full aspect-square object-cover ring-2 ring-[#4a90e2]/30"
-                alt={postData.user.displayName || "Vendeur"}
-                unoptimized={isExternalImage(postData.user.avatarUrl || "")}
-              />
-              <div className="flex-1 min-w-0">
-                <p className="font-black text-white text-sm leading-none truncate">
-                  {postData.user.displayName || "Boutique DealCity"}
-                </p>
-                <div className="flex items-center gap-1.5 mt-1.5">
-                  <Shield className="size-3 text-[#4a90e2]" />
-                  <span className="text-[9px] text-[#4a90e2] font-black uppercase tracking-widest">
-                    Vendeur DealCity
-                  </span>
-                </div>
+          <div className="flex items-center gap-3 p-4 bg-white/5 rounded-2xl border border-white/8">
+            <Image
+              src={postData.user.avatarUrl || "/icons/icon-192.png"}
+              width={44}
+              height={44}
+              className="rounded-full aspect-square object-cover ring-2 ring-[#4a90e2]/30"
+              alt={postData.user.displayName}
+              unoptimized={isExternalImage(postData.user.avatarUrl || "")}
+            />
+            <div className="flex-1 min-w-0">
+              <p className="font-black text-white text-sm leading-none truncate">
+                {postData.user.displayName}
+              </p>
+              <div className="flex items-center gap-1.5 mt-1.5">
+                <Shield className="size-3 text-[#4a90e2]" />
+                <span className="text-[9px] text-[#4a90e2] font-black uppercase tracking-widest">
+                  Vendeur DealCity
+                </span>
               </div>
             </div>
-          )}
+          </div>
 
           {/* Nom + prix */}
           <div className="space-y-2">
