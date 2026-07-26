@@ -16,7 +16,7 @@ import UserPosts from "./UserPosts";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import BookmarksFeed from "@/app/(main)/bookmarks/Bookmarks";
 import ZoomableImage from "@/components/ZoomableImage";
-import { Calendar, ShieldCheck, CheckCircle2, Store } from "lucide-react"; // Importation de Store ajoutée
+import { Calendar, ShieldCheck, CheckCircle2, Store } from "lucide-react";
 import ShareProfileButton from "./ShareProfileButton";
 import MoreOptionsButton from "./MoreOptionsButton";
 import UserProfileStickyHeader from "./UserProfileStickyHeader";
@@ -243,9 +243,9 @@ async function UserProfile({ user, loggedInUserId }: UserProfileProps) {
 
           {/* Stats */}
           <ProfileStats
-            postsCount={formatNumber(user._count.posts) as unknown as number}
+            postsCount={user._count.posts} 
             followersNode={<FollowerCount userId={user.id} initialState={followerInfo} />}
-            salesCount={totalWhatsAppClicks} // ✅ Injecte le vrai décompte cumulé en base
+            salesCount={totalWhatsAppClicks}
           />
         </div>
       </div>
