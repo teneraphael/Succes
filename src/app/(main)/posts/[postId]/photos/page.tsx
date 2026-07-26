@@ -121,24 +121,24 @@ export default function PostPhotosPage({ params }: PageProps) {
     );
   }
 
-  if (error || !post) {
-    return (
-      <div className="fixed inset-0 z-[100] bg-zinc-950 flex flex-col items-center justify-center gap-4 p-4">
-        <div className="size-14 rounded-2xl bg-white/10 flex items-center justify-center">
-          <ShoppingBag className="size-6 text-white/40" />
-        </div>
-        <p className="text-sm font-bold text-white/60">
-          Impossible de charger les images.
-        </p>
-        <button
-          onClick={() => router.back()}
-          className="px-6 py-2.5 rounded-full bg-[#4a90e2] text-white text-xs font-black uppercase tracking-widest hover:bg-[#357abd] transition-all active:scale-95"
-        >
-          Retour
-        </button>
+if (!post) {
+  return (
+    <div className="fixed inset-0 z-[100] bg-zinc-950 flex flex-col items-center justify-center gap-4 p-4">
+      <div className="size-14 rounded-2xl bg-white/10 flex items-center justify-center">
+        <ShoppingBag className="size-6 text-white/40" />
       </div>
-    );
-  }
+      <p className="text-sm font-bold text-white/60">
+        Impossible de charger les images.
+      </p>
+      <button
+        onClick={() => router.back()}
+        className="px-6 py-2.5 rounded-full bg-[#4a90e2] text-white text-xs font-black uppercase tracking-widest hover:bg-[#357abd] transition-all active:scale-95"
+      >
+        Retour
+      </button>
+    </div>
+  );
+}
 
   const postData = post as any;
   const visualAttachments = postData.attachments.filter((a: any) => a.type !== "AUDIO");
