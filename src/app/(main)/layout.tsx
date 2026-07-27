@@ -3,6 +3,7 @@ import MenuBar from "./MenuBar";
 import Navbar from "./Navbar";
 import CookieBanner from "@/components/CookieBanner";
 import { Analytics } from "@vercel/analytics/react";
+import { GoogleAnalytics } from "@next/third-parties/google";
 import NotificationHandler from "@/components/NotificationHandler";
 import SessionProvider from "./SessionProvider";
 import LayoutClientWrapper from "@/components/LayoutClientWrapper";
@@ -54,6 +55,7 @@ export default async function Layout({
 
         <CookieBanner />
         <Analytics />
+        <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_ID || ""} />
       </SessionProvider>
     </LanguageProvider>
   );
