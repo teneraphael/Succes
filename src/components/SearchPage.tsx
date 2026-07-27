@@ -24,7 +24,6 @@ interface SuggestionData {
   users: UserSuggestion[];
 }
 
-// Fonction utilitaire pour gérer les images externes de manière identique à vos autres composants
 const isExternalImage = (url: string) =>
   url.includes("ufs.sh") || url.includes("utfs.io") || url.includes("lh3.googleusercontent.com");
 
@@ -79,10 +78,10 @@ export default function SearchPage({ onClose }: SearchPageProps) {
         if (response.ok) {
           const result = await response.json();
           if (result.type === "suggestions") {
-            // L'API renvoie désormais un objet { products, users }
             const data: SuggestionData = result.data;
             setProductSuggestions(data.products || []);
-            setUserSuggestions(data.users || []);
+            // Filtrage de sécurité front-end : on ne garde que les profils vendeurs
+            setUserSuggestions((data.users || []).filter((user) => user.isSeller));
           }
         }
       } catch (error) {
@@ -125,8 +124,8 @@ export default function SearchPage({ onClose }: SearchPageProps) {
   return (
     <div className="fixed inset-0 z-[999] w-screen h-screen bg-background flex flex-col animate-in fade-in slide-in-from-top-4 duration-200 sm:hidden">
 
-      {/* Barre de saisie */}
-      <div className="flex items-center gap-3 px-4 py-3 border-b border-border/40 bg-background/95 backdrop-blur-sm">
+      {/* Barre de saisie fixe en haut */}
+      <div className="flex items-center gap-3 px-4 py-3 border-b border-border/40 bg-background/95 backdrop-blur-sm shrink-0">
         <form onSubmit={handleSubmit} className="flex-1">
           <div className="relative">
             <SearchIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
@@ -152,18 +151,19 @@ export default function SearchPage({ onClose }: SearchPageProps) {
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-4 pt-5 space-y-6 select-none">
+      {/* ZONE SCROLLABLE : flex-1, overflow-y-auto et un bon padding en bas pour éviter toute coupure */}
+      <div className="flex-1 overflow-y-auto px-4 pt-5 pb-16 space-y-6 select-none overscroll-contain">
 
-        {/* SECTION DES RÉSULTATS DE SAISIE (PROFIL & PRODUITS) */}
+        {/* SECTION DES RÉSULTATS DE SAISIE (PROFIL VENDEUR & PRODUITS) */}
         {hasAnySuggestions ? (
           <div className="space-y-6">
             
-            {/* 1. Profils correspondants */}
+            {/* 1. Profils Vendeurs uniquement */}
             {userSuggestions.length > 0 && (
               <div className="space-y-2">
                 <div className="flex items-center gap-1.5 px-1 text-[10px] font-black uppercase tracking-widest text-[#4a90e2]">
                   <Store className="size-3.5" />
-                  <span>Profils & Boutiques</span>
+                  <span>Boutiques & Vendeurs</span>
                 </div>
                 <div className="rounded-2xl border border-border/60 bg-card overflow-hidden shadow-sm divide-y divide-border/40">
                   {userSuggestions.map((user) => (
@@ -316,6 +316,7 @@ export default function SearchPage({ onClose }: SearchPageProps) {
                 </div>
               )}
             </div>
+
           </div>
         )}
       </div>

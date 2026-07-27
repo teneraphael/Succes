@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
       return Response.json({ posts: [], users: [], nextCursor: null });
     }
 
-    // Exécution conjointe de la recherche sur les posts et sur les utilisateurs
+    // Exécution conjointe de la recherche sur les posts et sur les utilisateurs vendeurs uniquement
     const [posts, users] = await Promise.all([
       prisma.post.findMany({
         where: {
@@ -54,6 +54,7 @@ export async function GET(req: NextRequest) {
       }),
       prisma.user.findMany({
         where: {
+          isSeller: true, // FILTRE STRICT : Uniquement les profils vendeurs
           OR: [
             {
               displayName: {
