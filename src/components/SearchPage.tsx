@@ -1,21 +1,40 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { SearchIcon, Clock, Trash2, TrendingUp, ShoppingBag, Loader2, X } from "lucide-react";
+import { SearchIcon, Clock, Trash2, TrendingUp, ShoppingBag, Loader2, X, Store } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Input } from "./ui/input";
 import { useLanguage } from "@/components/LanguageProvider";
+import Image from "next/image";
 
 interface SearchPageProps {
   onClose: () => void;
 }
+
+interface UserSuggestion {
+  id: string;
+  displayName: string;
+  username: string;
+  avatarUrl: string | null;
+  isSeller: boolean;
+}
+
+interface SuggestionData {
+  products: string[];
+  users: UserSuggestion[];
+}
+
+// Fonction utilitaire pour gérer les images externes de manière identique à vos autres composants
+const isExternalImage = (url: string) =>
+  url.includes("ufs.sh") || url.includes("utfs.io") || url.includes("lh3.googleusercontent.com");
 
 export default function SearchPage({ onClose }: SearchPageProps) {
   const router = useRouter();
   const { t } = useLanguage();
   const [inputValue, setInputValue] = useState("");
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
-  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [productSuggestions, setProductSuggestions] = useState<string[]>([]);
+  const [userSuggestions, setUserSuggestions] = useState<UserSuggestion[]>([]);
   const [trendingSearches, setTrendingSearches] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingTrends, setIsLoadingTrends] = useState(true);
@@ -46,7 +65,12 @@ export default function SearchPage({ onClose }: SearchPageProps) {
 
   useEffect(() => {
     const query = inputValue.trim();
-    if (!query) { setSuggestions([]); setIsLoading(false); return; }
+    if (!query) { 
+      setProductSuggestions([]); 
+      setUserSuggestions([]); 
+      setIsLoading(false); 
+      return; 
+    }
     setIsLoading(true);
 
     const timer = setTimeout(async () => {
@@ -54,7 +78,12 @@ export default function SearchPage({ onClose }: SearchPageProps) {
         const response = await fetch(`/api/search/suggestions?q=${encodeURIComponent(query)}`);
         if (response.ok) {
           const result = await response.json();
-          if (result.type === "suggestions") setSuggestions(result.data);
+          if (result.type === "suggestions") {
+            // L'API renvoie désormais un objet { products, users }
+            const data: SuggestionData = result.data;
+            setProductSuggestions(data.products || []);
+            setUserSuggestions(data.users || []);
+          }
         }
       } catch (error) {
         console.error("Erreur suggestions:", error);
@@ -76,6 +105,11 @@ export default function SearchPage({ onClose }: SearchPageProps) {
     onClose();
   };
 
+  const handleSelectUser = (username: string) => {
+    router.push(`/users/${username}`);
+    onClose();
+  };
+
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     handleExecuteSearch(inputValue);
@@ -86,10 +120,12 @@ export default function SearchPage({ onClose }: SearchPageProps) {
     localStorage.removeItem("dealcity-search-history");
   };
 
+  const hasAnySuggestions = productSuggestions.length > 0 || userSuggestions.length > 0;
+
   return (
     <div className="fixed inset-0 z-[999] w-screen h-screen bg-background flex flex-col animate-in fade-in slide-in-from-top-4 duration-200 sm:hidden">
 
-      {/* ✅ Barre de saisie traduite */}
+      {/* Barre de saisie */}
       <div className="flex items-center gap-3 px-4 py-3 border-b border-border/40 bg-background/95 backdrop-blur-sm">
         <form onSubmit={handleSubmit} className="flex-1">
           <div className="relative">
@@ -107,7 +143,6 @@ export default function SearchPage({ onClose }: SearchPageProps) {
           </div>
         </form>
 
-        {/* ✅ Bouton annuler traduit */}
         <button
           type="button"
           onClick={onClose}
@@ -119,29 +154,78 @@ export default function SearchPage({ onClose }: SearchPageProps) {
 
       <div className="flex-1 overflow-y-auto px-4 pt-5 space-y-6 select-none">
 
-        {/* ✅ Suggestions traduites */}
-        {suggestions.length > 0 ? (
-          <div className="space-y-2">
-            <p className="text-[10px] font-black uppercase tracking-widest text-[#4a90e2] px-1">
-              {t.products_found}
-            </p>
-            <div className="rounded-2xl border border-border/60 bg-card overflow-hidden shadow-sm divide-y divide-border/40">
-              {suggestions.map((suggestion, index) => (
-                <button
-                  key={index}
-                  type="button"
-                  onClick={() => handleExecuteSearch(suggestion)}
-                  className="w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-[#4a90e2]/5 active:bg-muted transition-colors"
-                >
-                  <ShoppingBag className="size-4 text-[#4a90e2] shrink-0" />
-                  <span className="text-sm font-bold text-foreground">{suggestion}</span>
-                </button>
-              ))}
-            </div>
+        {/* SECTION DES RÉSULTATS DE SAISIE (PROFIL & PRODUITS) */}
+        {hasAnySuggestions ? (
+          <div className="space-y-6">
+            
+            {/* 1. Profils correspondants */}
+            {userSuggestions.length > 0 && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-1.5 px-1 text-[10px] font-black uppercase tracking-widest text-[#4a90e2]">
+                  <Store className="size-3.5" />
+                  <span>Profils & Boutiques</span>
+                </div>
+                <div className="rounded-2xl border border-border/60 bg-card overflow-hidden shadow-sm divide-y divide-border/40">
+                  {userSuggestions.map((user) => (
+                    <button
+                      key={user.id}
+                      type="button"
+                      onClick={() => handleSelectUser(user.username)}
+                      className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-[#4a90e2]/5 active:bg-muted transition-colors"
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <Image
+                          src={user.avatarUrl || "/icons/icon-192.png"}
+                          alt={user.displayName}
+                          width={36}
+                          height={36}
+                          className="size-9 rounded-full object-cover shrink-0 border border-border/40"
+                          unoptimized={isExternalImage(user.avatarUrl || "")}
+                        />
+                        <div className="min-w-0">
+                          <p className="text-xs font-black text-foreground truncate">
+                            {user.displayName}
+                          </p>
+                          <p className="text-[10px] text-muted-foreground font-bold truncate">
+                            @{user.username}
+                          </p>
+                        </div>
+                      </div>
+                      <span className="text-[9px] font-black uppercase tracking-wider text-primary bg-primary/10 px-2.5 py-1 rounded-lg shrink-0">
+                        Voir
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* 2. Produits / Suggestions */}
+            {productSuggestions.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-[10px] font-black uppercase tracking-widest text-[#4a90e2] px-1">
+                  {t.products_found}
+                </p>
+                <div className="rounded-2xl border border-border/60 bg-card overflow-hidden shadow-sm divide-y divide-border/40">
+                  {productSuggestions.map((suggestion, index) => (
+                    <button
+                      key={index}
+                      type="button"
+                      onClick={() => handleExecuteSearch(suggestion)}
+                      className="w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-[#4a90e2]/5 active:bg-muted transition-colors"
+                    >
+                      <ShoppingBag className="size-4 text-[#4a90e2] shrink-0" />
+                      <span className="text-sm font-bold text-foreground">{suggestion}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
           </div>
 
         ) : inputValue.trim() !== "" && !isLoading ? (
-          // ✅ Aucun résultat traduit
+          // Aucun résultat
           <div className="flex flex-col items-center justify-center py-12 gap-3 text-center">
             <div className="size-12 rounded-2xl bg-[#4a90e2]/10 border border-[#4a90e2]/20 flex items-center justify-center">
               <SearchIcon className="size-5 text-[#4a90e2]" />
@@ -155,7 +239,7 @@ export default function SearchPage({ onClose }: SearchPageProps) {
         ) : (
           <div className="space-y-6">
 
-            {/* ✅ Recherches récentes traduites */}
+            {/* Recherches récentes */}
             {recentSearches.length > 0 && (
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
@@ -187,7 +271,7 @@ export default function SearchPage({ onClose }: SearchPageProps) {
               </div>
             )}
 
-            {/* ✅ Tendances traduites */}
+            {/* Tendances */}
             <div className="space-y-3">
               <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
                 <TrendingUp className="size-3.5 text-[#4a90e2]" />
@@ -227,7 +311,6 @@ export default function SearchPage({ onClose }: SearchPageProps) {
                   ))}
                 </div>
               ) : (
-                // ✅ Aucune tendance traduite
                 <div className="text-center py-8 text-xs font-bold text-muted-foreground bg-muted/30 rounded-2xl border border-dashed border-border/60">
                   {t.no_results}
                 </div>

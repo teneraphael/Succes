@@ -10,21 +10,39 @@ export async function GET(request: Request) {
     if (q && q.trim() !== "") {
       const cleanQuery = q.trim().toLowerCase();
 
-      // 1. On récupère TOUS les posts récents qui contiennent un produit (très rapide)
-      const posts = await prisma.post.findMany({
-        where: {
-          content: {
-            contains: "PRODUIT", // Filtre ultra-large pour ne rien rater côté MySQL
+      // 1. Recherche parallèle : Récupération des posts récents et des profils utilisateurs
+      const [posts, users] = await Promise.all([
+        prisma.post.findMany({
+          where: {
+            content: {
+              contains: "PRODUIT", // Filtre ultra-large pour ne rien rater côté MySQL
+            },
           },
-        },
-        select: {
-          content: true,
-        },
-        orderBy: {
-          createdAt: "desc",
-        },
-        take: 100, // On prend une bonne marge
-      });
+          select: {
+            content: true,
+          },
+          orderBy: {
+            createdAt: "desc",
+          },
+          take: 100, // On prend une bonne marge
+        }),
+        prisma.user.findMany({
+          where: {
+            OR: [
+              { displayName: { contains: cleanQuery, mode: "insensitive" } },
+              { username: { contains: cleanQuery, mode: "insensitive" } },
+            ],
+          },
+          select: {
+            id: true,
+            displayName: true,
+            username: true,
+            avatarUrl: true,
+            isSeller: true,
+          },
+          take: 5,
+        }),
+      ]);
 
       // 2. Extraction des noms de produits via la Regex
       const suggestions = posts
@@ -43,7 +61,13 @@ export async function GET(request: Request) {
       // 4. Nettoyage des doublons et limite à 6 résultats
       const uniqueSuggestions = Array.from(new Set(filteredSuggestions)).slice(0, 6);
       
-      return NextResponse.json({ type: "suggestions", data: uniqueSuggestions });
+      return NextResponse.json({ 
+        type: "suggestions", 
+        data: {
+          products: uniqueSuggestions,
+          users: users,
+        } 
+      });
     }
 
     // CAS 2 : LE CHAMP EST VIDE -> VRAIES TENDANCES
