@@ -4,8 +4,9 @@ import InfiniteScrollContainer from "@/components/InfiniteScrollContainer";
 import kyInstance from "@/lib/ky";
 import { PostsPage } from "@/lib/types";
 import { useInfiniteQuery } from "@tanstack/react-query";
-import { Loader2, Search, ShoppingBag } from "lucide-react";
+import { Loader2, Search, ShoppingBag, Store, UserCheck } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import PostScrollViewer from "@/components/PostScrollViewer";
@@ -15,7 +16,20 @@ interface SearchResultsProps {
   query: string;
 }
 
-// ✅ Regex robustes — gèrent les emojis optionnels et variantes unicode
+// Interface pour typer les utilisateurs retournés par l'API de recherche
+interface SearchedUser {
+  id: string;
+  displayName: string;
+  username: string;
+  avatarUrl: string | null;
+  bio: string | null;
+  isSeller: boolean;
+}
+
+interface SearchApiResponse extends PostsPage {
+  users?: SearchedUser[];
+}
+
 const extractInfo = (content: string) => {
   const productMatch = content.match(/PRODUIT\s*:\s*([^\n]+)/i);
   const priceMatch = content.match(/PRIX\s*:\s*([\d\s,._]+)\s*FCFA/i);
@@ -49,7 +63,6 @@ function ProductCard({ post, onClick }: { post: any; onClick: () => void }) {
       className="relative cursor-pointer rounded-2xl overflow-hidden bg-card border border-border/60 shadow-sm hover:shadow-md transition-all active:scale-[0.98] group"
     >
       <div className="relative w-full aspect-square overflow-hidden bg-zinc-100 dark:bg-zinc-900">
-
         {firstImage ? (
           <Image
             src={firstImage}
@@ -60,15 +73,7 @@ function ProductCard({ post, onClick }: { post: any; onClick: () => void }) {
             unoptimized={isExternalImage(firstImage)}
           />
         ) : isVideo ? (
-          <video
-            src={firstVideo}
-            className="w-full h-full object-cover"
-            muted
-            autoPlay
-            loop
-            playsInline
-            preload="metadata"
-          />
+          <video src={firstVideo} className="w-full h-full object-cover" muted autoPlay loop playsInline preload="metadata" />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
             <ShoppingBag className="size-10 text-muted-foreground/30" />
@@ -87,14 +92,6 @@ function ProductCard({ post, onClick }: { post: any; onClick: () => void }) {
           <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
             <span className="text-white text-[10px] font-black uppercase tracking-widest bg-red-500 px-2 py-1 rounded-full">
               {t.out_of_stock}
-            </span>
-          </div>
-        )}
-
-        {post.user?.isVerified && !isVideo && (
-          <div className="absolute top-2 left-2">
-            <span className="bg-blue-500 text-white text-[8px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-wider">
-              ✓ Verifie
             </span>
           </div>
         )}
@@ -177,17 +174,20 @@ export default function SearchResults({ query }: SearchResultsProps) {
             ...(pageParam ? { cursor: pageParam } : {}),
           },
         })
-        .json<PostsPage>(),
+        .json<SearchApiResponse>(),
     initialPageParam: null as string | null,
     getNextPageParam: (lastPage) => lastPage.nextCursor,
     gcTime: 0,
   });
 
   const posts = data?.pages.flatMap((page) => page.posts) || [];
+  // Récupération sécurisée des utilisateurs depuis la première page de résultats
+  const users = data?.pages[0]?.users || [];
+
+  const totalResultsCount = posts.length + users.length;
 
   return (
-    <div className="w-full min-h-screen">
-
+    <div className="w-full min-h-screen pb-12">
       <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-md border-b border-border/40 px-4 py-3">
         <div className="flex items-center gap-2 max-w-2xl mx-auto">
           <Search className="size-4 text-muted-foreground flex-none" />
@@ -195,9 +195,9 @@ export default function SearchResults({ query }: SearchResultsProps) {
             <p className="text-sm font-black text-foreground truncate">
               {query ? `"${query}"` : t.no_results}
             </p>
-            {posts.length > 0 && (
+            {totalResultsCount > 0 && (
               <p className="text-[10px] text-muted-foreground font-bold">
-                {posts.length}+ {t.search_results}
+                {totalResultsCount} {t.search_results || "résultats"}
               </p>
             )}
           </div>
@@ -209,11 +209,11 @@ export default function SearchResults({ query }: SearchResultsProps) {
 
         {status === "error" && (
           <div className="flex flex-col items-center justify-center py-20 gap-3">
-            <p className="text-destructive font-bold text-sm">{t.error_loading}</p>
+            <p className="text-destructive font-bold text-sm">{t.error_loading || "Erreur de chargement"}</p>
           </div>
         )}
 
-        {status === "success" && !posts.length && (
+        {status === "success" && totalResultsCount === 0 && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -224,34 +224,101 @@ export default function SearchResults({ query }: SearchResultsProps) {
             </div>
             <div className="text-center">
               <p className="font-black text-foreground uppercase tracking-tight">
-                {t.no_results}
+                {t.no_results || "Aucun résultat"}
               </p>
               <p className="text-sm text-muted-foreground mt-1">
-                {t.no_results_desc} &quot;{query}&quot;
+                {t.no_results_desc || "Aucun profil ou produit trouvé pour"} &quot;{query}&quot;
               </p>
             </div>
           </motion.div>
         )}
 
-        {status === "success" && posts.length > 0 && (
-          <InfiniteScrollContainer
-            onBottomReached={() => hasNextPage && !isFetching && fetchNextPage()}
-          >
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 p-4">
-              {posts.map((post, index) => (
-                <ProductCard
-                  key={post.id}
-                  post={post}
-                  onClick={() => setSelectedIndex(index)}
-                />
-              ))}
-            </div>
-            {isFetchingNextPage && (
-              <div className="flex justify-center py-4">
-                <Loader2 className="size-5 animate-spin text-[#4a90e2]" />
+        {status === "success" && totalResultsCount > 0 && (
+          <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
+            
+            {/* SECTION DES PROFILS / BOUTIQUES TROUVÉS */}
+            {users.length > 0 && (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 bg-primary/10 text-primary rounded-lg">
+                    <Store className="size-4" />
+                  </div>
+                  <h3 className="text-xs font-black uppercase tracking-widest text-foreground">
+                    Profils et Boutiques correspondants
+                  </h3>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {users.map((user) => (
+                    <Link
+                      key={user.id}
+                      href={`/users/${user.username}`}
+                      className="flex items-center justify-between p-3 rounded-2xl bg-card border border-border/60 hover:shadow-md transition-all group"
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="relative shrink-0">
+                          <Image
+                            src={user.avatarUrl || "/icons/icon-192.png"}
+                            alt={user.displayName}
+                            width={44}
+                            height={44}
+                            className="size-11 rounded-full object-cover border border-border/40"
+                            unoptimized={isExternalImage(user.avatarUrl || "")}
+                          />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-xs font-black text-foreground truncate group-hover:text-primary transition-colors">
+                            {user.displayName}
+                          </p>
+                          <p className="text-[11px] text-muted-foreground font-bold truncate">
+                            @{user.username}
+                          </p>
+                        </div>
+                      </div>
+                      <span className="shrink-0 text-[10px] font-black uppercase tracking-wider text-primary bg-primary/10 px-2.5 py-1.5 rounded-xl">
+                        Voir
+                      </span>
+                    </Link>
+                  ))}
+                </div>
               </div>
             )}
-          </InfiniteScrollContainer>
+
+            {/* SECTION DES PRODUITS / POSTS */}
+            {posts.length > 0 && (
+              <div className="space-y-3">
+                {users.length > 0 && (
+                  <div className="flex items-center gap-2 pt-4">
+                    <div className="p-1.5 bg-emerald-500/10 text-emerald-600 rounded-lg">
+                      <ShoppingBag className="size-4" />
+                    </div>
+                    <h3 className="text-xs font-black uppercase tracking-widest text-foreground">
+                      Articles du catalogue
+                    </h3>
+                  </div>
+                )}
+
+                <InfiniteScrollContainer
+                  onBottomReached={() => hasNextPage && !isFetching && fetchNextPage()}
+                >
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                    {posts.map((post, index) => (
+                      <ProductCard
+                        key={post.id}
+                        post={post}
+                        onClick={() => setSelectedIndex(index)}
+                      />
+                    ))}
+                  </div>
+                  {isFetchingNextPage && (
+                    <div className="flex justify-center py-4">
+                      <Loader2 className="size-5 animate-spin text-[#4a90e2]" />
+                    </div>
+                  )}
+                </InfiniteScrollContainer>
+              </div>
+            )}
+          </div>
         )}
       </AnimatePresence>
 

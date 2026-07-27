@@ -9,7 +9,6 @@ export async function GET(req: NextRequest) {
     const cursor = req.nextUrl.searchParams.get("cursor") || undefined;
 
     const searchQuery = q.split(" ").join(" & ");
-
     const pageSize = 10;
 
     const { user } = await validateRequest();
@@ -18,40 +17,75 @@ export async function GET(req: NextRequest) {
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const posts = await prisma.post.findMany({
-      where: {
-        OR: [
-          {
-            content: {
-              search: searchQuery,
+    if (!q.trim()) {
+      return Response.json({ posts: [], users: [], nextCursor: null });
+    }
+
+    // Exécution conjointe de la recherche sur les posts et sur les utilisateurs
+    const [posts, users] = await Promise.all([
+      prisma.post.findMany({
+        where: {
+          OR: [
+            {
+              content: {
+                search: searchQuery,
+              },
             },
-          },
-          {
-            user: {
+            {
+              user: {
+                displayName: {
+                  search: searchQuery,
+                },
+              },
+            },
+            {
+              user: {
+                username: {
+                  search: searchQuery,
+                },
+              },
+            },
+          ],
+        },
+        include: getPostDataInclude(user.id),
+        orderBy: { createdAt: "desc" },
+        take: pageSize + 1,
+        cursor: cursor ? { id: cursor } : undefined,
+      }),
+      prisma.user.findMany({
+        where: {
+          OR: [
+            {
               displayName: {
-                search: searchQuery,
+                contains: q,
+                mode: "insensitive",
               },
             },
-          },
-          {
-            user: {
+            {
               username: {
-                search: searchQuery,
+                contains: q,
+                mode: "insensitive",
               },
             },
-          },
-        ],
-      },
-      include: getPostDataInclude(user.id),
-      orderBy: { createdAt: "desc" },
-      take: pageSize + 1,
-      cursor: cursor ? { id: cursor } : undefined,
-    });
+          ],
+        },
+        select: {
+          id: true,
+          displayName: true,
+          username: true,
+          avatarUrl: true,
+          bio: true,
+          isSeller: true,
+        },
+        take: 6, // Limite le nombre de profils affichés dans les résultats de recherche
+      }),
+    ]);
 
     const nextCursor = posts.length > pageSize ? posts[pageSize].id : null;
 
-    const data: PostsPage = {
+    const data = {
       posts: posts.slice(0, pageSize),
+      users,
       nextCursor,
     };
 
