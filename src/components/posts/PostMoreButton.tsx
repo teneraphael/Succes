@@ -113,7 +113,7 @@ export default function PostMoreButton({ post, className }: PostMoreButtonProps)
         ctx.font = `bold ${fontSize}px sans-serif`;
 
         const watermarkText1 = `DealCity • @${post.user.username}`;
-        const watermarkText2 = `dealcity.cm`;
+        const watermarkText2 = `dealcity.app`;
 
         const logoSize = fontSize * 1.3;
         const spacing = logoImg ? logoSize + 8 : 0;
