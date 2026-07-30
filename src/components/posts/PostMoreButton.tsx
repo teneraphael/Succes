@@ -164,9 +164,12 @@ export default function PostMoreButton({ post, className }: PostMoreButtonProps)
       document.body.appendChild(video);
 
       let audioCtx: AudioContext | null = null;
-      let sourceNode: MediaElementAudioSourceNode | null = null;
+      let isCleanedUp = false;
 
       const cleanup = () => {
+        if (isCleanedUp) return;
+        isCleanedUp = true;
+
         try {
           video.pause();
           video.src = "";
@@ -205,9 +208,10 @@ export default function PostMoreButton({ post, className }: PostMoreButtonProps)
 
         try {
           audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
-          sourceNode = audioCtx.createMediaElementSource(video);
+          const sourceNode = audioCtx.createMediaElementSource(video);
           const destination = audioCtx.createMediaStreamDestination();
           sourceNode.connect(destination);
+          sourceNode.connect(audioCtx.destination); // Nécessaire pour maintenir la lecture active du flux audio
 
           if (destination.stream.getAudioTracks().length > 0) {
             finalStream = new MediaStream([
@@ -245,11 +249,19 @@ export default function PostMoreButton({ post, className }: PostMoreButtonProps)
         });
 
         const startTime = Date.now();
-        const durationMs = video.duration * 1000;
+        const durationMs = (video.duration || 5) * 1000;
 
         const drawFrame = () => {
-          if (video.ended || video.paused || (Date.now() - startTime >= durationMs + 500)) {
-            if (recorder.state !== "inactive") recorder.stop();
+          if (isCleanedUp) return;
+
+          if (video.ended || video.paused || (Date.now() - startTime >= durationMs + 1000)) {
+            if (recorder.state !== "inactive") {
+              try {
+                recorder.stop();
+              } catch {
+                cleanup();
+              }
+            }
             return;
           }
 
