@@ -51,22 +51,290 @@ export default function PostMoreButton({ post, className }: PostMoreButtonProps)
     } else { copyLink(); }
   }
 
+  // Charge le logo et supprime automatiquement son fond blanc/clair en pixels
+  async function loadLogo(): Promise<HTMLImageElement | null> {
+    return new Promise((resolve) => {
+      const logo = new Image();
+      logo.crossOrigin = "anonymous";
+      logo.onload = () => {
+        try {
+          const tempCanvas = document.createElement("canvas");
+          tempCanvas.width = logo.width || 192;
+          tempCanvas.height = logo.height || 192;
+          const tempCtx = tempCanvas.getContext("2d");
+          if (!tempCtx) { resolve(logo); return; }
+
+          tempCtx.drawImage(logo, 0, 0);
+          const imgData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+          const data = imgData.data;
+
+          // Parcourt chaque pixel pour rendre le blanc transparent
+          for (let i = 0; i < data.length; i += 4) {
+            const red = data[i];
+            const green = data[i + 1];
+            const blue = data[i + 2];
+
+            // Si le pixel est blanc ou très proche du blanc, on le rend transparent
+            if (red > 230 && green > 230 && blue > 230) {
+              data[i + 3] = 0; // Alpha à 0 (transparent)
+            }
+          }
+
+          tempCtx.putImageData(imgData, 0, 0);
+          const transparentLogo = new Image();
+          transparentLogo.onload = () => resolve(transparentLogo);
+          transparentLogo.onerror = () => resolve(logo);
+          transparentLogo.src = tempCanvas.toDataURL("image/png");
+        } catch {
+          resolve(logo);
+        }
+      };
+      logo.onerror = () => resolve(null);
+      logo.src = window.location.origin + "/icons/icon-192.png";
+    });
+  }
+
+  async function addWatermarkToImage(imgUrl: string): Promise<string> {
+    return new Promise(async (resolve, reject) => {
+      const logoImg = await loadLogo();
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+        if (!ctx) { reject(new Error("Canvas non supporté")); return; }
+
+        canvas.width = img.naturalWidth || img.width;
+        canvas.height = img.naturalHeight || img.height;
+        ctx.drawImage(img, 0, 0);
+
+        const padding = Math.max(20, Math.floor(canvas.width * 0.03));
+        const fontSize = Math.max(16, Math.floor(canvas.width * 0.025));
+        ctx.font = `bold ${fontSize}px sans-serif`;
+
+        const watermarkText1 = `DealCity • @${post.user.username}`;
+        const watermarkText2 = `dealcity.cm`;
+
+        const logoSize = fontSize * 1.3;
+        const spacing = logoImg ? logoSize + 8 : 0;
+        const metrics1 = ctx.measureText(watermarkText1);
+        const boxWidth = metrics1.width + spacing;
+
+        const x = canvas.width - boxWidth - padding;
+        const y = canvas.height - (fontSize * 2.8) - padding;
+
+        let textStartX = x;
+
+        ctx.save();
+        ctx.shadowColor = "rgba(0, 0, 0, 0.9)";
+        ctx.shadowBlur = 6;
+        ctx.shadowOffsetX = 2;
+        ctx.shadowOffsetY = 2;
+
+        if (logoImg) {
+          const logoY = y + (fontSize * 2.8 - logoSize) / 2;
+          ctx.drawImage(logoImg, textStartX, logoY, logoSize, logoSize);
+          textStartX += logoSize + 6;
+        }
+
+        ctx.fillStyle = "#ffffff";
+        ctx.fillText(watermarkText1, textStartX, y + fontSize * 1.1);
+
+        ctx.fillStyle = "#4a90e2";
+        ctx.font = `bold ${Math.floor(fontSize * 0.85)}px sans-serif`;
+        ctx.fillText(watermarkText2, textStartX, y + fontSize * 2.2);
+        ctx.restore();
+
+        resolve(canvas.toDataURL("image/jpeg", 0.92));
+      };
+      img.onerror = (err) => reject(err);
+      img.src = imgUrl + (imgUrl.includes("?") ? "&" : "?") + "t=" + Date.now();
+    });
+  }
+
+  async function addMovingWatermarkToVideo(videoUrl: string): Promise<string> {
+    return new Promise(async (resolve, reject) => {
+      const logoImg = await loadLogo();
+      const video = document.createElement("video");
+      video.crossOrigin = "anonymous";
+      video.src = videoUrl + (videoUrl.includes("?") ? "&" : "?") + "t=" + Date.now();
+      video.muted = true;
+      video.playsInline = true;
+      video.style.display = "none";
+      document.body.appendChild(video);
+
+      let audioCtx: AudioContext | null = null;
+      let sourceNode: MediaElementAudioSourceNode | null = null;
+
+      const cleanup = () => {
+        try {
+          video.pause();
+          video.src = "";
+          video.remove();
+        } catch (e) {
+          console.error(e);
+        }
+
+        if (audioCtx) {
+          try {
+            if (audioCtx.state !== "closed") {
+              audioCtx.close().catch(() => {});
+            }
+          } catch (e) {
+            // Ignore les erreurs si déjà fermé
+          }
+        }
+      };
+
+      video.onloadedmetadata = async () => {
+        const width = video.videoWidth || 720;
+        const height = video.videoHeight || 1280;
+
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) { 
+          cleanup();
+          reject(new Error("Canvas non supporté")); 
+          return; 
+        }
+
+        const canvasStream = canvas.captureStream(30);
+        let finalStream = canvasStream;
+
+        try {
+          audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+          sourceNode = audioCtx.createMediaElementSource(video);
+          const destination = audioCtx.createMediaStreamDestination();
+          sourceNode.connect(destination);
+
+          if (destination.stream.getAudioTracks().length > 0) {
+            finalStream = new MediaStream([
+              ...canvasStream.getVideoTracks(),
+              ...destination.stream.getAudioTracks()
+            ]);
+          }
+        } catch (e) {
+          console.warn("Capture audio ignorée", e);
+        }
+
+        let recorder: MediaRecorder;
+        try {
+          recorder = new MediaRecorder(finalStream, { mimeType: "video/webm; codecs=vp9,opus" });
+        } catch {
+          try {
+            recorder = new MediaRecorder(finalStream, { mimeType: "video/webm" });
+          } catch {
+            recorder = new MediaRecorder(finalStream);
+          }
+        }
+
+        const chunks: Blob[] = [];
+        recorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
+        recorder.onstop = () => {
+          cleanup();
+          const blob = new Blob(chunks, { type: "video/webm" });
+          resolve(window.URL.createObjectURL(blob));
+        };
+
+        recorder.start();
+        video.play().catch((err) => {
+          cleanup();
+          reject(err);
+        });
+
+        const startTime = Date.now();
+        const durationMs = video.duration * 1000;
+
+        const drawFrame = () => {
+          if (video.ended || video.paused || (Date.now() - startTime >= durationMs + 500)) {
+            if (recorder.state !== "inactive") recorder.stop();
+            return;
+          }
+
+          ctx.clearRect(0, 0, width, height);
+          ctx.drawImage(video, 0, 0, width, height);
+
+          const elapsed = (Date.now() - startTime) / 1000;
+          const maxRangeX = width - 350;
+          const maxRangeY = height - 120;
+
+          const x = Math.abs(Math.sin(elapsed * 0.5)) * maxRangeX;
+          const y = Math.abs(Math.cos(elapsed * 0.4)) * maxRangeY;
+
+          const fontSize = Math.max(14, Math.floor(width * 0.035));
+          ctx.font = `bold ${fontSize}px sans-serif`;
+          const text1 = `DealCity • @${post.user.username}`;
+          
+          const logoSize = fontSize * 1.2;
+          let textStartX = x;
+
+          ctx.save();
+          ctx.shadowColor = "rgba(0, 0, 0, 0.9)";
+          ctx.shadowBlur = 6;
+          ctx.shadowOffsetX = 2;
+          ctx.shadowOffsetY = 2;
+
+          if (logoImg) {
+            const logoY = y + (fontSize * 1.4 - logoSize) / 2;
+            ctx.drawImage(logoImg, textStartX, logoY, logoSize, logoSize);
+            textStartX += logoSize + 6;
+          }
+
+          ctx.fillStyle = "#ffffff";
+          ctx.fillText(text1, textStartX, y + fontSize * 1.4);
+          ctx.restore();
+
+          requestAnimationFrame(drawFrame);
+        };
+
+        requestAnimationFrame(drawFrame);
+      };
+
+      video.onerror = (err) => {
+        cleanup();
+        reject(err);
+      };
+      video.load();
+    });
+  }
+
   async function downloadMedia() {
     if (!post.attachments.length) return;
     toast({ description: t.download_started });
+
     for (const [i, media] of post.attachments.entries()) {
       try {
-        const res = await fetch(media.url + "?t=" + Date.now());
-        const blob = await res.blob();
-        const url = window.URL.createObjectURL(blob);
+        let downloadUrl = media.url;
+        let filename = "dealcity_" + post.user.username + "_" + (i + 1);
+
+        if (media.type === "IMAGE") {
+          downloadUrl = await addWatermarkToImage(media.url);
+          filename += ".jpg";
+        } else if (media.type === "VIDEO") {
+          toast({ description: "Génération du filigrane vidéo en cours..." });
+          downloadUrl = await addMovingWatermarkToVideo(media.url);
+          filename += ".webm";
+        } else {
+          const res = await fetch(media.url + "?t=" + Date.now());
+          const blob = await res.blob();
+          downloadUrl = window.URL.createObjectURL(blob);
+          filename += ".mp4";
+        }
+
         const a = document.createElement("a");
-        a.href = url;
-        a.download = "dealcity_" + post.user.username + "_" + (i + 1) + (media.type === "VIDEO" ? ".mp4" : ".jpg");
+        a.href = downloadUrl;
+        a.download = filename;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
-        window.URL.revokeObjectURL(url);
-      } catch {
+
+        if (media.type !== "IMAGE") {
+          window.URL.revokeObjectURL(downloadUrl);
+        }
+      } catch (error) {
+        console.error(error);
         toast({ variant: "destructive", description: t.download_error });
       }
     }
