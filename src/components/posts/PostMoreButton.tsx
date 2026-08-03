@@ -152,166 +152,6 @@ export default function PostMoreButton({ post, className }: PostMoreButtonProps)
     });
   }
 
-  async function addMovingWatermarkToVideo(videoUrl: string): Promise<string> {
-    return new Promise(async (resolve, reject) => {
-      const logoImg = await loadLogo();
-      const video = document.createElement("video");
-      video.crossOrigin = "anonymous";
-      video.src = videoUrl + (videoUrl.includes("?") ? "&" : "?") + "t=" + Date.now();
-      video.muted = true;
-      video.playsInline = true;
-      video.style.display = "none";
-      document.body.appendChild(video);
-
-      let audioCtx: AudioContext | null = null;
-      let isCleanedUp = false;
-
-      const cleanup = () => {
-        if (isCleanedUp) return;
-        isCleanedUp = true;
-
-        try {
-          video.pause();
-          video.src = "";
-          video.remove();
-        } catch (e) {
-          console.error(e);
-        }
-
-        if (audioCtx) {
-          try {
-            if (audioCtx.state !== "closed") {
-              audioCtx.close().catch(() => {});
-            }
-          } catch (e) {
-            // Ignore les erreurs si déjà fermé
-          }
-        }
-      };
-
-      video.onloadedmetadata = async () => {
-        const width = video.videoWidth || 720;
-        const height = video.videoHeight || 1280;
-
-        const canvas = document.createElement("canvas");
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext("2d");
-        if (!ctx) { 
-          cleanup();
-          reject(new Error("Canvas non supporté")); 
-          return; 
-        }
-
-        const canvasStream = canvas.captureStream(30);
-        let finalStream = canvasStream;
-
-        try {
-          audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
-          const sourceNode = audioCtx.createMediaElementSource(video);
-          const destination = audioCtx.createMediaStreamDestination();
-          sourceNode.connect(destination);
-          sourceNode.connect(audioCtx.destination); // Nécessaire pour maintenir la lecture active du flux audio
-
-          if (destination.stream.getAudioTracks().length > 0) {
-            finalStream = new MediaStream([
-              ...canvasStream.getVideoTracks(),
-              ...destination.stream.getAudioTracks()
-            ]);
-          }
-        } catch (e) {
-          console.warn("Capture audio ignorée", e);
-        }
-
-        let recorder: MediaRecorder;
-        try {
-          recorder = new MediaRecorder(finalStream, { mimeType: "video/webm; codecs=vp9,opus" });
-        } catch {
-          try {
-            recorder = new MediaRecorder(finalStream, { mimeType: "video/webm" });
-          } catch {
-            recorder = new MediaRecorder(finalStream);
-          }
-        }
-
-        const chunks: Blob[] = [];
-        recorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
-        recorder.onstop = () => {
-          cleanup();
-          const blob = new Blob(chunks, { type: "video/webm" });
-          resolve(window.URL.createObjectURL(blob));
-        };
-
-        recorder.start();
-        video.play().catch((err) => {
-          cleanup();
-          reject(err);
-        });
-
-        const startTime = Date.now();
-        const durationMs = (video.duration || 5) * 1000;
-
-        const drawFrame = () => {
-          if (isCleanedUp) return;
-
-          if (video.ended || video.paused || (Date.now() - startTime >= durationMs + 1000)) {
-            if (recorder.state !== "inactive") {
-              try {
-                recorder.stop();
-              } catch {
-                cleanup();
-              }
-            }
-            return;
-          }
-
-          ctx.clearRect(0, 0, width, height);
-          ctx.drawImage(video, 0, 0, width, height);
-
-          const elapsed = (Date.now() - startTime) / 1000;
-          const maxRangeX = width - 350;
-          const maxRangeY = height - 120;
-
-          const x = Math.abs(Math.sin(elapsed * 0.5)) * maxRangeX;
-          const y = Math.abs(Math.cos(elapsed * 0.4)) * maxRangeY;
-
-          const fontSize = Math.max(14, Math.floor(width * 0.035));
-          ctx.font = `bold ${fontSize}px sans-serif`;
-          const text1 = `DealCity • @${post.user.username}`;
-          
-          const logoSize = fontSize * 1.2;
-          let textStartX = x;
-
-          ctx.save();
-          ctx.shadowColor = "rgba(0, 0, 0, 0.9)";
-          ctx.shadowBlur = 6;
-          ctx.shadowOffsetX = 2;
-          ctx.shadowOffsetY = 2;
-
-          if (logoImg) {
-            const logoY = y + (fontSize * 1.4 - logoSize) / 2;
-            ctx.drawImage(logoImg, textStartX, logoY, logoSize, logoSize);
-            textStartX += logoSize + 6;
-          }
-
-          ctx.fillStyle = "#ffffff";
-          ctx.fillText(text1, textStartX, y + fontSize * 1.4);
-          ctx.restore();
-
-          requestAnimationFrame(drawFrame);
-        };
-
-        requestAnimationFrame(drawFrame);
-      };
-
-      video.onerror = (err) => {
-        cleanup();
-        reject(err);
-      };
-      video.load();
-    });
-  }
-
   async function downloadMedia() {
     if (!post.attachments.length) return;
     toast({ description: t.download_started });
@@ -324,15 +164,12 @@ export default function PostMoreButton({ post, className }: PostMoreButtonProps)
         if (media.type === "IMAGE") {
           downloadUrl = await addWatermarkToImage(media.url);
           filename += ".jpg";
-        } else if (media.type === "VIDEO") {
-          toast({ description: "Génération du filigrane vidéo en cours..." });
-          downloadUrl = await addMovingWatermarkToVideo(media.url);
-          filename += ".webm";
         } else {
+          // Pour les vidéos ou autres fichiers, téléchargement direct sans filigrane
           const res = await fetch(media.url + "?t=" + Date.now());
           const blob = await res.blob();
           downloadUrl = window.URL.createObjectURL(blob);
-          filename += ".mp4";
+          filename += media.type === "VIDEO" ? ".mp4" : ".mp4";
         }
 
         const a = document.createElement("a");
