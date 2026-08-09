@@ -1,15 +1,16 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { StyleSheet, FlatList, TouchableOpacity, SafeAreaView, Linking, ActivityIndicator, RefreshControl, Image, Dimensions } from 'react-native';
 import { Text, View } from '@/components/Themed';
-import { MessageCircle, Bell, Search } from 'lucide-react-native';
+import { MessageCircle, Bell, Search, Heart, MessageSquare, Bookmark, MoreHorizontal, UserPlus, Check } from 'lucide-react-native';
 import { supabase } from '@/services/supabase';
 
 const { width } = Dimensions.get('window');
 
 export default function TabOneScreen() {
-  const [posts, setPosts] = useState([]);
+  const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [followingState, setFollowingState] = useState<Record<string, boolean>>({});
 
   const fetchPostsFromSupabase = async () => {
     try {
@@ -17,7 +18,8 @@ export default function TabOneScreen() {
         .from('posts')
         .select(`
           *,
-          post_media (*)
+          post_media (*),
+          user:users (*)
         `)
         .order('createdAt', { ascending: false });
 
@@ -42,18 +44,27 @@ export default function TabOneScreen() {
     fetchPostsFromSupabase();
   }, []);
 
-  const openWhatsApp = (username: string, content: string) => {
-    const message = encodeURIComponent(`Salut @${username}, je viens de voir ton annonce "${content}" sur DealCity. C'est toujours disponible ?`);
-    const url = `https://wa.me/?text=${message}`;
+  const openWhatsApp = (phone: string, username: string, title: string, price: any) => {
+    if (!phone) {
+      alert("Numéro WhatsApp indisponible pour ce vendeur.");
+      return;
+    }
+    const cleanNumber = phone.replace(/\D/g, "");
+    const message = encodeURIComponent(`Bonjour ! 👋\nJe suis intéressé(e) par votre produit sur *DealCity* :\n\n*${title}*\nPrix : *${price ? price + ' FCFA' : 'Sur devis'}*\n\nEst-ce que ce produit est toujours disponible ? Merci !`);
+    const url = `https://wa.me/${cleanNumber}?text=${message}`;
     
     Linking.openURL(url).catch(() => {
       alert("Impossible d'ouvrir WhatsApp sur cet appareil.");
     });
   };
 
+  const toggleFollow = (userId: string) => {
+    setFollowingState(prev => ({ ...prev, [userId]: !prev[userId] }));
+  };
+
   return (
     <SafeAreaView style={styles.container}>
-      {/* En-tête DealCity fidèle à tes maquettes */}
+      {/* En-tête DealCity */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <Text style={styles.logo}>DEALCITY</Text>
@@ -69,9 +80,14 @@ export default function TabOneScreen() {
         </View>
       </View>
 
-      {/* Barre de sous-titre / fil d'actualité */}
-      <View style={styles.subHeader}>
-        <Text style={styles.subHeaderTitle}>Fil d'actualité & Deals</Text>
+      {/* Onglets : POUR VOUS / ABONNEMENTS */}
+      <View style={styles.tabsContainer}>
+        <View style={styles.activeTabButton}>
+          <Text style={styles.activeTabText}>POUR VOUS</Text>
+        </View>
+        <TouchableOpacity style={styles.inactiveTabButton}>
+          <Text style={styles.inactiveTabText}>ABONNEMENTS</Text>
+        </TouchableOpacity>
       </View>
 
       {/* Chargement initial */}
@@ -88,60 +104,139 @@ export default function TabOneScreen() {
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#10b981" />
           }
           renderItem={({ item }: { item: any }) => {
-            const postImage = item.post_media && item.post_media.length > 0 ? item.post_media[0].url || item.post_media[0].image_url : null;
-            const mediaCount = item.post_media ? item.post_media.length : 0;
+            const mediaList = item.post_media || [];
+            const vendorUsername = item.user?.username || item.username || 'Presy Services';
+            const vendorPhone = item.user?.phone || item.user?.phoneNumber || item.phone || '';
+            const isFollowed = followingState[item.user_id || '1'] || false;
+            
+            // Formatage de la date (ex: 29 JUIL.)
+            const postDate = item.createdAt 
+              ? new Date(item.createdAt).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' }).toUpperCase() 
+              : '29 JUIL.';
 
             return (
               <View style={styles.card}>
-                {/* Image principale de l'article avec badge du nombre de photos additionnelles */}
-                {postImage && (
-                  <View style={styles.imageContainer}>
-                    <Image 
-                      source={{ uri: postImage }} 
-                      style={styles.postImage} 
-                      resizeMode="cover"
-                    />
-                    {mediaCount > 1 && (
-                      <View style={styles.mediaCountBadge}>
-                        <Text style={styles.mediaCountText}>+{mediaCount - 1}</Text>
+                
+                {/* 1. EN-TÊTE DU POST (Vendeur, Suivre, Options) */}
+                <View style={styles.postHeader}>
+                  <View style={styles.vendorInfoRow}>
+                    {item.user?.avatarUrl ? (
+                      <Image source={{ uri: item.user.avatarUrl }} style={styles.avatarImage} />
+                    ) : (
+                      <View style={styles.avatarPlaceholder}>
+                        <Text style={styles.avatarText}>{vendorUsername[0].toUpperCase()}</Text>
+                      </View>
+                    )}
+                    <View>
+                      <View style={styles.usernameRow}>
+                        <Text style={styles.vendorName}>{vendorUsername}</Text>
+                        <Text style={styles.ratingStars}> ★★★★★</Text>
+                      </View>
+                      <View style={styles.subVendorRow}>
+                        <TouchableOpacity 
+                          style={[styles.followButton, isFollowed && styles.followingButton]}
+                          onPress={() => toggleFollow(item.user_id || '1')}
+                        >
+                          {isFollowed ? (
+                            <>
+                              <Check size={12} color="#059669" />
+                              <Text style={styles.followingText}>SUIVI !</Text>
+                            </>
+                          ) : (
+                            <>
+                              <UserPlus size={12} color="#2563eb" />
+                              <Text style={styles.followText}>SUIVRE</Text>
+                            </>
+                          )}
+                        </TouchableOpacity>
+                        <Text style={styles.postDate}>{postDate}.</Text>
+                      </View>
+                    </View>
+                  </View>
+                  <TouchableOpacity style={styles.moreButton}>
+                    <MoreHorizontal size={20} color="#9ca3af" />
+                  </TouchableOpacity>
+                </View>
+
+                {/* 2. TITRE, STOCK ET PRIX */}
+                <View style={styles.productDetailsContainer}>
+                  <View style={styles.titlePriceRow}>
+                    <View style={{ flex: 1, marginRight: 8 }}>
+                      <Text style={styles.productTitle} numberOfLines={2}>
+                        {item.title || item.content || 'SAVONS LONGRICH'}
+                      </Text>
+                      <View style={styles.stockBadge}>
+                        <Text style={styles.stockText}>DISPONIBLE EN STOCK ({item.stock || 150})</Text>
+                      </View>
+                    </View>
+
+                    {/* Badge de prix style pilule */}
+                    <View style={styles.pricePill}>
+                      <Text style={styles.priceNumber}>{item.price ? item.price : '2000'}</Text>
+                      <Text style={styles.priceCurrency}> FCFA</Text>
+                    </View>
+                  </View>
+
+                  {/* Description textuelle */}
+                  {item.title && item.content && (
+                    <Text style={styles.description} numberOfLines={3}>{item.content}</Text>
+                  )}
+                </View>
+
+                {/* 3. SECTION MÉDIAS (Grille / Image unique avec badges) */}
+                {mediaList.length > 0 && (
+                  <View style={styles.mediaContainer}>
+                    {mediaList.length === 1 ? (
+                      <Image source={{ uri: mediaList[0].url || mediaList[0].image_url }} style={styles.singleImage} resizeMode="cover" />
+                    ) : (
+                      <View style={styles.gridContainer}>
+                        {mediaList.slice(0, 4).map((media: any, index: number) => {
+                          const isLastAndMore = index === 3 && mediaList.length > 4;
+                          return (
+                            <View key={index} style={styles.gridItem}>
+                              <Image 
+                                source={{ uri: media.url || media.image_url }} 
+                                style={[styles.gridImage, isLastAndMore && { opacity: 0.4 }]} 
+                                resizeMode="cover" 
+                              />
+                              {isLastAndMore && (
+                                <View style={styles.moreMediaOverlay}>
+                                  <Text style={styles.moreMediaText}>+{mediaList.length - 3}</Text>
+                                </View>
+                              )}
+                            </View>
+                          );
+                        })}
                       </View>
                     )}
                   </View>
                 )}
 
-                {/* Corps de la carte */}
-                <View style={styles.cardBody}>
-                  <Text style={styles.productTitle} numberOfLines={1}>{item.title || item.content || 'ARTICLE'}</Text>
-                  
-                  {/* Badge de stock inspiré de tes maquettes */}
-                  <View style={styles.stockBadge}>
-                    <Text style={styles.stockText}>DISPONIBLE EN STOCK</Text>
-                  </View>
-
-                  <Text style={styles.description} numberOfLines={2}>{item.content}</Text>
-
-                  <View style={styles.priceRow}>
-                    <Text style={styles.price}>{item.price ? `${item.price} FCFA` : 'Prix non spécifié'}</Text>
-                  </View>
-
-                  {/* Pied de carte : Vendeur & Bouton WhatsApp */}
-                  <View style={styles.cardFooter}>
-                    <View style={styles.vendorInfo}>
-                      <View style={styles.avatarPlaceholder}>
-                        <Text style={styles.avatarText}>{(item.username || 'V')[0].toUpperCase()}</Text>
-                      </View>
-                      <Text style={styles.username} numberOfLines={1}>@{item.username || 'vendeur'}</Text>
-                    </View>
-
-                    <TouchableOpacity 
-                      style={styles.whatsappButton} 
-                      onPress={() => openWhatsApp(item.username || 'Vendeur', item.title || item.content || 'Annonce')}
-                    >
-                      <MessageCircle size={14} color="#ffffff" />
-                      <Text style={styles.whatsappText}>Discuter</Text>
+                {/* 4. PIED DE CARTE (Likes, Commentaires, Favoris, Bouton WhatsApp) */}
+                <View style={styles.cardFooterActions}>
+                  <View style={styles.socialMetrics}>
+                    <TouchableOpacity style={styles.metricItem}>
+                      <Heart size={20} color="#4b5563" />
+                      <Text style={styles.metricText}>{item.likes_count || 2}</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.metricItem}>
+                      <MessageSquare size={20} color="#4b5563" />
+                      <Text style={styles.metricText}>{item.comments_count || 0}</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.metricItem}>
+                      <Bookmark size={20} color="#4b5563" />
                     </TouchableOpacity>
                   </View>
+
+                  <TouchableOpacity 
+                    style={styles.whatsappButton} 
+                    onPress={() => openWhatsApp(vendorPhone, vendorUsername, item.title || item.content || 'Article', item.price)}
+                  >
+                    <MessageCircle size={16} color="#ffffff" fill="#ffffff" />
+                    <Text style={styles.whatsappText}>DISCUTER VIA WHATSAPP</Text>
+                  </TouchableOpacity>
                 </View>
+
               </View>
             );
           }}
@@ -159,7 +254,7 @@ export default function TabOneScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f4f6f8',
+    backgroundColor: '#f3f4f6',
   },
   header: {
     flexDirection: 'row',
@@ -174,42 +269,64 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   logo: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: '900',
     color: '#2563eb',
-    letterSpacing: 0.5,
+    letterSpacing: 1,
   },
   headerRight: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 16,
     backgroundColor: 'transparent',
   },
   iconButton: {
-    padding: 6,
+    padding: 4,
     position: 'relative',
     backgroundColor: 'transparent',
   },
   notificationDot: {
     position: 'absolute',
-    top: 6,
-    right: 6,
+    top: 4,
+    right: 4,
     width: 8,
     height: 8,
     borderRadius: 4,
     backgroundColor: '#ef4444',
   },
-  subHeader: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+  tabsContainer: {
+    flexDirection: 'row',
     backgroundColor: '#ffffff',
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+    justifyContent: 'center',
+    gap: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f2f5',
+    borderBottomColor: '#e5e7eb',
   },
-  subHeaderTitle: {
-    fontSize: 14,
-    fontWeight: '600',
+  activeTabButton: {
+    backgroundColor: '#10b981',
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  activeTabText: {
+    color: '#ffffff',
+    fontWeight: '800',
+    fontSize: 12,
+    letterSpacing: 0.5,
+  },
+  inactiveTabButton: {
+    backgroundColor: '#f3f4f6',
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  inactiveTabText: {
     color: '#4b5563',
+    fontWeight: '800',
+    fontSize: 12,
+    letterSpacing: 0.5,
   },
   loaderContainer: {
     flex: 1,
@@ -219,7 +336,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   listContainer: {
-    padding: 16,
+    padding: 12,
   },
   card: {
     backgroundColor: '#ffffff',
@@ -229,121 +346,231 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#e5e7eb',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
     elevation: 2,
   },
-  imageContainer: {
-    position: 'relative',
-    width: '100%',
-    height: 240,
-    backgroundColor: 'transparent',
-  },
-  postImage: {
-    width: '100%',
-    height: '100%',
-    backgroundColor: '#f3f4f6',
-  },
-  mediaCountBadge: {
-    position: 'absolute',
-    top: 12,
-    right: 12,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
-  mediaCountText: {
-    color: '#ffffff',
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-  cardBody: {
-    padding: 14,
-    backgroundColor: 'transparent',
-  },
-  productTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#111827',
-    marginBottom: 6,
-  },
-  stockBadge: {
-    alignSelf: 'flex-start',
-    backgroundColor: '#ecfdf5',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-    marginBottom: 8,
-  },
-  stockText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#059669',
-  },
-  description: {
-    fontSize: 13,
-    color: '#4b5563',
-    marginBottom: 12,
-    lineHeight: 18,
-  },
-  priceRow: {
-    marginBottom: 12,
-    backgroundColor: 'transparent',
-  },
-  price: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#059669',
-  },
-  cardFooter: {
+  postHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingTop: 10,
-    borderTopWidth: 1,
-    borderTopColor: '#f3f4f6',
+    padding: 12,
     backgroundColor: 'transparent',
   },
-  vendorInfo: {
+  vendorInfoRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    flex: 1,
-    marginRight: 8,
+    gap: 10,
     backgroundColor: 'transparent',
   },
+  avatarImage: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+  },
   avatarPlaceholder: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: '#e0e7ff',
     justifyContent: 'center',
     alignItems: 'center',
   },
   avatarText: {
-    fontSize: 12,
+    fontSize: 16,
     fontWeight: 'bold',
     color: '#3730a3',
   },
-  username: {
+  usernameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'transparent',
+  },
+  vendorName: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#111827',
+  },
+  ratingStars: {
+    fontSize: 10,
+    color: '#e5e7eb',
+  },
+  subVendorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 2,
+    backgroundColor: 'transparent',
+  },
+  followButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#eff6ff',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+    gap: 3,
+  },
+  followingButton: {
+    backgroundColor: '#ecfdf5',
+    borderColor: '#a7f3d0',
+  },
+  followText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#2563eb',
+  },
+  followingText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#059669',
+  },
+  postDate: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#9ca3af',
+  },
+  moreButton: {
+    padding: 4,
+    backgroundColor: 'transparent',
+  },
+  productDetailsContainer: {
+    paddingHorizontal: 12,
+    paddingBottom: 8,
+    backgroundColor: 'transparent',
+  },
+  titlePriceRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 4,
+    backgroundColor: 'transparent',
+  },
+  productTitle: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#111827',
+    textTransform: 'uppercase',
+  },
+  stockBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#ecfdf5',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    marginTop: 4,
+    borderWidth: 1,
+    borderColor: '#a7f3d0',
+  },
+  stockText: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#059669',
+  },
+  pricePill: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#a7f3d0',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 14,
+  },
+  priceNumber: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#059669',
+  },
+  priceCurrency: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#059669',
+  },
+  description: {
     fontSize: 12,
-    fontWeight: '600',
-    color: '#374151',
+    color: '#4b5563',
+    marginTop: 4,
+    lineHeight: 16,
+  },
+  mediaContainer: {
+    width: '100%',
+    height: 320,
+    backgroundColor: '#000000',
+    marginTop: 6,
+  },
+  singleImage: {
+    width: '100%',
+    height: '100%',
+  },
+  gridContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  gridItem: {
+    width: '50%',
+    height: '50%',
+    position: 'relative',
+    borderWidth: 0.5,
+    borderColor: '#ffffff',
+  },
+  gridImage: {
+    width: '100%',
+    height: '100%',
+  },
+  moreMediaOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  moreMediaText: {
+    color: '#ffffff',
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  cardFooterActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    backgroundColor: 'transparent',
+  },
+  socialMetrics: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    backgroundColor: 'transparent',
+  },
+  metricItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'transparent',
+  },
+  metricText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#4b5563',
   },
   whatsappButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#25D366',
+    backgroundColor: '#22c55e',
     paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
+    paddingVertical: 8,
+    borderRadius: 10,
     gap: 6,
   },
   whatsappText: {
     color: '#ffffff',
-    fontWeight: 'bold',
-    fontSize: 12,
+    fontWeight: '900',
+    fontSize: 11,
+    letterSpacing: 0.5,
   },
 });
