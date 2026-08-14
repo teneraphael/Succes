@@ -8,7 +8,7 @@ const CAMEROON_LOCATIONS: Record<string, string[]> = {
     "Akwa", "Bonapriso", "Deido", "Bonanjo", "Kotto", "Makepe", "Logpom", "Bependa", 
     "Nylon", "Cité Cicam", "PK8", "PK10", "PK12", "PK14", "Ancien Dalip", "Bali", 
     "Besseke", "Bonamoussadi", "Bonabéri", "Bepanda", "Grand Hangar", "Ndogpassi", 
-    "Nyalla", "Village", "Cité des Palmiers", "Makepe Missoke", "Sable","yassa"
+    "Nyalla", "Village", "Cité des Palmiers", "Makepe Missoke", "Sable","Yassa"
   ],
   "Yaoundé": [
     "Bastos", "Biyem-Assi", "Mvan", "Omnisport", "Ngousso", "Messa", "Essos", 
