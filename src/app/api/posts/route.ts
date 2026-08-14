@@ -22,12 +22,16 @@ export async function POST(req: Request) {
       ? targetUserId 
       : loggedInUser.id;
 
+    // Nettoyage des valeurs de localisation pour éviter les chaînes vides ""
+    const cleanCity = city && city.trim() !== "" ? city.trim() : null;
+    const cleanNeighborhood = neighborhood && neighborhood.trim() !== "" ? neighborhood.trim() : null;
+
     const newPost = await prisma.post.create({
       data: {
         content,
-        city: city || null,                    // Enregistrement de la ville
-        neighborhood: neighborhood || null, // Enregistrement du quartier
-        userId: authorIdToUse,              // Le post appartiendra à cette personne
+        city: cleanCity,               // Enregistrement propre de la ville
+        neighborhood: cleanNeighborhood, // Enregistrement propre du quartier
+        userId: authorIdToUse,         // Le post appartiendra à cette personne
         attachments: {
           connect: (mediaIds || []).map((id: string) => ({ id })),
         },
