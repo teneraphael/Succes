@@ -10,7 +10,7 @@ import { useDropzone } from "@uploadthing/react";
 import {
   Camera, Loader2, X,
   Tag, Banknote, Sparkles, Zap,
-  SlidersHorizontal, Check, Type, Phone,
+  SlidersHorizontal, Check, Type, Phone, MapPin, Building2,
 } from "lucide-react";
 import { useRef, useState, useEffect } from "react";
 import { useSubmitPostMutation } from "./mutations";
@@ -24,6 +24,60 @@ import {
 } from "@/components/ui/select";
 import { useLanguage } from "@/components/LanguageProvider";
 
+// ✅ Liste complète des villes et quartiers du Cameroun
+const CITIES_WITH_QUARTERS: Record<string, string[]> = {
+  Douala: [
+    "Akwa", "Bonapriso", "Bonanjo", "Deido", "Bépanda", "Makepe", "Kotto", 
+    "Logbessou", "Ndogbong", "Cité Cicam", "New-Bell", "Nylon", "Bepanda Omnisport", 
+    "Yassa", "Logbaba", "Pk 8", "Pk 10", "Pk 12", "Ndokoti", "Ancien Sodiko", "Bonaberie"
+  ],
+  Yaoundé: [
+    "Bastos", "Mvog-Mbi", "Biyem-Assi", "Omnisport", "Emana", "Ngousso", 
+    "Mvan", "Essos", "Madagascar", "Mimboman", "Odza", "Elig-Essono", 
+    "Nsimeyong", "Golf", "Mballa II", "Elig-Edzoa", "Tsinga", "Jouvence"
+  ],
+  Bafoussam: [
+    "Djeleng", "Kamkop", "Tamdja", "Commercial Avenue", "Nietche", 
+    "Mairie", "Bamendzi", "Tougang", "Ndiandam"
+  ],
+  Garoua: [
+    "Yelwa", "Caldou", "Roumde Adjia", "Poumpoumre", "Salak", "Lainde"
+  ],
+  Maroua: [
+    "Pitoare", "Dougou", "Baoliwol", "Hardjo", "Kakatare", "Palar"
+  ],
+  Bamenda: [
+    "Nkwen", "Mankon", "Metta Quarter", "Mulang", "Old Town", "Hospital Residential Area"
+  ],
+  Ngaoundéré: [
+    "Bini", "Jalingo", "Quartier Haoussa", "Sabongari", "Mbideng", "Norip"
+  ],
+  Bertoua: [
+    "Tiko", "Mokolo 1", "Mokolo 2", "Nkolbikon", "Enongal", "Bilono"
+  ],
+  Ebolowa: [
+    "Ebolowa-Kouve", "Ngalmou", "Minkang", "Abang", "Meabe", "New-Town"
+  ],
+  Buea: [
+    "Molyko", "Clerks Quarters", "Great Soppo", "Small Soppo", "Bonduma", "Check Point"
+  ],
+  Limbé: [
+    "Down Beach", "New Town", "Mile 1", "Mile 2", "Mile 3", "Bota", "Batoke"
+  ],
+  Kribi: [
+    "Ngoye", "Dombe", "Mboa Manga", "Mbangue", "Océan", "Lobe"
+  ],
+  Dschang: [
+    "Tsebola", "Quartier Latin", "Tella", "Foréké", "Cité"
+  ],
+  Edea: [
+    "Pongo", "Elec-Kelle", "Zone Industrielle", "Riziculture", "Check Point"
+  ],
+  Nkongsamba: [
+    "Eloumden", "Ngombe", "Mousongo", "Centre Commercial", "Ecko"
+  ]
+};
+
 export default function PostEditor() {
   const { user } = useSession();
   const { t } = useLanguage();
@@ -35,12 +89,19 @@ export default function PostEditor() {
   const [price, setPrice] = useState("");
   const [stock, setStock] = useState("1");
   const [phone, setPhone] = useState("");
+  const [city, setCity] = useState("");
+  const [neighborhood, setNeighborhood] = useState("");
   const [targetUserId, setTargetUserId] = useState("me");
   const [pioneers, setPioneers] = useState<{ id: string; displayName: string; username: string }[]>([]);
 
   const isAdmin = !!user && (user.username === "dealcity" || user.id === "22lmc64bcqwsqybu");
 
-  // ✅ Chargement des pionniers pour la substitution admin
+  const availableNeighborhoods = CITIES_WITH_QUARTERS[city as keyof typeof CITIES_WITH_QUARTERS] || [];
+
+  useEffect(() => {
+    setNeighborhood("");
+  }, [city]);
+
   useEffect(() => {
     if (isAdmin) {
       fetch("/api/admin/pioneers")
@@ -59,7 +120,6 @@ export default function PostEditor() {
   const editor = useEditor({
     extensions: [
       StarterKit.configure({ bold: false, italic: false }),
-      // ✅ Placeholder traduit dynamiquement
       Placeholder.configure({ placeholder: t.description_placeholder }),
     ],
     immediatelyRender: false,
@@ -96,22 +156,28 @@ export default function PostEditor() {
     productName.trim() !== "" &&
     price.trim() !== "" &&
     stock.trim() !== "" &&
-    parseInt(stock) >= 0;
+    parseInt(stock) >= 0 &&
+    phone.trim() !== "" &&
+    city.trim() !== "" &&
+    neighborhood.trim() !== "";
 
   function onSubmit() {
     if (!isFormValid) return;
 
     const stockInfo = `\n QUANTITÉ GLOBALE : ${stock}`;
     const whatsappInfo = phone ? `\n WHATSAPP : ${phone}` : "";
+    const locationInfo = `\n LOCALISATION : ${neighborhood}, ${city}`;
 
     mutation.mutate(
       {
-        content: ` PRODUIT : ${productName}\n PRIX : ${price} FCFA${stockInfo}${whatsappInfo}\n\n DESCRIPTION :\n${description}`,
+        content: ` PRODUIT : ${productName}\n PRIX : ${price} FCFA${stockInfo}${whatsappInfo}${locationInfo}\n\n DESCRIPTION :\n${description}`,
         mediaIds: attachments.map((a: any) => a.mediaId).filter(Boolean) as string[],
         stock: parseInt(stock),
+        city,
+        neighborhood,
         targetUserId: isAdmin && targetUserId !== "me" ? targetUserId : undefined,
         attributes: [],
-      },
+      } as any,
       {
         onSuccess: () => {
           editor?.commands.clearContent();
@@ -119,9 +185,10 @@ export default function PostEditor() {
           setPrice("");
           setPhone("");
           setStock("1");
+          setCity("");
+          setNeighborhood("");
           setTargetUserId("me");
           resetMediaUploads();
-          // ✅ Toast traduit
           toast({ description: t.product_published });
           router.refresh();
         },
@@ -133,8 +200,6 @@ export default function PostEditor() {
 
   return (
     <div className="flex flex-col gap-6">
-
-      {/* ✅ En-tête Seller Studio traduit */}
       <div className="flex items-center justify-between pb-4 border-b border-border/40">
         <div className="flex items-center gap-3">
           <div className="size-8 rounded-xl bg-[#4a90e2]/10 border border-[#4a90e2]/20 flex items-center justify-center">
@@ -167,7 +232,6 @@ export default function PostEditor() {
         )}
       </div>
 
-      {/* ✅ Champs traduits */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         <div className="relative md:col-span-1">
           <Tag className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
@@ -202,22 +266,54 @@ export default function PostEditor() {
         </div>
       </div>
 
-      {/* ✅ Stock traduit */}
-      <div className="relative max-w-[160px]">
-        <input
-          placeholder={t.stock}
-          type="number"
-          min="0"
-          value={stock}
-          onChange={(e) => setStock(e.target.value)}
-          className="w-full h-12 px-4 rounded-2xl bg-[#f8faff] dark:bg-zinc-800/50 border border-[#4a90e2]/10 focus:border-[#4a90e2]/30 outline-none transition-all text-sm font-black text-center"
-        />
-        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[9px] font-black uppercase tracking-widest text-muted-foreground">
-          {t.stock}
-        </span>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <Select value={city} onValueChange={setCity}>
+          <SelectTrigger className="w-full h-12 rounded-2xl bg-[#f8faff] dark:bg-zinc-800/50 border border-[#4a90e2]/10 px-4 text-sm font-black uppercase">
+            <div className="flex items-center gap-2 truncate">
+              <Building2 className="size-4 text-muted-foreground shrink-0" />
+              <SelectValue placeholder=" ville" />
+            </div>
+          </SelectTrigger>
+          <SelectContent className="rounded-2xl max-h-60">
+            {Object.keys(CITIES_WITH_QUARTERS).map((c: string) => (
+              <SelectItem key={c} value={c} className="text-xs font-black uppercase">
+                {c}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select value={neighborhood} onValueChange={setNeighborhood} disabled={!city}>
+          <SelectTrigger className="w-full h-12 rounded-2xl bg-[#f8faff] dark:bg-zinc-800/50 border border-[#4a90e2]/10 px-4 text-sm font-black uppercase disabled:opacity-50">
+            <div className="flex items-center gap-2 truncate">
+              <MapPin className="size-4 text-muted-foreground shrink-0" />
+              <SelectValue placeholder=" quartier" />
+            </div>
+          </SelectTrigger>
+          <SelectContent className="rounded-2xl max-h-60">
+            {availableNeighborhoods.map((n: string) => (
+              <SelectItem key={n} value={n} className="text-xs font-black uppercase">
+                {n}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <div className="relative">
+          <input
+            placeholder={t.stock}
+            type="number"
+            min="0"
+            value={stock}
+            onChange={(e) => setStock(e.target.value)}
+            className="w-full h-12 px-4 rounded-2xl bg-[#f8faff] dark:bg-zinc-800/50 border border-[#4a90e2]/10 focus:border-[#4a90e2]/30 outline-none transition-all text-sm font-black text-center"
+          />
+          <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[9px] font-black uppercase tracking-widest text-muted-foreground pointer-events-none">
+            {t.stock}
+          </span>
+        </div>
       </div>
 
-      {/* Éditeur description */}
       <div
         {...getRootProps()}
         className={cn(
@@ -232,7 +328,6 @@ export default function PostEditor() {
         <input {...getInputProps()} />
       </div>
 
-      {/* Aperçu pièces jointes */}
       {!!attachments.length && (
         <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4">
           {attachments.map((attachment: any) => (
@@ -245,7 +340,6 @@ export default function PostEditor() {
         </div>
       )}
 
-      {/* ✅ Barre du bas traduite */}
       <div className="flex items-center justify-between pt-4 border-t border-border/40">
         <AddAttachmentsButton
           onFilesSelected={startUpload}
@@ -394,7 +488,6 @@ function AttachmentStudio({ attachment, onRemove }: any) {
   );
 }
 
-// ✅ Bouton ajout médias avec label traduit
 function AddAttachmentsButton({ onFilesSelected, disabled, label }: any) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   return (

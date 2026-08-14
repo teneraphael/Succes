@@ -4,7 +4,7 @@ import InfiniteScrollContainer from "@/components/InfiniteScrollContainer";
 import kyInstance from "@/lib/ky";
 import { PostsPage } from "@/lib/types";
 import { useInfiniteQuery } from "@tanstack/react-query";
-import { Loader2, Search, ShoppingBag, Store, UserCheck } from "lucide-react";
+import { Loader2, MapPin, Search, ShoppingBag, Store } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
@@ -16,7 +16,6 @@ interface SearchResultsProps {
   query: string;
 }
 
-// Interface pour typer les utilisateurs retournés par l'API de recherche
 interface SearchedUser {
   id: string;
   displayName: string;
@@ -60,77 +59,97 @@ function ProductCard({ post, onClick }: { post: any; onClick: () => void }) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.25 }}
       onClick={onClick}
-      className="relative cursor-pointer rounded-2xl overflow-hidden bg-card border border-border/60 shadow-sm hover:shadow-md transition-all active:scale-[0.98] group"
+      className="relative cursor-pointer rounded-2xl overflow-hidden bg-card border border-border/60 shadow-sm hover:shadow-md transition-all active:scale-[0.98] group flex flex-col h-full"
     >
-      <div className="relative w-full aspect-square overflow-hidden bg-zinc-100 dark:bg-zinc-900">
-        {firstImage ? (
-          <Image
-            src={firstImage}
-            alt={productName || "Produit"}
-            fill
-            sizes="(max-width: 768px) 50vw, 33vw"
-            className="object-cover transition-transform duration-500 group-hover:scale-105"
-            unoptimized={isExternalImage(firstImage)}
-          />
-        ) : isVideo ? (
-          <video src={firstVideo} className="w-full h-full object-cover" muted autoPlay loop playsInline preload="metadata" />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <ShoppingBag className="size-10 text-muted-foreground/30" />
-          </div>
-        )}
+      {/* Conteneur principal en flex colonnes */}
+      <div className="flex-1 flex flex-col">
+        {/* 1. Image du produit */}
+        <div className="relative w-full aspect-square overflow-hidden bg-zinc-100 dark:bg-zinc-900 shrink-0">
+          {firstImage ? (
+            <Image
+              src={firstImage}
+              alt={productName || "Produit"}
+              fill
+              sizes="(max-width: 768px) 50vw, 33vw"
+              className="object-cover transition-transform duration-500 group-hover:scale-105"
+              unoptimized={isExternalImage(firstImage)}
+            />
+          ) : isVideo ? (
+            <video src={firstVideo} className="w-full h-full object-cover" muted autoPlay loop playsInline preload="metadata" />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center">
+              <ShoppingBag className="size-10 text-muted-foreground/30" />
+            </div>
+          )}
 
-        {isVideo && (
-          <div className="absolute top-2 left-2">
-            <span className="bg-black/60 text-white text-[8px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-wider backdrop-blur-sm">
-              ▶ Video
-            </span>
-          </div>
-        )}
+          {isVideo && (
+            <div className="absolute top-2 left-2">
+              <span className="bg-black/60 text-white text-[8px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-wider backdrop-blur-sm">
+                ▶ Video
+              </span>
+            </div>
+          )}
 
-        {!isAvailable && (
-          <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-            <span className="text-white text-[10px] font-black uppercase tracking-widest bg-red-500 px-2 py-1 rounded-full">
-              {t.out_of_stock}
-            </span>
-          </div>
-        )}
+          {!isAvailable && (
+            <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+              <span className="text-white text-[10px] font-black uppercase tracking-widest bg-red-500 px-2 py-1 rounded-full">
+                {t.out_of_stock}
+              </span>
+            </div>
+          )}
 
-        {imageCount > 1 && (
-          <div className="absolute top-2 right-2">
-            <span className="bg-black/60 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full">
-              +{imageCount}
-            </span>
-          </div>
-        )}
+          {imageCount > 1 && (
+            <div className="absolute top-2 right-2">
+              <span className="bg-black/60 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full">
+                +{imageCount}
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* 2. Zone de texte : justify-end pousse le contenu vers le bas pour qu'il soit collé au prix */}
+        <div className="p-3 space-y-1 flex-1 flex flex-col justify-end">
+          <p className="text-[11px] font-black uppercase tracking-tight text-foreground line-clamp-1 leading-tight">
+            {productName || "Article"}
+          </p>
+          {description && (
+            <p className="text-[9px] text-muted-foreground line-clamp-2 leading-relaxed">
+              {description}
+            </p>
+          )}
+
+          {(post.city || post.neighborhood) && (
+            <div className="flex items-center gap-1 text-[9px] font-bold text-[#4a90e2] bg-[#4a90e2]/8 w-fit px-2 py-0.5 rounded-md pt-0.5">
+              <MapPin className="size-2.5 shrink-0" />
+              <span className="truncate">{post.city}</span>
+              {post.neighborhood && (
+                <>
+                  <span className="opacity-40">•</span>
+                  <span className="truncate">{post.neighborhood}</span>
+                </>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
-      <div className="p-2.5 space-y-1">
-        <p className="text-[11px] font-black uppercase tracking-tight text-foreground line-clamp-2 leading-tight">
-          {productName || "Article"}
-        </p>
-        {description && (
-          <p className="text-[9px] text-muted-foreground line-clamp-1 leading-relaxed">
-            {description}
-          </p>
-        )}
-        <div className="flex items-center justify-between pt-0.5">
-          <span className="text-[12px] font-black text-emerald-600">
-            {price ? `${parseInt(price).toLocaleString()} FCFA` : "—"}
+      {/* 3. Bloc prix / vendeur collé tout en bas */}
+      <div className="p-3 pt-2 flex items-center justify-between border-t border-border/40 bg-card shrink-0">
+        <span className="text-[12px] font-black text-emerald-600">
+          {price ? `${parseInt(price).toLocaleString()} FCFA` : "—"}
+        </span>
+        <div className="flex items-center gap-1">
+          <Image
+            src={post.user?.avatarUrl || "/icons/icon-192.png"}
+            alt={post.user?.displayName || ""}
+            width={16}
+            height={16}
+            className="rounded-full object-cover"
+            unoptimized={isExternalImage(post.user?.avatarUrl || "")}
+          />
+          <span className="text-[8px] text-muted-foreground font-bold truncate max-w-[60px]">
+            {post.user?.displayName}
           </span>
-          <div className="flex items-center gap-1">
-            <Image
-              src={post.user?.avatarUrl || "/icons/icon-192.png"}
-              alt={post.user?.displayName || ""}
-              width={16}
-              height={16}
-              className="rounded-full object-cover"
-              unoptimized={isExternalImage(post.user?.avatarUrl || "")}
-            />
-            <span className="text-[8px] text-muted-foreground font-bold truncate max-w-[60px]">
-              {post.user?.displayName}
-            </span>
-          </div>
         </div>
       </div>
     </motion.div>
@@ -181,7 +200,6 @@ export default function SearchResults({ query }: SearchResultsProps) {
   });
 
   const posts = data?.pages.flatMap((page) => page.posts) || [];
-  // Récupération sécurisée des utilisateurs depuis la première page de résultats
   const users = data?.pages[0]?.users || [];
 
   const totalResultsCount = posts.length + users.length;
@@ -236,7 +254,6 @@ export default function SearchResults({ query }: SearchResultsProps) {
         {status === "success" && totalResultsCount > 0 && (
           <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
             
-            {/* SECTION DES PROFILS / BOUTIQUES TROUVÉS */}
             {users.length > 0 && (
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
@@ -284,7 +301,6 @@ export default function SearchResults({ query }: SearchResultsProps) {
               </div>
             )}
 
-            {/* SECTION DES PRODUITS / POSTS */}
             {posts.length > 0 && (
               <div className="space-y-3">
                 {users.length > 0 && (

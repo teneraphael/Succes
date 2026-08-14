@@ -17,6 +17,8 @@ interface SubmitPostInput {
   content: string;
   mediaIds: string[];
   stock: number;
+  city?: string;          // 👈 Ajouté
+  neighborhood?: string;  // 👈 Ajouté
   targetUserId?: string;
   attributes?: DynamicAttributeInput[];
 }
@@ -72,12 +74,14 @@ export async function submitPost(input: SubmitPostInput) {
   const basePrice = extractPriceFromContent(content);
 
   const newPost = await prisma.$transaction(async (tx) => {
-    // 1. Création du Post
+    // 1. Création du Post avec la ville et le quartier
     const post = await tx.post.create({
       data: {
         content,
         userId: finalAuthorId,
         stock: validatedStock,
+        city: input.city || null,                 // 👈 Enregistré en base
+        neighborhood: input.neighborhood || null, // 👈 Enregistré en base
         attachments: {
           connect: mediaIds.map((id) => ({ id })),
         },
@@ -87,8 +91,7 @@ export async function submitPost(input: SubmitPostInput) {
     const validAttributes = input.attributes?.filter(attr => attr.name.trim() !== "" && attr.values.length > 0) || [];
     
     if (validAttributes.length > 0) {
-      // 2. Création des Attributs (Vérifiez bien le nom de votre modèle dans schema.prisma)
-      // Si votre modèle s'appelle 'ProductAttribute', utilisez tx.productAttribute
+      // 2. Création des Attributs
       await tx.productAttribute.createMany({
         data: validAttributes.map(attr => ({
           postId: post.id,
@@ -104,7 +107,7 @@ export async function submitPost(input: SubmitPostInput) {
         await tx.productVariant.createMany({
           data: combinations.map(combo => ({
             postId: post.id,
-            combinations: combo as any, // 'as any' car combinations est un JSON
+            combinations: combo as any,
             price: basePrice,
             stock: Math.floor(validatedStock / combinations.length) || 1,
           }))

@@ -122,7 +122,19 @@ async function getUserInterests(userId: string): Promise<{
 export async function GET(req: NextRequest) {
   try {
     const cursor = req.nextUrl.searchParams.get("cursor") || undefined;
+    const city = req.nextUrl.searchParams.get("city") || undefined;
+    const neighborhood = req.nextUrl.searchParams.get("neighborhood") || undefined;
     const { user } = await validateRequest();
+
+    // ✅ Construction dynamique intelligente du filtre de localisation :
+    // Si une ville est sélectionnée, on filtre par ville. Si un quartier l'est aussi, on affine par quartier.
+    // Si aucun quartier n'est spécifié, on récupère TOUS les posts de la ville.
+    const locationWhereClause = city
+      ? {
+          city,
+          ...(neighborhood ? { neighborhood } : {}),
+        }
+      : {};
 
     // ✅ Première page — algorithme de recommandation complet
     if (!cursor && user) {
@@ -147,6 +159,7 @@ export async function GET(req: NextRequest) {
               where: {
                 userId: { not: user.id },
                 id: { notIn: viewedPostIds.slice(0, 100) },
+                ...locationWhereClause,
                 OR: topKeywords.map((kw) => ({
                   content: { contains: kw, mode: "insensitive" as const },
                 })),
@@ -162,6 +175,7 @@ export async function GET(req: NextRequest) {
           where: {
             userId: { not: user.id },
             id: { notIn: viewedPostIds.slice(0, 100) },
+            ...locationWhereClause,
           },
           include: getPostDataInclude(user.id),
           orderBy: { createdAt: "desc" },
@@ -187,7 +201,7 @@ export async function GET(req: NextRequest) {
           post._count.comments,
           post.createdAt,
           keywords,
-          null, // boostedAt — à ajouter si vous ajoutez le champ au schéma
+          null,
         ),
       }));
 
@@ -209,7 +223,10 @@ export async function GET(req: NextRequest) {
 
     // ✅ Pages suivantes (pagination) — récence pure + cursor stable
     const rawPosts = await prisma.post.findMany({
-      where: user ? { NOT: { userId: user.id } } : {},
+      where: {
+        ...(user ? { NOT: { userId: user.id } } : {}),
+        ...locationWhereClause,
+      },
       include: getPostDataInclude(user?.id),
       orderBy: { createdAt: "desc" },
       take: PAGE_SIZE + 1,

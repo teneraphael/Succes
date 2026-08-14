@@ -11,9 +11,11 @@ import { useLanguage } from "@/components/LanguageProvider";
 
 interface ForYouFeedProps {
   userId?: string;
+  city?: string;
+  neighborhood?: string;
 }
 
-export default function ForYouFeed({ userId }: ForYouFeedProps) {
+export default function ForYouFeed({ userId, city, neighborhood }: ForYouFeedProps) {
   const { t } = useLanguage();
 
   const {
@@ -25,12 +27,14 @@ export default function ForYouFeed({ userId }: ForYouFeedProps) {
     status,
     refetch,
   } = useInfiniteQuery({
-    queryKey: ["post-feed", "for-you", userId ?? "anonymous"],
+    queryKey: ["post-feed", "for-you", userId ?? "anonymous", city ?? "all", neighborhood ?? "all"],
     queryFn: ({ pageParam }) =>
       kyInstance
         .get("/api/posts/for-you", {
           searchParams: {
             ...(pageParam ? { cursor: pageParam } : {}),
+            ...(city ? { city } : {}),
+            ...(neighborhood ? { neighborhood } : {}),
           },
         })
         .json<PostsPage>(),

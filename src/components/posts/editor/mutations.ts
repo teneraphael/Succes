@@ -10,13 +10,15 @@ import {
 } from "@tanstack/react-query";
 import { submitPost } from "./actions";
 
-// 🌟 Typage mis à jour pour inclure les axes d'attributs dynamiques
+// 🌟 Typage mis à jour pour inclure city, neighborhood et les attributs dynamiques
 interface SubmitPostArgs {
   content: string;
   mediaIds: string[];
   stock: number; 
+  city?: string;          // 👈 Ajouté
+  neighborhood?: string;  // 👈 Ajouté
   targetUserId?: string;
-  attributes?: Array<{ name: string; values: string[] }>; // 👈 Injection de la structure des variantes
+  attributes?: Array<{ name: string; values: string[] }>;
 }
 
 export function useSubmitPostMutation() {
@@ -24,9 +26,9 @@ export function useSubmitPostMutation() {
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
-    // mutationFn transmet maintenant proprement le payload complet (avec attributes) à l'action
-    mutationFn: ({ content, mediaIds, stock, targetUserId, attributes }: SubmitPostArgs) =>
-      submitPost({ content, mediaIds, stock, targetUserId, attributes }),
+    // mutationFn transmet maintenant proprement le payload complet avec city et neighborhood
+    mutationFn: ({ content, mediaIds, stock, city, neighborhood, targetUserId, attributes }: SubmitPostArgs) =>
+      submitPost({ content, mediaIds, stock, city, neighborhood, targetUserId, attributes }),
 
     onSuccess: async (newPost) => {
       // 🌟 SÉCURITÉ TS : Empêche l'insertion d'une valeur nulle dans le cache si le serveur échoue à renvoyer le post

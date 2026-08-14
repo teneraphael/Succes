@@ -2,7 +2,7 @@
 
 import { useSession } from "@/app/(main)/SessionProvider";
 import { cn, formatRelativeDate } from "@/lib/utils";
-import { MessageSquare, ShieldCheck } from "lucide-react";
+import { MessageSquare, ShieldCheck, MapPin } from "lucide-react";
 import Image from "next/image";
 import VideoPost from "../VideoPost";
 import Link from "next/link";
@@ -64,11 +64,14 @@ const extractInfo = (content: string) => {
   const priceMatch = content.match(/PRIX\s*:\s*([\d\s,._]+)\s*FCFA/i);
   const descMatch = content.match(/DESCRIPTION\s*:\s*\n?([\s\S]*?)(?=\n\n|📞|🔗|$)/i);
   const whatsappMatch = content.match(/WHATSAPP\s*:\s*([^\n]+)/i);
+  const locationMatch = content.match(/LOCALISATION\s*:\s*([^\n]+)/i);
+  
   return {
     productName: productMatch ? productMatch[1].trim() : null,
     price: priceMatch ? priceMatch[1].trim().replace(/\s/g, "") : null,
     cleanDescription: descMatch ? descMatch[1].trim() : content,
     whatsappNumber: whatsappMatch ? whatsappMatch[1].trim() : null,
+    location: locationMatch ? locationMatch[1].trim() : null,
   };
 };
 
@@ -152,9 +155,9 @@ export default function Post({ post, fullWidth = false }: PostProps) {
   const router = useRouter();
   const { toast } = useToast();
   const isDesktop = useMediaQuery("(min-width: 768px)");
-  const { t, language } = useLanguage();
+  const { t } = useLanguage();
 
-  const { productName, price: defaultPrice, cleanDescription, whatsappNumber } = extractInfo(post.content);
+  const { productName, price: defaultPrice, cleanDescription, whatsappNumber, location } = extractInfo(post.content);
   const [selectedAttributes, setSelectedAttributes] = useState<Record<string, string>>({});
   const [activeVariant, setActiveVariant] = useState<any>(null);
 
@@ -220,11 +223,9 @@ export default function Post({ post, fullWidth = false }: PostProps) {
     window.open(`https://wa.me/${cleanNumber}?text=${encodeURIComponent(lines.join("\n"))}`, "_blank");
   }, [isAvailable, whatsappNumber, post, selectedAttributes, cleanDescription, productName, currentPrice, t, toast]);
 
-  // Texte du bouton adaptatif selon la langue
-  const whatsappButtonText = isAvailable
-    ? t.discuss_via_whatsapp || (language === "en" ? "Chat via WhatsApp" : "Discuter via WhatsApp")
+ const whatsappButtonText = isAvailable
+    ? t.chat_whatsapp || "Discuter via WhatsApp"
     : t.unavailable;
-
   return (
     <article className={cn(
       "group/post w-full space-y-4 bg-card py-4 md:py-5 border-b md:border border-border/70 shadow-sm transition-all duration-200 hover:shadow-md mb-5 overflow-hidden",
@@ -256,7 +257,7 @@ export default function Post({ post, fullWidth = false }: PostProps) {
         <PostMoreButton post={post} />
       </div>
 
-      {/* Nom + stock + prix */}
+      {/* Nom + stock + prix + Localisation */}
       <div className="px-5 flex items-start justify-between gap-4">
         <div className="space-y-1.5 flex-1">
           {productName && (
@@ -264,15 +265,26 @@ export default function Post({ post, fullWidth = false }: PostProps) {
               {productName}
             </h3>
           )}
-          {isAvailable ? (
-            <span className="inline-flex text-[9px] font-black uppercase tracking-widest text-[#6ab344] bg-[#6ab344]/10 px-2 py-0.5 rounded-md border border-[#6ab344]/20">
-              {t.available} ({currentStock})
-            </span>
-          ) : (
-            <span className="inline-flex text-[9px] font-black uppercase tracking-widest text-red-600 bg-red-50 px-2 py-0.5 rounded-md border border-red-500/10 animate-pulse">
-              {t.out_of_stock}
-            </span>
-          )}
+          
+          <div className="flex flex-wrap items-center gap-2">
+            {isAvailable ? (
+              <span className="inline-flex text-[9px] font-black uppercase tracking-widest text-[#6ab344] bg-[#6ab344]/10 px-2 py-0.5 rounded-md border border-[#6ab344]/20">
+                {t.available} ({currentStock})
+              </span>
+            ) : (
+              <span className="inline-flex text-[9px] font-black uppercase tracking-widest text-red-600 bg-red-50 px-2 py-0.5 rounded-md border border-red-500/10 animate-pulse">
+                {t.out_of_stock}
+              </span>
+            )}
+
+            {/* Affichage de la localisation (ex: douala - bonaberie) */}
+            {location && (
+              <span className="inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-[#4a90e2] bg-[#4a90e2]/10 px-2 py-0.5 rounded-md border border-[#4a90e2]/20">
+                <MapPin className="size-3 shrink-0" />
+                {location}
+              </span>
+            )}
+          </div>
         </div>
 
         {currentPrice && (
@@ -311,7 +323,7 @@ export default function Post({ post, fullWidth = false }: PostProps) {
         />
       </div>
 
-      {/* ✅ Bas du post — Like, Commentaire, Bookmark et WhatsApp sur la même ligne */}
+      {/* Bas du post — Like, Commentaire, Bookmark et WhatsApp sur la même ligne */}
       <div className="px-5 pt-1">
         <div className="flex items-center justify-between pt-1 border-t border-border/40">
           <div className="flex items-center gap-5">
@@ -364,7 +376,7 @@ export default function Post({ post, fullWidth = false }: PostProps) {
             />
           </div>
 
-          {/* Bouton WhatsApp compact avec traduction dynamique (Anglais / Français) */}
+          {/* Bouton WhatsApp compact avec traduction dynamique */}
           <button
             onClick={handleWhatsApp}
             disabled={!isAvailable}

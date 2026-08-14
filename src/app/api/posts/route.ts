@@ -10,8 +10,8 @@ export async function POST(req: Request) {
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { content, mediaIds, targetUserId } = await req.json();
-
+    // Récupération de city et neighborhood en plus du reste
+    const { content, mediaIds, targetUserId, city, neighborhood } = await req.json();
 
     // On vérifie si c'est TOI qui es connecté
     const isActuallyMe = loggedInUser.id === process.env.ADMIN_ID;
@@ -26,9 +26,11 @@ export async function POST(req: Request) {
     const newPost = await prisma.post.create({
       data: {
         content,
-        userId: authorIdToUse, // Le post appartiendra à cette personne
+        city: city || null,                 // Enregistrement de la ville
+        neighborhood: neighborhood || null, // Enregistrement du quartier
+        userId: authorIdToUse,              // Le post appartiendra à cette personne
         attachments: {
-          connect: mediaIds.map((id: string) => ({ id })),
+          connect: (mediaIds || []).map((id: string) => ({ id })),
         },
       },
       // On utilise ton helper pour inclure les données nécessaires au flux

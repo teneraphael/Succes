@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Briefcase, Mail, ShoppingBag, Tag, Loader2, ArrowLeft,
-  Sparkles, MessageCircle, Facebook, Instagram, Music2, Phone,
+  Sparkles, MessageCircle, Facebook, Instagram, Music2, Phone, MapPin, Building,
 } from "lucide-react";
 import Link from "next/link";
 import { useSession } from "@/app/(main)/SessionProvider";
@@ -47,6 +47,8 @@ export default function BecomeSellerPage() {
     businessDomain: "", 
     businessEmail: "", 
     phoneNumber: "",
+    city: "",
+    neighborhood: "",
   });
 
   // Rotation des diapositives d'illustration
@@ -66,13 +68,13 @@ export default function BecomeSellerPage() {
     }
   }, [user, router]);
 
-  // Calcul dynamique de la progression du formulaire
+  // Calcul dynamique de la progression du formulaire (sur 6 champs principaux)
   useEffect(() => {
     const filled = Object.values(formDataValues).filter((v) => v.trim() !== "").length;
-    setFormProgress(Math.round((filled / 4) * 100));
+    setFormProgress(Math.round((filled / 6) * 100));
   }, [formDataValues]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     if (name in formDataValues) {
       setFormDataValues((prev) => ({ ...prev, [name]: value }));
@@ -195,6 +197,50 @@ export default function BecomeSellerPage() {
                     value={formDataValues.businessEmail}
                     onChange={handleInputChange}
                     placeholder="Email professionnel"
+                    required
+                    className="pl-10 rounded-xl bg-white dark:bg-zinc-800/60 border-slate-200 dark:border-zinc-700 focus-visible:ring-[#4a90e2]"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Localisation (Ville & Quartier) */}
+            <div className="space-y-3">
+              <p className="text-[10px] font-black uppercase text-[#4a90e2] tracking-wider flex items-center gap-1">
+                <MapPin className="size-3" /> Localisation de la boutique
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="relative">
+                  <Building className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-slate-400 z-10 pointer-events-none" />
+                  <select
+                    name="city"
+                    value={formDataValues.city}
+                    onChange={handleInputChange}
+                    required
+                    className="w-full h-10 pl-10 pr-3 rounded-xl bg-white dark:bg-zinc-800/60 border border-slate-200 dark:border-zinc-700 text-sm text-slate-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-[#4a90e2]"
+                  >
+                    <option value="" disabled>Sélectionner la ville</option>
+                    <option value="Douala">Douala</option>
+                    <option value="Yaoundé">Yaoundé</option>
+                    <option value="Bafoussam">Bafoussam</option>
+                    <option value="Bamenda">Bamenda</option>
+                    <option value="Garoua">Garoua</option>
+                    <option value="Maroua">Maroua</option>
+                    <option value="Ngaoundéré">Ngaoundéré</option>
+                    <option value="Bertoua">Bertoua</option>
+                    <option value="Ebolowa">Ebolowa</option>
+                    <option value="Kribi">Kribi</option>
+                    <option value="Limbé">Limbé</option>
+                    <option value="Buea">Buea</option>
+                  </select>
+                </div>
+                <div className="relative">
+                  <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
+                  <Input
+                    name="neighborhood"
+                    value={formDataValues.neighborhood}
+                    onChange={handleInputChange}
+                    placeholder="Quartier (ex: Akwa, Bastos)"
                     required
                     className="pl-10 rounded-xl bg-white dark:bg-zinc-800/60 border-slate-200 dark:border-zinc-700 focus-visible:ring-[#4a90e2]"
                   />

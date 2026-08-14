@@ -18,7 +18,9 @@ export async function POST(req: Request) {
       phoneNumber,
       tiktokUrl, 
       facebookUrl, 
-      instagramUrl 
+      instagramUrl,
+      city,         // ✅ Récupération de la ville
+      neighborhood  // ✅ Récupération du quartier
     } = body;
 
     // 1. Slugification sécurisée
@@ -60,7 +62,7 @@ export async function POST(req: Request) {
       (instagramUrl?.trim())
     );
 
-    // 4. Mise à jour Database
+    // 4. Mise à jour Database avec la Ville et le Quartier
     await prisma.user.update({
       where: { id: user.id },
       data: {
@@ -76,6 +78,8 @@ export async function POST(req: Request) {
         tiktokUrl: tiktokUrl?.trim() || null,
         facebookUrl: facebookUrl?.trim() || null,
         instagramUrl: instagramUrl?.trim() || null,
+        city: city?.trim() || null,               // ✅ Enregistrement de la ville
+        neighborhood: neighborhood?.trim() || null, // ✅ Enregistrement du quartier
         isPioneer: hasSocialLink, 
         isVerified: false, 
       },
