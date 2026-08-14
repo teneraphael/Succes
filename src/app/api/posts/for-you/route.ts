@@ -126,15 +126,44 @@ export async function GET(req: NextRequest) {
     const neighborhood = req.nextUrl.searchParams.get("neighborhood") || undefined;
     const { user } = await validateRequest();
 
-    // ✅ Construction dynamique intelligente du filtre de localisation :
-    // Si une ville est sélectionnée, on filtre par ville. Si un quartier l'est aussi, on affine par quartier.
-    // Si aucun quartier n'est spécifié, on récupère TOUS les posts de la ville.
-    const locationWhereClause = city
-      ? {
-          city,
-          ...(neighborhood ? { neighborhood } : {}),
-        }
-      : {};
+    // ✅ Construction dynamique intelligente et robuste du filtre de localisation
+    let locationWhereClause: any = {};
+
+    if (city) {
+      if (neighborhood) {
+        locationWhereClause = {
+          OR: [
+            {
+              AND: [
+                { city: { equals: city, mode: "insensitive" } },
+                { neighborhood: { equals: neighborhood, mode: "insensitive" } }
+              ]
+            },
+            // Fallback pour les anciens posts sans colonnes structurées
+            {
+              AND: [
+                { city: null },
+                { content: { contains: city, mode: "insensitive" } },
+                { content: { contains: neighborhood, mode: "insensitive" } }
+              ]
+            }
+          ]
+        };
+      } else {
+        locationWhereClause = {
+          OR: [
+            { city: { equals: city, mode: "insensitive" } },
+            // Fallback pour les anciens posts
+            {
+              AND: [
+                { city: null },
+                { content: { contains: city, mode: "insensitive" } }
+              ]
+            }
+          ]
+        };
+      }
+    }
 
     // ✅ Première page — algorithme de recommandation complet
     if (!cursor && user) {

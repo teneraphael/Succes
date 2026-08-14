@@ -16,17 +16,16 @@ export async function POST(req: Request) {
     // On vérifie si c'est TOI qui es connecté
     const isActuallyMe = loggedInUser.id === process.env.ADMIN_ID;
 
-    // LOGIQUE DE DISCERNEMENT :
-    // 1. Si c'est TOI et que tu as choisi un vendeur (targetUserId), on prend l'ID du vendeur.
-    // 2. Si ce n'est PAS TOI, ou si tu n'as pas choisi de vendeur, on prend l'ID de la session.
-    const authorIdToUse = (isActuallyMe && targetUserId) 
+    // LOGIQUE DE DISCERNEMENT CORRIGÉE :
+    // On vérifie que targetUserId existe ET qu'il n'est pas égal à la chaîne "me"
+    const authorIdToUse = (isActuallyMe && targetUserId && targetUserId !== "me") 
       ? targetUserId 
       : loggedInUser.id;
 
     const newPost = await prisma.post.create({
       data: {
         content,
-        city: city || null,                 // Enregistrement de la ville
+        city: city || null,                    // Enregistrement de la ville
         neighborhood: neighborhood || null, // Enregistrement du quartier
         userId: authorIdToUse,              // Le post appartiendra à cette personne
         attachments: {
