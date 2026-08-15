@@ -1,46 +1,54 @@
 import { validateRequest } from "@/auth";
 import prisma from "@/lib/prisma";
-import { getPostDataInclude } from "@/lib/types";
+import { getPostDataInclude, PostsPage } from "@/lib/types";
+import { NextRequest } from "next/server";
 
-export async function POST(req: Request) {
+export async function GET(req: NextRequest) {
   try {
-    const { user: loggedInUser } = await validateRequest();
-
-    if (!loggedInUser) {
+    const { user } = await validateRequest();
+    if (!user) {
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Récupération de city et neighborhood en plus du reste
-    const { content, mediaIds, targetUserId, city, neighborhood } = await req.json();
+    const cursor = req.nextUrl.searchParams.get("cursor");
+    const city = req.nextUrl.searchParams.get("city");
+    const neighborhood = req.nextUrl.searchParams.get("neighborhood");
 
-    // On vérifie si c'est TOI qui es connecté
-    const isActuallyMe = loggedInUser.id === process.env.ADMIN_ID;
+    const pageSize = 10;
 
-    // LOGIQUE DE DISCERNEMENT CORRIGÉE :
-    // On vérifie que targetUserId existe ET qu'il n'est pas égal à la chaîne "me"
-    const authorIdToUse = (isActuallyMe && targetUserId && targetUserId !== "me") 
-      ? targetUserId 
-      : loggedInUser.id;
+    // Construction dynamique des filtres Prisma
+    const whereClause: any = {};
 
-    // Nettoyage des valeurs de localisation pour éviter les chaînes vides ""
-    const cleanCity = city && city.trim() !== "" ? city.trim() : null;
-    const cleanNeighborhood = neighborhood && neighborhood.trim() !== "" ? neighborhood.trim() : null;
+    if (city && city.trim() !== "") {
+      whereClause.city = {
+        equals: city.trim(),
+        mode: "insensitive", // Rend la recherche insensible à la casse (Douala == douala)
+      };
+    }
 
-    const newPost = await prisma.post.create({
-      data: {
-        content,
-        city: cleanCity,               // Enregistrement propre de la ville
-        neighborhood: cleanNeighborhood, // Enregistrement propre du quartier
-        userId: authorIdToUse,         // Le post appartiendra à cette personne
-        attachments: {
-          connect: (mediaIds || []).map((id: string) => ({ id })),
-        },
-      },
-      // On utilise ton helper pour inclure les données nécessaires au flux
-      include: getPostDataInclude(loggedInUser.id),
+    if (neighborhood && neighborhood.trim() !== "") {
+      whereClause.neighborhood = {
+        equals: neighborhood.trim(),
+        mode: "insensitive", // Rend la recherche insensible à la casse (Yassa == yassa)
+      };
+    }
+
+    const posts = await prisma.post.findMany({
+      where: whereClause,
+      include: getPostDataInclude(user.id),
+      orderBy: { createdAt: "desc" },
+      take: pageSize + 1,
+      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
     });
 
-    return Response.json(newPost);
+    const nextCursor = posts.length > pageSize ? posts[pageSize].id : null;
+
+    const data: PostsPage = {
+      posts: posts.slice(0, pageSize),
+      nextCursor,
+    };
+
+    return Response.json(data);
   } catch (error) {
     console.error(error);
     return Response.json({ error: "Internal server error" }, { status: 500 });

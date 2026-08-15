@@ -16,6 +16,7 @@ export default async function Home({ searchParams }: PageProps) {
   const resolvedSearchParams = await searchParams;
   const selectedCity = resolvedSearchParams.city;
   const selectedNeighborhood = resolvedSearchParams.neighborhood;
+  const feedKey = `${selectedCity}-${selectedNeighborhood}`;
 
   return (
     <main className="flex w-full min-w-0 gap-5 min-h-screen">
@@ -151,6 +152,7 @@ export default async function Home({ searchParams }: PageProps) {
         </div>
 
         <FeedTabs
+          key={feedKey}
           userId={user?.id}
           forYouFeed={<ForYouFeed userId={user?.id} city={selectedCity} neighborhood={selectedNeighborhood} />}
           followingFeed={

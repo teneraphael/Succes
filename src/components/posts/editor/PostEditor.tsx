@@ -24,58 +24,135 @@ import {
 } from "@/components/ui/select";
 import { useLanguage } from "@/components/LanguageProvider";
 
-// ✅ Liste complète des villes et quartiers du Cameroun
+// ✅ Liste officielle et complète des villes et quartiers du Cameroun
 const CITIES_WITH_QUARTERS: Record<string, string[]> = {
-  Douala: [
-    "Akwa", "Bonapriso", "Bonanjo", "Deido", "Bépanda", "Makepe", "Kotto", 
-    "Logbessou", "Ndogbong", "Cité Cicam", "New-Bell", "Nylon", "Bepanda Omnisport", 
-    "Yassa", "Logbaba", "Pk 8", "Pk 10", "Pk 12", "Ndokoti", "Ancien Sodiko", "Bonaberie"
+  "Douala": [
+    "Akwa", "Akwa Nord", "Akwa Sud", "Bonanjo", "Bonapriso", "Bali",
+    "Deïdo", "Ndokotti", "New-Bell", "New-Deïdo", "Makepe", "Makepe Missoke",
+    "Logbessou", "Logpom", "Kotto", "Bonabéri", "Bonamoussadi", "Bonamoussadi Village",
+    "Bassa", "Bassa Industriel", "Ndog-Bong", "Ndog-Passi", "Nkongmondo",
+    "PK 8", "PK 10", "PK 11", "PK 12", "PK 13", "PK 14", "PK 17", "PK 19",
+    "Nyalla", "Nyalla Village", "Kake", "Sodiko", "Cité des Palmiers",
+    "Cité SIC", "Cité Oyack", "Village", "Ndoghem", "Mboppi",
+    "Ange Raphael", "Congo", "Bessengue", "Mbanya", "Nkouloulou",
+    "Oyack", "Mabanda", "Mboko", "Ndibe", "Ndogbea", "Nkomba",
+    "Bepanda", "Bepanda Omnisport", "Bepanda libre", "Ndog-Simple",
+    "Cité CICAM", "Cité SONEL", "Ndogsimbi", "Ngodi Bakoko",
+    "Ngodi sur Wouri", "Bilongue", "Ndokoti", "Marché Congo",
+    "Njo-Njo", "Essengue", "Bonapriso extension", "Bilingue",
+    "Maképé Maturité", "Cité SIC Bassa", "Cité Sic Makepe", "Sable", "Yassa", "Ancien Dalip", "Besseke", "Grand Hangar"
   ],
-  Yaoundé: [
-    "Bastos", "Mvog-Mbi", "Biyem-Assi", "Omnisport", "Emana", "Ngousso", 
-    "Mvan", "Essos", "Madagascar", "Mimboman", "Odza", "Elig-Essono", 
-    "Nsimeyong", "Golf", "Mballa II", "Elig-Edzoa", "Tsinga", "Jouvence"
+  "Yaoundé": [
+    "Centre-ville", "Bastos", "Nlongkak", "Mvan", "Biyem-Assi",
+    "Essos", "Mendong", "Ngousso", "Nkolbisson", "Etoudi",
+    "Mfandena", "Omnisport", "Messa", "Nkomo", "Nkol-Eton",
+    "Kondengui", "Madagascar", "Briqueterie", "Mokolo", "Mvog-Ada",
+    "Mvog-Mbi", "Mvog-Beti", "Mvog-Atangana-Mballa", "Obili",
+    "Ngoa-Ekelle", "Nkolndongo", "Nkol-Afeme", "Elig-Effa",
+    "Elig-Essono", "Elig-Edzoa", "Elig-Mfomo", "Ekounou",
+    "Emana", "Ahala", "Soa", "Nkolbison", "Titi",
+    "Oyom-Abang", "Olembe", "Nkoldongo", "Etam-Bafia",
+    "Odza", "Mimboman", "Cité Verte", "Ntougou", "Nsam",
+    "Ngousso Nord", "Ngousso Sud", "Mfou", "Simbock",
+    "Nkolafamba", "Tsinga", "Quartier du Lac", "Fébé", "Mbala", "Nkolmesseng",
+    "Damas", "Fouda", "Nkomo Village", "Nkoabang", "Nsimeyong", "Obobogo", "Messassi", "Nkomkana"
   ],
-  Bafoussam: [
-    "Djeleng", "Kamkop", "Tamdja", "Commercial Avenue", "Nietche", 
-    "Mairie", "Bamendzi", "Tougang", "Ndiandam"
+  "Bafoussam": [
+    "Centre", "Tamdja", "Djeleng", "Kamkop", "Ngouache",
+    "Banengo", "Famla", "Tougang", "Plateau", "Lelem",
+    "Wenfou", "Koptchou", "Djeleng Nord", "Djeleng Sud",
+    "Nylon", "Nattrakom", "Kwa-Kwa", "Nkou'ou", "Bangoua",
+    "Fomkap", "Bamendou", "Nkouoptamo", "Tyo-Ville",
+    "Kamkop Village", "Kouokoue", "Koupa", "Ngoumou", "Nietche", "Batoufam", "Kouogouo", "Hiala"
   ],
-  Garoua: [
-    "Yelwa", "Caldou", "Roumde Adjia", "Poumpoumre", "Salak", "Lainde"
+  "Buea": [
+    "Molyko", "Great Soppo", "Bonduma", "Mile 16", "Mile 17",
+    "Bomaka", "Bokwango", "Buea Town", "Buea Road", "Clerks Quarter",
+    "GRA", "Sandpit", "Tole", "Wonyangong", "Muea",
+    "Likoko", "Membea", "Lysoka", "Bokova", "Bova",
+    "Ewonda", "Muyuka", "Kake", "Sasse", "Wonikang", "Bongo Square", "Small Soppo", "Check Point"
   ],
-  Maroua: [
-    "Pitoare", "Dougou", "Baoliwol", "Hardjo", "Kakatare", "Palar"
+  "Kribi": [
+    "Centre", "Talla", "Mbaa", "Grand Batanga", "Petit Batanga",
+    "Mpalla", "Lolabé", "Londji", "Nziou", "Bibamba",
+    "Mpolongwe", "Quartier Belle Vue", "Quartier Commerce",
+    "Camping", "Nouvelle Route", "Akom II", "Mboa Manga", "Mpang", "Ngoye", "Ocean", "Mbadji", "Dombe", "Bousouma", "Mbeka'a"
   ],
-  Bamenda: [
-    "Nkwen", "Mankon", "Metta Quarter", "Mulang", "Old Town", "Hospital Residential Area"
+  "Limbe": [
+    "Down Beach", "Mile 4", "Clerks Quarter", "Bota",
+    "New Town", "Cassava Farm", "GRA", "Church Street",
+    "Mabeta", "Motowo", "Half Mile", "Congo Town",
+    "Mbende", "Sanje", "Idenau", "Mokundange", "Middle Farm", "Unity Quarters"
   ],
-  Ngaoundéré: [
-    "Bini", "Jalingo", "Quartier Haoussa", "Sabongari", "Mbideng", "Norip"
+  "Garoua": [
+    "Centre", "Lopéré", "Plateau", "Marouaré", "Poumpoumré",
+    "Souaré", "Djamboutou", "Bagaladji", "Bocklé",
+    "Roumdé Adjia", "Foulbéré", "Dougoy", "Ngong",
+    "Bibémi", "Mayo Hourna", "Yelwa", "Caldou", "Djarengol", "Base", "Ouro-Laddeo"
   ],
-  Bertoua: [
-    "Tiko", "Mokolo 1", "Mokolo 2", "Nkolbikon", "Enongal", "Bilono"
+  "Maroua": [
+    "Centre", "Dougoy", "Palar", "Kakataré", "Louggéré",
+    "Domayo", "Zokok", "Dougoï", "Bonguel", "Roudouré",
+    "Hardé", "Founangué", "Makabaye", "Kodek", "Papata",
+    "Pitoa", "Balaza", "Dogba", "Pitoare", "Foumban Road", "Hardjo", "Abattoir", "Drogue", "Doualaré"
   ],
-  Ebolowa: [
-    "Ebolowa-Kouve", "Ngalmou", "Minkang", "Abang", "Meabe", "New-Town"
+  "Ngaoundéré": [
+    "Centre", "Dang", "Mbideng", "Gadamabanga", "Baladji",
+    "Jareng", "Boulkitou", "Madiré", "Ngaoundaba", "Martap",
+    "Tibati", "Dibi", "Béka", "Sabongari", "Ribeirao"
   ],
-  Buea: [
-    "Molyko", "Clerks Quarters", "Great Soppo", "Small Soppo", "Bonduma", "Check Point"
+  "Bamenda": [
+    "Commercial Avenue", "Up Station", "Old Town", "Nkwen",
+    "Ntarikon", "Cowbell", "Hospital Area", "Food Market",
+    "Mbatu", "Mulang", "Barrack", "Mile 4 Nkwen",
+    "Mankon", "Azire", "Pinyin", "Bambui", "Bambili",
+    "Bali", "Santa", "Bafut", "Mile 3", "Mile 2", "New Town", "Nitop", "Abangoh"
   ],
-  Limbé: [
-    "Down Beach", "New Town", "Mile 1", "Mile 2", "Mile 3", "Bota", "Batoke"
+  "Bertoua": [
+    "Centre", "Nkolbikon", "Haoussa", "Mboukou", "Mokolo",
+    "Cité des Sapeurs", "Cité Meiganga", "Mindourou",
+    "Doumé", "Abong-Mbang", "Lomié", "Enia", "Bongandé", "Kpokolota"
   ],
-  Kribi: [
-    "Ngoye", "Dombe", "Mboa Manga", "Mbangue", "Océan", "Lobe"
+  "Ebolowa": [
+    "Centre", "Angalé", "Nkoltang", "Nkol-Nnam", "Mengong",
+    "Mvangan", "Ambam", "Ma'an", "Meyo-Centre", "Efoulan", "Nko'ovos", "Akak", "Meimbang", "Ebolowa II"
   ],
-  Dschang: [
-    "Tsebola", "Quartier Latin", "Tella", "Foréké", "Cité"
+  "Edéa": [
+    "Centre", "Port", "Cité ALUCAM", "Pont-Rail", "Borne 5",
+    "Ndog-Bong", "Malimba", "Mouanko", "Dizangué"
   ],
-  Edea: [
-    "Pongo", "Elec-Kelle", "Zone Industrielle", "Riziculture", "Check Point"
+  "Kumba": [
+    "Mile 1", "Mile 2", "Mile 3", "Mile 4", "Mile 6",
+    "Buea Road", "Fiango", "Mbeng", "Kake",
+    "Tiko Road", "Komb", "Mundemba"
   ],
-  Nkongsamba: [
-    "Eloumden", "Ngombe", "Mousongo", "Centre Commercial", "Ecko"
-  ]
+  "Nkongsamba": [
+    "Centre", "Bamendjou", "Melong", "Manjo", "Loum",
+    "Mbanga", "Njoré", "Bakaka", "Tombel"
+  ],
+  "Sangmélima": [
+    "Centre", "Biba", "Djoum", "Oveng", "Bengbis",
+    "Meyomessala", "Zoétélé"
+  ],
+  "Foumban": [
+    "Centre", "Njimom", "Koutaba", "Magba", "Malantouen",
+    "Bangourain", "Mvoutte", "Njinka", "Mpepouo", "Aéroport", "Palais"
+  ],
+  "Dschang": [
+    "Centre", "Foto", "Fongo-Tongo", "Santchou", "Kékem",
+    "Bafou", "Penka-Michel"
+  ],
+  "Mbouda": [
+    "Centre", "Batcham", "Babadjou", "Bafang", "Bandja",
+    "Galim", "Batié"
+  ],
+  "Tibati": [
+    "Centre", "Ngaoundal", "Mbakaou", "Wouldé"
+  ],
+  "Batouri": [
+    "Centre", "Kentzou", "Ndélélé", "Yokadouma",
+    "Moloundou", "Nola"
+  ],
 };
 
 export default function PostEditor() {
@@ -164,17 +241,21 @@ export default function PostEditor() {
   function onSubmit() {
     if (!isFormValid) return;
 
+    // ✅ Normalisation propre pour éviter les décalages avec les filtres
+    const formattedCity = city.trim();
+    const formattedNeighborhood = neighborhood.trim();
+
     const stockInfo = `\n QUANTITÉ GLOBALE : ${stock}`;
     const whatsappInfo = phone ? `\n WHATSAPP : ${phone}` : "";
-    const locationInfo = `\n LOCALISATION : ${neighborhood}, ${city}`;
+    const locationInfo = `\n LOCALISATION : ${formattedNeighborhood}, ${formattedCity}`;
 
     mutation.mutate(
       {
         content: ` PRODUIT : ${productName}\n PRIX : ${price} FCFA${stockInfo}${whatsappInfo}${locationInfo}\n\n DESCRIPTION :\n${description}`,
         mediaIds: attachments.map((a: any) => a.mediaId).filter(Boolean) as string[],
         stock: parseInt(stock),
-        city,
-        neighborhood,
+        city: formattedCity,
+        neighborhood: formattedNeighborhood,
         targetUserId: isAdmin && targetUserId !== "me" ? targetUserId : undefined,
         attributes: [],
       } as any,

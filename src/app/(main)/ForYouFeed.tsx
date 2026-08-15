@@ -17,7 +17,7 @@ interface ForYouFeedProps {
 
 export default function ForYouFeed({ userId, city, neighborhood }: ForYouFeedProps) {
   const { t } = useLanguage();
-
+ 
   const {
     data,
     fetchNextPage,
@@ -27,7 +27,7 @@ export default function ForYouFeed({ userId, city, neighborhood }: ForYouFeedPro
     status,
     refetch,
   } = useInfiniteQuery({
-    queryKey: ["post-feed", "for-you", userId ?? "anonymous", city ?? "all", neighborhood ?? "all"],
+   queryKey: ["post-feed", "for-you", userId ?? "anonymous", city ?? "all", neighborhood ?? "all"],
     queryFn: ({ pageParam }) =>
       kyInstance
         .get("/api/posts/for-you", {
