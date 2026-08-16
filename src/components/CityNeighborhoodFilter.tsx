@@ -1,6 +1,6 @@
 "use client";
 
-import { MapPin, ChevronDown, X, Building2, Map } from "lucide-react";
+import { MapPin, ChevronDown, X } from "lucide-react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 
 // Liste étendue des quartiers pour couvrir l'informel
@@ -157,7 +157,8 @@ export function CityNeighborhoodFilter() {
       }
     });
 
-    router.push(`${pathname}?${params.toString()}`);
+    // Utilisation de replace avec scroll: false pour éviter le saut de page et le rechargement brutal
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
   };
 
   return (
