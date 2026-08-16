@@ -40,8 +40,7 @@ export default function ForYouFeed({ userId, city, neighborhood }: ForYouFeedPro
         .json<PostsPage>(),
     initialPageParam: null as string | null,
     getNextPageParam: (lastPage) => lastPage.nextCursor,
-  staleTime: 0, // <--- Changez ceci (mettez 0 au lieu de 5 minutes)
-    gcTime: 0,
+     staleTime: 1000 * 60 * 5, // <--- Changez ceci (mettez 0 au lieu de 5 minutes)
   });
 
   const posts = data?.pages.flatMap((page) => page.posts) || [];
