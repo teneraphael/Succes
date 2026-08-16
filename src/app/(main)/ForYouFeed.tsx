@@ -27,7 +27,8 @@ export default function ForYouFeed({ userId, city, neighborhood }: ForYouFeedPro
     status,
     refetch,
   } = useInfiniteQuery({
-   queryKey: ["post-feed", "for-you", userId ?? "anonymous", city ?? "all", neighborhood ?? "all"],
+    // ✅ Le queryKey inclut la ville et le quartier : TanStack Query va refetch automatiquement si l'un d'eux change
+    queryKey: ["post-feed", "for-you", userId ?? "anonymous", city ?? "all", neighborhood ?? "all"],
     queryFn: ({ pageParam }) =>
       kyInstance
         .get("/api/posts/for-you", {
@@ -40,7 +41,11 @@ export default function ForYouFeed({ userId, city, neighborhood }: ForYouFeedPro
         .json<PostsPage>(),
     initialPageParam: null as string | null,
     getNextPageParam: (lastPage) => lastPage.nextCursor,
-     staleTime: 1000 * 60 * 5, // <--- Changez ceci (mettez 0 au lieu de 5 minutes)
+    retry: 2,
+    staleTime: 1000 * 60 * 5, // Garde en cache pour éviter les requêtes inutiles
+    gcTime: 1000 * 60 * 10,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
   });
 
   const posts = data?.pages.flatMap((page) => page.posts) || [];
