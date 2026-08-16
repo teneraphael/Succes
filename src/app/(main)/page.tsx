@@ -6,6 +6,7 @@ import ForYouFeed from "./ForYouFeed";
 import { CityNeighborhoodFilter } from "@/components/CityNeighborhoodFilter";
 import Link from "next/link";
 import { Lock, ShoppingBag, TrendingUp, Zap } from "lucide-react";
+import { Suspense } from "react";
 
 interface PageProps {
   searchParams: Promise<{ city?: string; neighborhood?: string }>;
@@ -40,9 +41,8 @@ export default async function Home({ searchParams }: PageProps) {
             <div className="absolute -bottom-8 -left-8 w-36 h-36 rounded-full bg-[#1aa04b]/5 blur-3xl pointer-events-none" />
 
             <div className="relative space-y-5">
-              {/* Logo DealCity reproduit fidèlement selon image_ada9f0.jpg */}
+              {/* Logo DealCity */}
               <div className="flex items-center gap-3">
-                {/* L'icône à 4 barres bleues avec extrémités totalement arrondies */}
                 <div className="flex items-end gap-[4px] h-8 pb-1">
                   <div className="w-[5px] h-4 bg-[#3a81f3] rounded-full" />
                   <div className="w-[5px] h-6 bg-[#3a81f3] rounded-full" />
@@ -50,10 +50,8 @@ export default async function Home({ searchParams }: PageProps) {
                   <div className="w-[5px] h-5 bg-[#3a81f3] rounded-full" />
                 </div>
                 
-                {/* Nom de la marque */}
                 <span className="text-xl font-bold text-[#1aa04b] tracking-tight">DealCity</span>
                 
-                {/* Badge Pays */}
                 <span className="text-[9px] font-bold bg-blue-50 text-[#3a81f3] border border-blue-100 px-2 py-0.5 rounded-full uppercase tracking-wider">
                   Cameroun
                 </span>
@@ -85,7 +83,7 @@ export default async function Home({ searchParams }: PageProps) {
                 ))}
               </div>
 
-              {/* Boutons d'action (Style aux couleurs exactes de l'app) */}
+              {/* Boutons d'action */}
               <div className="flex items-center gap-3 pt-2">
                 <Link
                   href="/login"
@@ -104,17 +102,15 @@ export default async function Home({ searchParams }: PageProps) {
           </div>
         )}
 
-        {/* ✅ Bannière vendeur actif — couleurs DealCity */}
+        {/* ✅ Bannière vendeur actif */}
         {user?.isSeller && (
           <div className="relative w-full overflow-hidden rounded-none sm:rounded-3xl px-5 py-4 border border-[#4a90e2]/20"
             style={{
               background: "linear-gradient(135deg, #f0f7ff 0%, #f0fff4 100%)",
             }}
           >
-            {/* Mode sombre */}
             <div className="absolute inset-0 rounded-none sm:rounded-3xl dark:bg-gradient-to-r dark:from-[#0a1628] dark:via-[#0d1f3a] dark:to-[#0a1628] opacity-0 dark:opacity-100 pointer-events-none" />
 
-            {/* Cercle décoratif */}
             <div className="absolute -top-6 -right-6 w-32 h-32 rounded-full bg-[#4a90e2]/8 blur-2xl pointer-events-none" />
             <div className="absolute -bottom-4 -left-4 w-24 h-24 rounded-full bg-[#6ab344]/8 blur-2xl pointer-events-none" />
 
@@ -144,10 +140,12 @@ export default async function Home({ searchParams }: PageProps) {
           </div>
         )}
 
-        {/* ✅ Filtre Ville & Quartier : Intégré proprement dans le flux sans superposition */}
+        {/* ✅ Filtre Ville & Quartier sécurisé par Suspense */}
         <div className="w-full bg-background/95 backdrop-blur-md border-b border-border/40 px-2 py-2 shadow-xs">
           <div className="max-w-full overflow-x-auto no-scrollbar flex items-center">
-            <CityNeighborhoodFilter />
+            <Suspense fallback={<div className="h-9 w-full animate-pulse bg-gray-100 dark:bg-zinc-800 rounded-xl" />}>
+              <CityNeighborhoodFilter />
+            </Suspense>
           </div>
         </div>
 
