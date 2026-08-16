@@ -102,7 +102,6 @@ export async function GET(req: NextRequest) {
     const neighborhood = req.nextUrl.searchParams.get("neighborhood") || undefined;
     const { user } = await validateRequest();
 
-    // ✅ Construction propre et stricte de la clause de localisation
     let locationWhereClause: any = {};
 
     if (city && city.trim() !== "") {
@@ -118,6 +117,12 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    const baseFilter = {
+      ...(user ? { userId: { not: user.id } } : {}),
+      ...locationWhereClause,
+    };
+
+    // Si on a un utilisateur et pas de curseur (première page) : on applique l'algorithme de pertinence
     if (!cursor && user) {
       const { keywords, categoryScores, viewedPostIds } = await getUserInterests(user.id);
 
@@ -129,18 +134,16 @@ export async function GET(req: NextRequest) {
       const topKeywords = topCategories.flatMap((cat) => KEYWORDS_MAP[cat] || []).slice(0, 8);
       const CANDIDATE_SIZE = 40;
 
-      // On combine la localisation et les mots-clés de façon rigoureuse via un tableau `AND`
-      const baseFilter = {
-        userId: { not: user.id },
+      const smartBaseFilter = {
+        ...baseFilter,
         id: { notIn: viewedPostIds.slice(0, 100) },
-        ...locationWhereClause,
       };
 
       const [relevantPosts, recentPosts] = await Promise.all([
         topKeywords.length > 0
           ? prisma.post.findMany({
               where: {
-                ...baseFilter,
+                ...smartBaseFilter,
                 OR: topKeywords.map((kw) => ({
                   content: { contains: kw, mode: "insensitive" as const },
                 })),
@@ -152,7 +155,7 @@ export async function GET(req: NextRequest) {
           : Promise.resolve([]),
 
         prisma.post.findMany({
-          where: baseFilter,
+          where: smartBaseFilter,
           include: getPostDataInclude(user.id),
           orderBy: { createdAt: "desc" },
           take: CANDIDATE_SIZE,
@@ -181,34 +184,29 @@ export async function GET(req: NextRequest) {
 
       scored.sort((a, b) => b.score - a.score);
 
-      const top20 = scored.slice(0, 20);
-      for (let i = top20.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * Math.min(i + 1, 5));
-        [top20[i], top20[j]] = [top20[j], top20[i]];
-      }
-
-      const finalPosts = top20.slice(0, PAGE_SIZE).map((s) => s.post);
-      const nextCursor = top20.length > PAGE_SIZE ? top20[PAGE_SIZE].post.id : null;
+      const finalPosts = scored.slice(0, PAGE_SIZE).map((s) => s.post);
+      
+      // ✅ Correction clé : Pour la pagination par curseur, on utilise le dernier ID du bloc récupéré, 
+      // et la suite se basera proprement sur createdAt pour éviter les ruptures.
+      const nextCursor = scored.length > PAGE_SIZE ? finalPosts[finalPosts.length - 1].id : null;
 
       return Response.json({ posts: finalPosts, nextCursor } satisfies PostsPage);
     }
 
-    // Gestion de la pagination (avec curseur) ou utilisateur non connecté
+    // Gestion standard de la pagination (ou utilisateur non connecté) basée strictement sur createdAt
     const rawPosts = await prisma.post.findMany({
-      where: {
-        ...(user ? { NOT: { userId: user.id } } : {}),
-        ...locationWhereClause,
-      },
+      where: baseFilter,
       include: getPostDataInclude(user?.id),
       orderBy: { createdAt: "desc" },
       take: PAGE_SIZE + 1,
       cursor: cursor ? { id: cursor } : undefined,
+      skip: cursor ? 1 : 0, // 👈 Important : Saute l'élément du curseur pour éviter les doublons
     });
 
     const nextCursor = rawPosts.length > PAGE_SIZE ? rawPosts[PAGE_SIZE].id : null;
     const posts = rawPosts.slice(0, PAGE_SIZE);
 
-    if (!user) {
+    if (!user && posts.length > 0) {
       posts.sort((a, b) => {
         const scoreA = Math.log1p(a._count.likes) * 3 + Math.log1p(a._count.comments) * 4;
         const scoreB = Math.log1p(b._count.likes) * 3 + Math.log1p(b._count.comments) * 4;
