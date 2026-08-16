@@ -5,9 +5,10 @@ import Post from "@/components/posts/Post";
 import TrackedPost from "@/components/posts/TrackedPost";
 import kyInstance from "@/lib/ky";
 import { PostsPage } from "@/lib/types";
-import { useInfiniteQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2, RefreshCw, ShoppingBag } from "lucide-react";
 import { useLanguage } from "@/components/LanguageProvider";
+import { useEffect, useRef } from "react";
 
 interface ForYouFeedProps {
   userId?: string;
@@ -17,7 +18,9 @@ interface ForYouFeedProps {
 
 export default function ForYouFeed({ userId, city, neighborhood }: ForYouFeedProps) {
   const { t } = useLanguage();
- 
+  const queryClient = useQueryClient();
+  const prevFilterRef = useRef({ city, neighborhood });
+
   const {
     data,
     fetchNextPage,
@@ -27,7 +30,6 @@ export default function ForYouFeed({ userId, city, neighborhood }: ForYouFeedPro
     status,
     refetch,
   } = useInfiniteQuery({
-    // ✅ Le queryKey inclut la ville et le quartier : TanStack Query va refetch automatiquement si l'un d'eux change
     queryKey: ["post-feed", "for-you", userId ?? "anonymous", city ?? "all", neighborhood ?? "all"],
     queryFn: ({ pageParam }) =>
       kyInstance
@@ -42,11 +44,25 @@ export default function ForYouFeed({ userId, city, neighborhood }: ForYouFeedPro
     initialPageParam: null as string | null,
     getNextPageParam: (lastPage) => lastPage.nextCursor,
     retry: 2,
-    staleTime: 1000 * 60 * 5, // Garde en cache pour éviter les requêtes inutiles
+    
+    // ✅ On remet un bon staleTime pour que les posts restent stables quand on clique dessus et qu'on revient
+    staleTime: 1000 * 60 * 5, 
     gcTime: 1000 * 60 * 10,
     refetchOnMount: false,
     refetchOnWindowFocus: false,
   });
+
+  // ✅ Détecte si l'utilisateur a *réellement* changé de filtre (Ville ou Quartier)
+  useEffect(() => {
+    if (prevFilterRef.current.city !== city || prevFilterRef.current.neighborhood !== neighborhood) {
+      prevFilterRef.current = { city, neighborhood };
+      
+      // On invalide le cache uniquement lors du changement de filtre pour éviter les bugs d'affichage vide
+      queryClient.invalidateQueries({
+        queryKey: ["post-feed", "for-you", userId ?? "anonymous"],
+      });
+    }
+  }, [city, neighborhood, userId, queryClient]);
 
   const posts = data?.pages.flatMap((page) => page.posts) || [];
 
