@@ -50,6 +50,11 @@ export async function login(
       sessionCookie.attributes,
     );
 
+    // ✅ Redirection intelligente vers /onboarding si la ville n'est pas définie
+    if (!existingUser.city) {
+      return redirect("/onboarding");
+    }
+
     return redirect("/");
   } catch (error) {
     if (isRedirectError(error)) throw error;

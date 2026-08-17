@@ -55,7 +55,6 @@ export async function signUp(
       };
     }
 
-    // ✅ CORRECTION : Suppression de streamServerClient dans la transaction
     await prisma.$transaction(async (tx) => {
       await tx.user.create({
         data: {
@@ -69,8 +68,6 @@ export async function signUp(
     });
 
     // --- ENVOI DE L'EMAIL DE BIENVENUE ---
-    // On l'exécute sans 'await' pour ne pas faire attendre l'utilisateur 
-    // pendant que le serveur de mail répond
     sendWelcomeEmail(email, username).catch(err => console.error("Email error:", err));
 
     const session = await lucia.createSession(userId, {});
@@ -81,7 +78,8 @@ export async function signUp(
       sessionCookie.attributes,
     );
 
-    return redirect("/");
+    // ✅ Redirection vers /onboarding pour les nouveaux inscrits
+    return redirect("/onboarding");
   } catch (error) {
     if (isRedirectError(error)) throw error;
     console.error(error);
