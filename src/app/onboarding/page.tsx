@@ -152,7 +152,7 @@ export default function OnboardingLocationPage() {
       document.cookie = `user_neighborhood=${neighborhood}; path=/; max-age=31536000`;
     }
 
-    // Rediriger vers l'accueil avec les filtres pré-remplis dans l'URL (ou juste l'accueil)
+    // Rediriger vers l'accueil avec les filtres pré-remplis dans l'URL
     router.push(`/?city=${encodeURIComponent(city)}${neighborhood ? `&neighborhood=${encodeURIComponent(neighborhood)}` : ""}`);
     router.refresh();
   };
@@ -234,7 +234,7 @@ export default function OnboardingLocationPage() {
             className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-400 hover:text-gray-600 dark:hover:text-zinc-200 transition-colors"
           >
             <SkipForward className="size-3.5" />
-            <span>Passer pour l'instant</span>
+            <span>Passer pour l&apos;instant</span>
           </button>
         </div>
 
