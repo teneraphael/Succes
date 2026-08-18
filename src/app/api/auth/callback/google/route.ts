@@ -41,6 +41,7 @@ export async function GET(req: NextRequest) {
       .json<{ id: string; name: string; picture?: string }>();
 
     let userId: string;
+    let userCity: string | null = null;
 
     // 4. Gestion de l'utilisateur dans la base de données
     const existingUser = await prisma.user.findUnique({ 
@@ -49,13 +50,14 @@ export async function GET(req: NextRequest) {
 
     if (existingUser) {
       userId = existingUser.id;
+      userCity = existingUser.city;
     } else {
       userId = generateIdFromEntropySize(10);
       const username = slugify(googleUser.name) + "-" + userId.slice(0, 4);
 
       // Utilisation d'une transaction pour garantir l'intégrité des données
-      await prisma.$transaction(async (tx) => {
-        await tx.user.create({
+      const newUser = await prisma.$transaction(async (tx) => {
+        return await tx.user.create({
           data: { 
             id: userId, 
             username, 
@@ -64,9 +66,8 @@ export async function GET(req: NextRequest) {
             avatarUrl: googleUser.picture || null 
           }
         });
-        
-        // ✅ CORRECTION : La synchronisation Stream a été supprimée d'ici
       });
+      userCity = newUser.city;
     }
 
     // 6. Création de la session Lucia
@@ -84,17 +85,18 @@ export async function GET(req: NextRequest) {
     cookieStore.delete("state");
     cookieStore.delete("code_verifier");
 
-    // Redirection propre vers la page d'accueil
+    // 8. Redirection intelligente : vers l'onboarding si la ville n'est pas définie, sinon vers l'accueil
+    const redirectUrl = !userCity ? "/onboarding" : "/";
+
     return new Response(null, {
       status: 302,
       headers: { 
-        Location: "/" 
+        Location: redirectUrl 
       },
     });
 
   } catch (error) {
     console.error("CRITICAL OAUTH ERROR:", error);
-    // On affiche un message d'erreur un peu plus parlant pour le débug
     const errorMessage = error instanceof Error ? error.message : "Internal Server Error";
     return new Response(`Erreur d'authentification: ${errorMessage}`, { status: 500 });
   }
