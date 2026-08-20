@@ -106,9 +106,12 @@ export async function GET(req: NextRequest) {
 
     if (city && city.trim() !== "") {
       if (neighborhood && neighborhood.trim() !== "") {
+        const cleanNeighborhood = neighborhood.trim();
+        const firstWord = cleanNeighborhood.split(" ")[0];
+
         locationWhereClause = {
           city: { equals: city.trim(), mode: "insensitive" },
-          neighborhood: { equals: neighborhood.trim(), mode: "insensitive" },
+          neighborhood: { contains: firstWord, mode: "insensitive" },
         };
       } else {
         locationWhereClause = {
@@ -117,13 +120,21 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    console.log("--- API /api/posts/for-you ---");
+    console.log("Paramètre Ville URL:", city);
+    console.log("Paramètre Quartier URL:", neighborhood);
+    console.log("Filtre Prisma final appliqué:", JSON.stringify(locationWhereClause, null, 2));
+
     const baseFilter = {
       ...(user ? { userId: { not: user.id } } : {}),
       ...locationWhereClause,
     };
 
-    // Si on a un utilisateur et pas de curseur (première page) : on applique l'algorithme de pertinence
-    if (!cursor && user) {
+    // 💡 SI L'UTILISATEUR FILTRE PAR QUARTIER, ON SAUTE L' ALGO DE PERTINENCE STRICT 
+    // POUR ÉVITER DE RETOURNER 0 RÉSULTAT SI LES POSTS DU QUARTIER NE MATCHENT PAS LES MOTS-CLÉS
+    const hasNeighborhoodFilter = neighborhood && neighborhood.trim() !== "";
+
+    if (!cursor && user && !hasNeighborhoodFilter) {
       const { keywords, categoryScores, viewedPostIds } = await getUserInterests(user.id);
 
       const topCategories = Object.entries(categoryScores)
@@ -185,34 +196,25 @@ export async function GET(req: NextRequest) {
       scored.sort((a, b) => b.score - a.score);
 
       const finalPosts = scored.slice(0, PAGE_SIZE).map((s) => s.post);
-      
-      // ✅ Correction clé : Pour la pagination par curseur, on utilise le dernier ID du bloc récupéré, 
-      // et la suite se basera proprement sur createdAt pour éviter les ruptures.
       const nextCursor = scored.length > PAGE_SIZE ? finalPosts[finalPosts.length - 1].id : null;
 
       return Response.json({ posts: finalPosts, nextCursor } satisfies PostsPage);
     }
 
-    // Gestion standard de la pagination (ou utilisateur non connecté) basée strictement sur createdAt
+    // Gestion standard (ou si filtre par quartier actif pour tout récupérer directement)
     const rawPosts = await prisma.post.findMany({
       where: baseFilter,
       include: getPostDataInclude(user?.id),
       orderBy: { createdAt: "desc" },
       take: PAGE_SIZE + 1,
       cursor: cursor ? { id: cursor } : undefined,
-      skip: cursor ? 1 : 0, // 👈 Important : Saute l'élément du curseur pour éviter les doublons
+      skip: cursor ? 1 : 0,
     });
+
+    console.log("Nombre de posts trouvés pour le quartier/ville:", rawPosts.length);
 
     const nextCursor = rawPosts.length > PAGE_SIZE ? rawPosts[PAGE_SIZE].id : null;
     const posts = rawPosts.slice(0, PAGE_SIZE);
-
-    if (!user && posts.length > 0) {
-      posts.sort((a, b) => {
-        const scoreA = Math.log1p(a._count.likes) * 3 + Math.log1p(a._count.comments) * 4;
-        const scoreB = Math.log1p(b._count.likes) * 3 + Math.log1p(b._count.comments) * 4;
-        return scoreB - scoreA + (Math.random() - 0.5) * 2;
-      });
-    }
 
     return Response.json({ posts, nextCursor } satisfies PostsPage);
 
