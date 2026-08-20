@@ -7,9 +7,14 @@ import { PostsPage } from "@/lib/types";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { Loader2, RefreshCw, Users } from "lucide-react";
 import { useLanguage } from "@/components/LanguageProvider";
+import { useSearchParams } from "next/navigation";
 
 export default function FollowingFeed() {
   const { t } = useLanguage();
+  const searchParams = useSearchParams();
+
+  const city = searchParams.get("city") || undefined;
+  const neighborhood = searchParams.get("neighborhood") || undefined;
 
   const {
     data,
@@ -20,14 +25,18 @@ export default function FollowingFeed() {
     status,
     refetch,
   } = useInfiniteQuery({
-    queryKey: ["post-feed", "following"],
-    queryFn: ({ pageParam }) =>
-      kyInstance
-        .get(
-          "/api/posts/following",
-          pageParam ? { searchParams: { cursor: pageParam } } : {},
-        )
-        .json<PostsPage>(),
+    // ✅ On ajoute city et neighborhood dans la queryKey pour refetch automatiquement si les filtres changent
+    queryKey: ["post-feed", "following", { city, neighborhood }],
+    queryFn: ({ pageParam }) => {
+      const searchParamsObj: Record<string, string> = {};
+      if (pageParam) searchParamsObj.cursor = pageParam;
+      if (city) searchParamsObj.city = city;
+      if (neighborhood) searchParamsObj.neighborhood = neighborhood;
+
+      return kyInstance
+        .get("/api/posts/following", { searchParams: searchParamsObj })
+        .json<PostsPage>();
+    },
     initialPageParam: null as string | null,
     getNextPageParam: (lastPage) => lastPage.nextCursor,
     retry: 3,
