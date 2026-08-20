@@ -5,133 +5,134 @@ import { useRouter, usePathname, useSearchParams } from "next/navigation";
 
 // Liste étendue des quartiers pour couvrir l'informel
 const CAMEROON_LOCATIONS: Record<string, string[]> = {
-  "Douala": [
-    "Akwa", "Akwa Nord", "Akwa Sud", "Bonanjo", "Bonapriso", "Bali",
-    "Deïdo", "Ndokotti", "New-Bell", "New-Deïdo", "Makepe", "Makepe Missoke",
-    "Logbessou", "Logpom", "Kotto", "Bonabéri", "Bonamoussadi", "Bonamoussadi Village",
-    "Bassa", "Bassa Industriel", "Ndog-Bong", "Ndog-Passi", "Nkongmondo",
+  
+  "DOUALA": [
+    "AKWA", "AKWA NORD", "AKWA SUD", "BONANJO", "BONAPRISO", "BALI",
+    "DEÏDO", "NDOKOTTI", "NEW-BELL", "NEW-DEÏDO", "MAKEPE", "MAKEPE MISSOKE",
+    "LOGBESSOU", "LOGPOM", "KOTTO", "BONABÉRI", "BONAMOUSSADI", "BONAMOUSSADI VILLAGE",
+    "BASSA", "BASSA INDUSTRIEL", "NDOG-BONG", "NDOG-PASSI", "NKONGMONDO",
     "PK 8", "PK 10", "PK 11", "PK 12", "PK 13", "PK 14", "PK 17", "PK 19",
-    "Nyalla", "Nyalla Village", "Kake", "Sodiko", "Cité des Palmiers",
-    "Cité SIC", "Cité Oyack", "Village", "Ndoghem", "Mboppi",
-    "Ange Raphael", "Congo", "Bessengue", "Mbanya", "Nkouloulou",
-    "Oyack", "Mabanda", "Mboko", "Ndibe", "Ndogbea", "Nkomba",
-    "Bepanda", "Bepanda Omnisport", "Bepanda libre", "Ndog-Simple",
-    "Cité CICAM", "Cité SONEL", "Ndogsimbi", "Ngodi Bakoko",
-    "Ngodi sur Wouri", "Bilongue", "Ndokoti", "Marché Congo",
-    "Njo-Njo", "Essengue", "Bonapriso extension", "Bilingue",
-    "Maképé Maturité", "Cité SIC Bassa", "Cité Sic Makepe", "Sable", "Yassa", "Ancien Dalip", "Besseke", "Grand Hangar"
+    "NYALLA", "NYALLA VILLAGE", "KAKE", "SODIKO", "CITÉ DES PALMIERS",
+    "CITÉ SIC", "CITÉ OYACK", "VILLAGE", "NDOGHEM", "MBOPPI",
+    "ANGE RAPHAEL", "CONGO", "BESSENGUE", "MBANYA", "NKOULOULOU",
+    "OYACK", "MABANDA", "MBOKO", "NDIBE", "NDOGBEA", "NKOMBA",
+    "BEPANDA", "BEPANDA OMNISPORT", "BEPANDA LIBRE", "NDOG-SIMPLE",
+    "CITÉ CICAM", "CITÉ SONEL", "NDOGSIMBI", "NGODI BAKOKO",
+    "NGODI SUR WOURI", "BILONGUE", "NDOKOTI", "MARCHÉ CONGO",
+    "NJO-NJO", "ESSENGUE", "BONAPRISO EXTENSION", "BILINGUE",
+    "MAKÉPÉ MATURITÉ", "CITÉ SIC BASSA", "CITÉ SIC MAKEPE", "SABLE", "YASSA", "ANCIEN DALIP", "BESSEKE", "GRAND HANGAR"
   ],
-  "Yaoundé": [
-    "Centre-ville", "Bastos", "Nlongkak", "Mvan", "Biyem-Assi",
-    "Essos", "Mendong", "Ngousso", "Nkolbisson", "Etoudi",
-    "Mfandena", "Omnisport", "Messa", "Nkomo", "Nkol-Eton",
-    "Kondengui", "Madagascar", "Briqueterie", "Mokolo", "Mvog-Ada",
-    "Mvog-Mbi", "Mvog-Beti", "Mvog-Atangana-Mballa", "Obili",
-    "Ngoa-Ekelle", "Nkolndongo", "Nkol-Afeme", "Elig-Effa",
-    "Elig-Essono", "Elig-Edzoa", "Elig-Mfomo", "Ekounou",
-    "Emana", "Ahala", "Soa", "Nkolbison", "Titi",
-    "Oyom-Abang", "Olembe", "Nkoldongo", "Etam-Bafia",
-    "Odza", "Mimboman", "Cité Verte", "Ntougou", "Nsam",
-    "Ngousso Nord", "Ngousso Sud", "Mfou", "Simbock",
-    "Nkolafamba", "Tsinga", "Quartier du Lac", "Fébé", "Mbala", "Nkolmesseng",
-    "Damas", "Fouda", "Nkomo Village", "Nkoabang", "Nsimeyong", "Obobogo", "Messassi", "Nkomkana"
+  "YAOUNDÉ": [
+    "CENTRE-VILLE", "BASTOS", "NLONGKAK", "MVAN", "BIYEM-ASSI",
+    "ESSOS", "MENDONG", "NGOUSSO", "NKOLBISSON", "ETOUDI",
+    "MFANDENA", "OMNISPORT", "MESSA", "NKOMO", "NKOL-ETON",
+    "KONDENGUI", "MADAGASCAR", "BRIQUETERIE", "MOKOLO", "MVOG-ADA",
+    "MVOG-MBI", "MVOG-BETI", "MVOG-ATANGANA-MBALLA", "OBILI",
+    "NGOA-EKELLE", "NKOLNDONGOD", "NKOL-AFEME", "ELIG-EFFA",
+    "ELIG-ESSONO", "ELIG-EDZOA", "ELIG-MFOMO", "EKOUNOU",
+    "EMANA", "AHALA", "SOA", "NKOLBISON", "TITI",
+    "OYOM-ABANG", "OLEMBE", "NKOLDONGO", "ETAM-BAFIA",
+    "ODZA", "MIMBOMAN", "CITÉ VERTE", "NTOUGOU", "NSAM",
+    "NGOUSSO NORD", "NGOUSSO SUD", "MFOU", "SIMBOCK",
+    "NKOLAFAMBA", "TSINGA", "QUARTIER DU LAC", "FÉBÉ", "MBALA", "NKOLMESSENG",
+    "DAMAS", "FOUDA", "NKOMO VILLAGE", "NKOABANG", "NSIMEYONG", "OBOBOGO", "MESSASSI", "NKOMKANA"
   ],
-  "Bafoussam": [
-    "Centre", "Tamdja", "Djeleng", "Kamkop", "Ngouache",
-    "Banengo", "Famla", "Tougang", "Plateau", "Lelem",
-    "Wenfou", "Koptchou", "Djeleng Nord", "Djeleng Sud",
-    "Nylon", "Nattrakom", "Kwa-Kwa", "Nkou'ou", "Bangoua",
-    "Fomkap", "Bamendou", "Nkouoptamo", "Tyo-Ville",
-    "Kamkop Village", "Kouokoue", "Koupa", "Ngoumou", "Nietche", "Batoufam", "Kouogouo", "Hiala"
+  "BAFOUSSAM": [
+    "CENTRE", "TAMDJA", "DJELENG", "KAMKOP", "NGOUACHE",
+    "BANENGO", "FAMLA", "TOUGANG", "PLATEAU", "LELEM",
+    "WENFOU", "KOPTCHOU", "DJELENG NORD", "DJELENG SUD",
+    "NYLON", "NATTRAKOM", "KWA-KWA", "NKOU'OU", "BANGOUA",
+    "FOMKAP", "BAMENDOU", "NKOUOPTAMO", "TYO-VILLE",
+    "KAMKOP VILLAGE", "KOUOKOUE", "KOUPA", "NGOUMOU", "NIETCHE", "BATOUFAM", "KOUOGOUO", "HIALA"
   ],
-  "Buea": [
-    "Molyko", "Great Soppo", "Bonduma", "Mile 16", "Mile 17",
-    "Bomaka", "Bokwango", "Buea Town", "Buea Road", "Clerks Quarter",
-    "GRA", "Sandpit", "Tole", "Wonyangong", "Muea",
-    "Likoko", "Membea", "Lysoka", "Bokova", "Bova",
-    "Ewonda", "Muyuka", "Kake", "Sasse", "Wonikang", "Bongo Square", "Small Soppo", "Check Point"
+  "BUEA": [
+    "MOLYKO", "GREAT SOPPO", "BONDUMA", "MILE 16", "MILE 17",
+    "BOMAKA", "BOKWANGO", "BUEA TOWN", "BUEA ROAD", "CLERKS QUARTER",
+    "GRA", "SANDPIT", "TOLE", "WONYANGONG", "MUEA",
+    "LIKOKO", "MEMBEA", "LYSOKA", "BOKOVA", "BOVA",
+    "EWONDA", "MUYUKA", "KAKE", "SASSE", "WONIKANG", "BONGO SQUARE", "SMALL SOPPO", "CHECK POINT"
   ],
-  "Kribi": [
-    "Centre", "Talla", "Mbaa", "Grand Batanga", "Petit Batanga",
-    "Mpalla", "Lolabé", "Londji", "Nziou", "Bibamba",
-    "Mpolongwe", "Quartier Belle Vue", "Quartier Commerce",
-    "Camping", "Nouvelle Route", "Akom II", "Mboa Manga", "Mpang", "Ngoye", "Ocean", "Mbadji", "Dombe", "Bousouma", "Mbeka'a"
+  "KRIBI": [
+    "CENTRE", "TALLA", "MBAA", "GRAND BATANGA", "PETIT BATANGA",
+    "MPALLA", "LOLABÉ", "LONDJI", "NZIOU", "BIBAMBA",
+    "MPOLONGWE", "QUARTIER BELLE VUE", "QUARTIER COMMERCE",
+    "CAMPING", "NOUVELLE ROUTE", "AKOM II", "MBOA MANGA", "MPANG", "NGOYE", "OCEAN", "MBADJI", "DOMBE", "BOUSOUMA", "MBEKA'A"
   ],
-  "Limbe": [
-    "Down Beach", "Mile 4", "Clerks Quarter", "Bota",
-    "New Town", "Cassava Farm", "GRA", "Church Street",
-    "Mabeta", "Motowo", "Half Mile", "Congo Town",
-    "Mbende", "Sanje", "Idenau", "Mokundange", "Middle Farm", "Unity Quarters"
+  "LIMBE": [
+    "DOWN BEACH", "MILE 4", "CLERKS QUARTER", "BOTA",
+    "NEW TOWN", "CASSAVA FARM", "GRA", "CHURCH STREET",
+    "MABETA", "MOTOWO", "HALF MILE", "CONGO TOWN",
+    "MBENDE", "SANJE", "IDENAU", "MOKUNDANGE", "MIDDLE FARM", "UNITY QUARTERS"
   ],
-  "Garoua": [
-    "Centre", "Lopéré", "Plateau", "Marouaré", "Poumpoumré",
-    "Souaré", "Djamboutou", "Bagaladji", "Bocklé",
-    "Roumdé Adjia", "Foulbéré", "Dougoy", "Ngong",
-    "Bibémi", "Mayo Hourna", "Yelwa", "Caldou", "Djarengol", "Base", "Ouro-Laddeo"
+  "GAROUA": [
+    "CENTRE", "LOPÉRÉ", "PLATEAU", "MAROUARÉ", "POUMPOUMRÉ",
+    "SOUARÉ", "DJAMBOUTOU", "BAGALADJI", "BOCKLÉ",
+    "ROUMDÉ ADJIA", "FOULBÉRÉ", "DOUGOY", "NGONG",
+    "BIBÉMI", "MAYO HOURNA", "YELWA", "CALDOU", "DJARENGOL", "BASE", "OURO-LADDEO"
   ],
-  "Maroua": [
-    "Centre", "Dougoy", "Palar", "Kakataré", "Louggéré",
-    "Domayo", "Zokok", "Dougoï", "Bonguel", "Roudouré",
-    "Hardé", "Founangué", "Makabaye", "Kodek", "Papata",
-    "Pitoa", "Balaza", "Dogba", "Pitoare", "Foumban Road", "Hardjo", "Abattoir", "Drogue", "Doualaré"
+  "MAROUA": [
+    "CENTRE", "DOUGOY", "PALAR", "KAKATARÉ", "LOUGGÉRÉ",
+    "DOMAYO", "ZOKOK", "DOUGOÏ", "BONGUEL", "ROUDOURÉ",
+    "HARDÉ", "FOUNANGUÉ", "MAKABAYE", "KODEK", "PAPATA",
+    "PITOA", "BALAZA", "DOGBA", "PITOARE", "FOUMBAN ROAD", "HARDJO", "ABATTOIR", "DROGUE", "DOUALARÉ"
   ],
-  "Ngaoundéré": [
-    "Centre", "Dang", "Mbideng", "Gadamabanga", "Baladji",
-    "Jareng", "Boulkitou", "Madiré", "Ngaoundaba", "Martap",
-    "Tibati", "Dibi", "Béka", "Sabongari", "Ribeirao"
+  "NGAOUNDÉRÉ": [
+    "CENTRE", "DANG", "MBIDENG", "GADAMABANGA", "BALADJI",
+    "JARENG", "BOULKITOU", "MADIRÉ", "NGAOUNDABA", "MARTAP",
+    "TIBATI", "DIBI", "BÉKA", "SABONGARI", "RIBEIRAO"
   ],
-  "Bamenda": [
-    "Commercial Avenue", "Up Station", "Old Town", "Nkwen",
-    "Ntarikon", "Cowbell", "Hospital Area", "Food Market",
-    "Mbatu", "Mulang", "Barrack", "Mile 4 Nkwen",
-    "Mankon", "Azire", "Pinyin", "Bambui", "Bambili",
-    "Bali", "Santa", "Bafut", "Mile 3", "Mile 2", "New Town", "Nitop", "Abangoh"
+  "BAMENDA": [
+    "COMMERCIAL AVENUE", "UP STATION", "OLD TOWN", "NKWEN",
+    "NTARIKON", "COWBELL", "HOSPITAL AREA", "FOOD MARKET",
+    "MBATU", "MULANG", "BARRACK", "MILE 4 NKWEN",
+    "MANKON", "AZIRE", "PINYIN", "BAMBUI", "BAMBILI",
+    "BALI", "SANTA", "BAFUT", "MILE 3", "MILE 2", "NEW TOWN", "NITOP", "ABANGOH"
   ],
-  "Bertoua": [
-    "Centre", "Nkolbikon", "Haoussa", "Mboukou", "Mokolo",
-    "Cité des Sapeurs", "Cité Meiganga", "Mindourou",
-    "Doumé", "Abong-Mbang", "Lomié", "Enia", "Bongandé", "Kpokolota"
+  "BERTOUA": [
+    "CENTRE", "NKOLBIKON", "HAOUSSA", "MBOUKOU", "MOKOLO",
+    "CITÉ DES SAPEURS", "CITÉ MEIGANGA", "MINROU",
+    "DOUMÉ", "ABONG-MBANG", "LOMIÉ", "ENIA", "BONGANDÉ", "KPOKOLOTA"
   ],
-  "Ebolowa": [
-    "Centre", "Angalé", "Nkoltang", "Nkol-Nnam", "Mengong",
-    "Mvangan", "Ambam", "Ma'an", "Meyo-Centre", "Efoulan", "Nko'ovos", "Akak", "Meimbang", "Ebolowa II"
+  "EBOLOWA": [
+    "CENTRE", "ANGALÉ", "NKOLTANG", "NKOL-NNAM", "MENGONG",
+    "MVANGAN", "AMBAM", "MA'AN", "MEYO-CENTRE", "EFOULAN", "NKO'OVOS", "AKAK", "MEIMBANG", "EBOLOWA II"
   ],
-  "Edéa": [
-    "Centre", "Port", "Cité ALUCAM", "Pont-Rail", "Borne 5",
-    "Ndog-Bong", "Malimba", "Mouanko", "Dizangué"
+  "EDÉA": [
+    "CENTRE", "PORT", "CITÉ ALUCAM", "PONT-RAIL", "BORNE 5",
+    "NDOG-BONG", "MALIMBA", "MOUANKO", "DIZANGUÉ"
   ],
-  "Kumba": [
-    "Mile 1", "Mile 2", "Mile 3", "Mile 4", "Mile 6",
-    "Buea Road", "Fiango", "Mbeng", "Kake",
-    "Tiko Road", "Komb", "Mundemba"
+  "KUMBA": [
+    "MILE 1", "MILE 2", "MILE 3", "MILE 4", "MILE 6",
+    "BUEA ROAD", "FIANGO", "MBENG", "KAKE",
+    "TIKO ROAD", "KOMB", "MUNDEMBA"
   ],
-  "Nkongsamba": [
-    "Centre", "Bamendjou", "Melong", "Manjo", "Loum",
-    "Mbanga", "Njoré", "Bakaka", "Tombel"
+  "NKONGSAMBA": [
+    "CENTRE", "BAMENDJOU", "MELONG", "MANJO", "LOUM",
+    "MBANGA", "NJORÉ", "BAKAKA", "TOMBEL"
   ],
-  "Sangmélima": [
-    "Centre", "Biba", "Djoum", "Oveng", "Bengbis",
-    "Meyomessala", "Zoétélé"
+  "SANGMÉLIMA": [
+    "CENTRE", "BIBA", "DJOUM", "OVENG", "BENGBIS",
+    "MEYOMESSALA", "ZOÉTÉLÉ"
   ],
-  "Foumban": [
-    "Centre", "Njimom", "Koutaba", "Magba", "Malantouen",
-    "Bangourain", "Mvoutte", "Njinka", "Mpepouo", "Aéroport", "Palais"
+  "FOUMBAN": [
+    "CENTRE", "NJIMOM", "KOUTABA", "MAGBA", "MALANTOUEN",
+    "BANGOURAIN", "MVOUTTE", "NJINKA", "MPEPOUO", "AÉROPORT", "PALAIS"
   ],
-  "Dschang": [
-    "Centre", "Foto", "Fongo-Tongo", "Santchou", "Kékem",
-    "Bafou", "Penka-Michel"
+  "DSCHANG": [
+    "CENTRE", "FOTO", "FONGO-TONGO", "SANTCHOU", "KÉKEM",
+    "BAFOU", "PENKA-MICHEL"
   ],
-  "Mbouda": [
-    "Centre", "Batcham", "Babadjou", "Bafang", "Bandja",
-    "Galim", "Batié"
+  "MBOUDA": [
+    "CENTRE", "BATCHAM", "BABADJOU", "BAFANG", "BANDJA",
+    "GALIM", "BATIÉ"
   ],
-  "Tibati": [
-    "Centre", "Ngaoundal", "Mbakaou", "Wouldé"
+  "TIBATI": [
+    "CENTRE", "NGAOUNDAL", "MBAKAOU", "WOULDÉ"
   ],
-  "Batouri": [
-    "Centre", "Kentzou", "Ndélélé", "Yokadouma",
-    "Moloundou", "Nola"
-  ],
+  "BATOURI": [
+    "CENTRE", "KENTZOU", "NDÉLÉLÉ", "YOKADOUMA",
+    "MOLOUNDOU", "NOLA"
+  ]
 };
 
 export function CityNeighborhoodFilter() {
