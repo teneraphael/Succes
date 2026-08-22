@@ -223,9 +223,10 @@ export default function Post({ post, fullWidth = false }: PostProps) {
     window.open(`https://wa.me/${cleanNumber}?text=${encodeURIComponent(lines.join("\n"))}`, "_blank");
   }, [isAvailable, whatsappNumber, post, selectedAttributes, cleanDescription, productName, currentPrice, t, toast]);
 
- const whatsappButtonText = isAvailable
+  const whatsappButtonText = isAvailable
     ? t.chat_whatsapp || "Discuter via WhatsApp"
     : t.unavailable;
+
   return (
     <article className={cn(
       "group/post w-full space-y-4 bg-card py-4 md:py-5 border-b md:border border-border/70 shadow-sm transition-all duration-200 hover:shadow-md mb-5 overflow-hidden",
@@ -277,7 +278,7 @@ export default function Post({ post, fullWidth = false }: PostProps) {
               </span>
             )}
 
-            {/* Affichage de la localisation (ex: douala - bonaberie) */}
+            {/* Affichage de la localisation */}
             {location && (
               <span className="inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-[#4a90e2] bg-[#4a90e2]/10 px-2 py-0.5 rounded-md border border-[#4a90e2]/20">
                 <MapPin className="size-3 shrink-0" />
@@ -299,6 +300,10 @@ export default function Post({ post, fullWidth = false }: PostProps) {
               style={{ fontFamily: "'Geist Mono', 'Courier New', monospace" }}
             >
               {currentPrice} <span className="text-xs font-bold tracking-normal">FCFA</span>
+            </span>
+            {/* Mention locale : Prix taxé et négociable */}
+            <span className="text-[9px] font-black uppercase tracking-wider text-amber-600 bg-amber-500/10 px-2 py-0.5 rounded-md mt-1 inline-block border border-amber-500/25">
+              Prix taxé • Négociable
             </span>
           </div>
         )}
@@ -323,7 +328,7 @@ export default function Post({ post, fullWidth = false }: PostProps) {
         />
       </div>
 
-      {/* Bas du post — Like, Commentaire, Bookmark et WhatsApp sur la même ligne */}
+      {/* Bas du post */}
       <div className="px-5 pt-1">
         <div className="flex items-center justify-between pt-1 border-t border-border/40">
           <div className="flex items-center gap-5">
@@ -376,7 +381,7 @@ export default function Post({ post, fullWidth = false }: PostProps) {
             />
           </div>
 
-          {/* Bouton WhatsApp compact avec traduction dynamique */}
+          {/* Bouton WhatsApp */}
           <button
             onClick={handleWhatsApp}
             disabled={!isAvailable}

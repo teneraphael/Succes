@@ -1,56 +1,75 @@
 import { validateRequest } from "@/auth";
 import prisma from "@/lib/prisma";
-import { getPostDataInclude, PostsPage } from "@/lib/types";
+import { moderatePostContent } from "@/lib/moderation";
 import { NextRequest } from "next/server";
 
-export async function GET(req: NextRequest) {
+export async function POST(req: NextRequest) {
   try {
     const { user } = await validateRequest();
     if (!user) {
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const cursor = req.nextUrl.searchParams.get("cursor");
-    const city = req.nextUrl.searchParams.get("city");
-    const neighborhood = req.nextUrl.searchParams.get("neighborhood");
+    const body = await req.json();
+    const { content, city, neighborhood, mediaIds, stock, targetUserId } = body;
 
-    const pageSize = 10;
-
-    // Construction dynamique des filtres Prisma
-    const whereClause: any = {};
-
-    if (city && city.trim() !== "") {
-      whereClause.city = {
-        equals: city.trim(),
-        mode: "insensitive", // Rend la recherche insensible à la casse (Douala == douala)
-      };
+    // 1️⃣ Récupération des URLs et des types des médias depuis les IDs envoyés par le PostEditor
+    let mediaUrls: { url: string; type: "IMAGE" | "VIDEO" }[] = [];
+    if (mediaIds && mediaIds.length > 0) {
+      const mediaRecords = await prisma.media.findMany({
+        where: { id: { in: mediaIds } },
+        select: { url: true, type: true },
+      });
+      
+      // On s'assure que le type correspond bien à ce qu'attend la modération ("IMAGE" | "VIDEO")
+      mediaUrls = mediaRecords.map((m) => ({
+        url: m.url,
+        type: (m.type === "VIDEO" ? "VIDEO" : "IMAGE") as "IMAGE" | "VIDEO",
+      }));
     }
 
-    if (neighborhood && neighborhood.trim() !== "") {
-      whereClause.neighborhood = {
-        equals: neighborhood.trim(),
-        mode: "insensitive", // Rend la recherche insensible à la casse (Yassa == yassa)
-      };
+    // 2️⃣ 🤖 MODÉRATION AUTOMATIQUE PAR IA (Vente obligatoire + Photos réelles sans filigrane)
+    const moderation = await moderatePostContent(content, mediaUrls);
+
+    if (!moderation.isAllowed) {
+      return Response.json(
+        { 
+          error: "Publication refusée", 
+          reason: moderation.reason || "Votre annonce ne respecte pas les règles de DealCity (vente obligatoire, pas de filigrane, etc.)." 
+        }, 
+        { status: 400 }
+      );
     }
 
-    const posts = await prisma.post.findMany({
-      where: whereClause,
-      include: getPostDataInclude(user.id),
-      orderBy: { createdAt: "desc" },
-      take: pageSize + 1,
-      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+    // 3️⃣ Gestion de la substitution admin (si l'admin publie pour un pionnier)
+    const authorId = 
+      (user.username === "dealcity" || user.id === "22lmc64bcqwsqybu") && targetUserId && targetUserId !== "me"
+        ? targetUserId
+        : user.id;
+
+    // 4️⃣ 📝 Création du post en base de données avec liaison des médias
+    const newPost = await prisma.post.create({
+      data: {
+        content: content.trim(),
+        city: city?.trim() || "",
+        neighborhood: neighborhood?.trim() || "",
+        stock: typeof stock === "number" ? stock : parseInt(stock) || 1,
+        userId: authorId,
+        attachments: {
+          connect: mediaIds.map((id: string) => ({ id })),
+        },
+      },
+      include: {
+        user: true,
+        attachments: true,
+      },
     });
 
-    const nextCursor = posts.length > pageSize ? posts[pageSize].id : null;
+    console.log("✅ Post validé par l'IA et créé avec succès :", newPost.id);
 
-    const data: PostsPage = {
-      posts: posts.slice(0, pageSize),
-      nextCursor,
-    };
-
-    return Response.json(data);
+    return Response.json(newPost, { status: 201 });
   } catch (error) {
-    console.error(error);
+    console.error("ERREUR CRITIQUE CRÉATION POST:", error);
     return Response.json({ error: "Internal server error" }, { status: 500 });
   }
 }
