@@ -28,7 +28,7 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://dealcity.app"),
   title: {
     template: "%s | DealCity",
-    default: "DealCity - Petites annonces et Deals au Cameroun",
+    default: "DealCity - annonces et Deals au Cameroun",
   },
   description: "La plateforme n°1 pour acheter et vendre au Cameroun.",
   manifest: "/manifest.json",
