@@ -230,7 +230,6 @@ export default function PostEditor() {
 
   const description = editor?.getText({ blockSeparator: "\n" }) || "";
 
-  // ✅ Validation : Tout est obligatoire SAUF la description, mais au moins 1 fichier est obligatoire
   const isFormValid =
     productName.trim() !== "" &&
     price.trim() !== "" &&
@@ -239,8 +238,7 @@ export default function PostEditor() {
     parseInt(stock) >= 0 &&
     phone.trim() !== "" &&
     city.trim() !== "" &&
-    neighborhood.trim() !== "" &&
-    attachments.length > 0; // Description retirée de la condition
+    neighborhood.trim() !== "";
 
   function onSubmit() {
     if (!isFormValid) return;
@@ -251,11 +249,10 @@ export default function PostEditor() {
     const stockInfo = `\n QUANTITÉ GLOBALE : ${stock}`;
     const whatsappInfo = phone ? `\n WHATSAPP : ${phone}` : "";
     const locationInfo = `\n LOCALISATION : ${formattedNeighborhood}, ${formattedCity}`;
-    const descriptionInfo = description.trim() !== "" ? `\n\n DESCRIPTION :\n${description}` : "";
 
     mutation.mutate(
       {
-        content: ` PRODUIT : ${productName}\n PRIX : ${price} FCFA (${priceType})${stockInfo}${whatsappInfo}${locationInfo}${descriptionInfo}`,
+        content: ` PRODUIT : ${productName}\n PRIX : ${price} FCFA (${priceType})${stockInfo}${whatsappInfo}${locationInfo}\n\n DESCRIPTION :\n${description}`,
         mediaIds: attachments.map((a: any) => a.mediaId).filter(Boolean) as string[],
         stock: parseInt(stock),
         city: formattedCity,
@@ -340,6 +337,7 @@ export default function PostEditor() {
           />
         </div>
 
+        {/* ✅ Nouveau Sélecteur pour le type de prix */}
         <div className="relative">
           <Select value={priceType} onValueChange={setPriceType}>
             <SelectTrigger className="w-full h-12 rounded-2xl bg-[#f8faff] dark:bg-zinc-800/50 border border-[#4a90e2]/10 px-4 text-xs font-black uppercase">
