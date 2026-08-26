@@ -10,7 +10,7 @@ import { useDropzone } from "@uploadthing/react";
 import {
   Camera, Loader2, X,
   Tag, Banknote, Sparkles, Zap,
-  SlidersHorizontal, Check, Type, Phone, MapPin, Building2,
+  SlidersHorizontal, Check, Type, Phone, MapPin, Building2, Sliders,
 } from "lucide-react";
 import { useRef, useState, useEffect } from "react";
 import { useSubmitPostMutation } from "./mutations";
@@ -164,6 +164,7 @@ export default function PostEditor() {
 
   const [productName, setProductName] = useState("");
   const [price, setPrice] = useState("");
+  const [priceType, setPriceType] = useState("Prix taxer / Discutable");
   const [stock, setStock] = useState("1");
   const [phone, setPhone] = useState("");
   const [city, setCity] = useState("");
@@ -229,29 +230,32 @@ export default function PostEditor() {
 
   const description = editor?.getText({ blockSeparator: "\n" }) || "";
 
+  // ✅ Validation : Tout est obligatoire SAUF la description, mais au moins 1 fichier est obligatoire
   const isFormValid =
     productName.trim() !== "" &&
     price.trim() !== "" &&
+    priceType.trim() !== "" &&
     stock.trim() !== "" &&
     parseInt(stock) >= 0 &&
     phone.trim() !== "" &&
     city.trim() !== "" &&
-    neighborhood.trim() !== "";
+    neighborhood.trim() !== "" &&
+    attachments.length > 0; // Description retirée de la condition
 
   function onSubmit() {
     if (!isFormValid) return;
 
-    // ✅ Normalisation propre pour éviter les décalages avec les filtres
     const formattedCity = city.trim();
     const formattedNeighborhood = neighborhood.trim();
 
     const stockInfo = `\n QUANTITÉ GLOBALE : ${stock}`;
     const whatsappInfo = phone ? `\n WHATSAPP : ${phone}` : "";
     const locationInfo = `\n LOCALISATION : ${formattedNeighborhood}, ${formattedCity}`;
+    const descriptionInfo = description.trim() !== "" ? `\n\n DESCRIPTION :\n${description}` : "";
 
     mutation.mutate(
       {
-        content: ` PRODUIT : ${productName}\n PRIX : ${price} FCFA${stockInfo}${whatsappInfo}${locationInfo}\n\n DESCRIPTION :\n${description}`,
+        content: ` PRODUIT : ${productName}\n PRIX : ${price} FCFA (${priceType})${stockInfo}${whatsappInfo}${locationInfo}${descriptionInfo}`,
         mediaIds: attachments.map((a: any) => a.mediaId).filter(Boolean) as string[],
         stock: parseInt(stock),
         city: formattedCity,
@@ -264,6 +268,7 @@ export default function PostEditor() {
           editor?.commands.clearContent();
           setProductName("");
           setPrice("");
+          setPriceType("Prix taxer / Discutable");
           setPhone("");
           setStock("1");
           setCity("");
@@ -313,7 +318,7 @@ export default function PostEditor() {
         )}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
         <div className="relative md:col-span-1">
           <Tag className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
           <input
@@ -333,6 +338,28 @@ export default function PostEditor() {
             onChange={(e) => setPrice(e.target.value)}
             className="w-full h-12 pl-12 rounded-2xl bg-[#f8fff8] dark:bg-zinc-800/50 border border-[#6ab344]/10 focus:border-[#6ab344]/30 focus:ring-2 focus:ring-[#6ab344]/8 outline-none transition-all text-sm font-black text-[#6ab344]"
           />
+        </div>
+
+        <div className="relative">
+          <Select value={priceType} onValueChange={setPriceType}>
+            <SelectTrigger className="w-full h-12 rounded-2xl bg-[#f8faff] dark:bg-zinc-800/50 border border-[#4a90e2]/10 px-4 text-xs font-black uppercase">
+              <div className="flex items-center gap-2 truncate">
+                <Sliders className="size-4 text-muted-foreground shrink-0" />
+                <SelectValue placeholder="Type de prix" />
+              </div>
+            </SelectTrigger>
+            <SelectContent className="rounded-2xl">
+              <SelectItem value="Prix taxer / Discutable" className="text-xs font-black uppercase">
+                Prix taxer / Discutable
+              </SelectItem>
+              <SelectItem value="Légèrement discutable" className="text-xs font-black uppercase">
+                Légèrement discutable
+              </SelectItem>
+              <SelectItem value="Prix fixe / Non discutable" className="text-xs font-black uppercase">
+                Prix fixe / Non discutable
+              </SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         <div className="relative">

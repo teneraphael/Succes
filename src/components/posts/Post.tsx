@@ -61,14 +61,16 @@ interface PostProps {
 
 const extractInfo = (content: string) => {
   const productMatch = content.match(/PRODUIT\s*:\s*([^\n]+)/i);
-  const priceMatch = content.match(/PRIX\s*:\s*([\d\s,._]+)\s*FCFA/i);
+  const priceMatch = content.match(/PRIX\s*:\s*([\d\s,._]+)\s*FCFA\s*\(([^)]+)\)/i);
+  const simplePriceMatch = content.match(/PRIX\s*:\s*([\d\s,._]+)\s*FCFA/i);
   const descMatch = content.match(/DESCRIPTION\s*:\s*\n?([\s\S]*?)(?=\n\n|📞|🔗|$)/i);
   const whatsappMatch = content.match(/WHATSAPP\s*:\s*([^\n]+)/i);
   const locationMatch = content.match(/LOCALISATION\s*:\s*([^\n]+)/i);
   
   return {
     productName: productMatch ? productMatch[1].trim() : null,
-    price: priceMatch ? priceMatch[1].trim().replace(/\s/g, "") : null,
+    price: priceMatch ? priceMatch[1].trim().replace(/\s/g, "") : (simplePriceMatch ? simplePriceMatch[1].trim().replace(/\s/g, "") : null),
+    priceType: priceMatch ? priceMatch[2].trim() : "Prix taxer / Discutable",
     cleanDescription: descMatch ? descMatch[1].trim() : content,
     whatsappNumber: whatsappMatch ? whatsappMatch[1].trim() : null,
     location: locationMatch ? locationMatch[1].trim() : null,
@@ -157,7 +159,7 @@ export default function Post({ post, fullWidth = false }: PostProps) {
   const isDesktop = useMediaQuery("(min-width: 768px)");
   const { t } = useLanguage();
 
-  const { productName, price: defaultPrice, cleanDescription, whatsappNumber, location } = extractInfo(post.content);
+  const { productName, price: defaultPrice, priceType, cleanDescription, whatsappNumber, location } = extractInfo(post.content);
   const [selectedAttributes, setSelectedAttributes] = useState<Record<string, string>>({});
   const [activeVariant, setActiveVariant] = useState<any>(null);
 
@@ -301,10 +303,13 @@ export default function Post({ post, fullWidth = false }: PostProps) {
             >
               {currentPrice} <span className="text-xs font-bold tracking-normal">FCFA</span>
             </span>
-            {/* Mention locale : Prix taxé et négociable */}
-            <span className="text-[9px] font-black uppercase tracking-wider text-amber-600 bg-amber-500/10 px-2 py-0.5 rounded-md mt-1 inline-block border border-amber-500/25">
-              Prix taxé • Négociable
-            </span>
+            
+            {/* ✅ Affichage dynamique du type de prix choisi par le vendeur */}
+            {priceType && (
+              <span className="text-[9px] font-black uppercase tracking-wider text-amber-600 bg-amber-500/10 px-2 py-0.5 rounded-md mt-1 inline-block border border-amber-500/25">
+                {priceType}
+              </span>
+            )}
           </div>
         )}
       </div>

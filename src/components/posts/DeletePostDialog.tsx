@@ -43,11 +43,11 @@ export default function DeletePostDialog({ post, open, onClose }: DeletePostDial
           <div className="text-center space-y-1.5">
             {/* ✅ Titre traduit */}
             <DialogTitle className="font-black uppercase tracking-tight text-foreground">
-              {t.delete_comment}
+              {t.delete_post}
             </DialogTitle>
             {/* ✅ Description traduite */}
             <DialogDescription className="text-xs text-muted-foreground font-medium leading-relaxed">
-              {t.delete_comment_desc}
+              {t.delete_post}
             </DialogDescription>
           </div>
         </DialogHeader>

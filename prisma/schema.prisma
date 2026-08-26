@@ -244,7 +244,7 @@ model Post {
   stock               Int                @default(0)
   price               Int                @default(0)
   orderItems          OrderItem[]
- city         String?  // Rendu optionnel avec ?
+  city         String?  // Rendu optionnel avec ?
   neighborhood String?
   reports             Report[]
   createdAt           DateTime           @default(now())
