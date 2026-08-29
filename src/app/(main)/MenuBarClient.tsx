@@ -1,6 +1,13 @@
 "use client";
 
-import { Home, Video, PlusSquare, Store, LogIn, User } from "lucide-react";
+import { 
+  LayoutGrid,     
+  Clapperboard,   
+  Sparkles,       
+  BadgePercent,   
+  LogIn,          
+  UserRound       
+} from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/components/LanguageProvider";
@@ -55,14 +62,14 @@ export default function MenuBarClient({
       {/* ✅ Accueil */}
       <MenuItem
         href="/"
-        icon={<Home className="size-6 lg:size-5 shrink-0 transition-colors" />}
+        icon={<LayoutGrid className="size-6 lg:size-5 shrink-0 transition-colors" />}
         label={t.home}
       />
 
       {/* ✅ Vidéos */}
       <MenuItem
         href="/video"
-        icon={<Video className="size-6 lg:size-5 shrink-0 transition-colors" />}
+        icon={<Clapperboard className="size-6 lg:size-5 shrink-0 transition-colors" />}
         label={t.videos}
       />
 
@@ -90,7 +97,7 @@ export default function MenuBarClient({
             "text-[#6ab344] hover:bg-[#6ab344]/10",
           )}
         >
-          <PlusSquare className="size-6 shrink-0" />
+          <Sparkles className="size-6 shrink-0" />
           <span className="text-[10px] lg:text-sm font-black uppercase tracking-tight truncate">
             {t.publish}
           </span>
@@ -104,18 +111,18 @@ export default function MenuBarClient({
             "text-amber-500 hover:bg-amber-500/10",
           )}
         >
-          <Store className="size-6 shrink-0" />
+          <BadgePercent className="size-6 shrink-0" />
           <span className="text-[10px] lg:text-sm font-black uppercase tracking-tight truncate">
             {t.sell}
           </span>
         </Link>
       )}
 
-      {/* ✅ Profil */}
+      {/* ✅ Profil (Juste l'icône UserRound sans conteneur superflu) */}
       {isLoggedIn && username && (
         <MenuItem
           href={`/users/${username}`}
-          icon={<User className="size-6 lg:size-5 shrink-0 transition-colors" />}
+          icon={<UserRound className="size-6 lg:size-5 shrink-0 transition-colors" />}
           label={t.my_profile}
         />
       )}
