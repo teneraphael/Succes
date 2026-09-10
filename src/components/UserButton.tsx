@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   Check, LogOutIcon, Monitor, Moon, Sun, Store,
-  Languages, LayoutDashboard, Settings, ShieldCheck, Truck,
+  Languages, LayoutDashboard, Settings, ShieldCheck, Truck, Sparkles,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import Link from "next/link";
@@ -68,7 +68,6 @@ export default function UserButton({ className, user: propUser }: UserButtonProp
             <DropdownMenuItem asChild className="rounded-xl py-2.5 cursor-pointer bg-[#4a90e2]/5 text-[#4a90e2] focus:bg-[#4a90e2]/10 focus:text-[#4a90e2]">
               <Link href="/admin/pioneers" className="flex items-center gap-2.5 w-full px-3">
                 <ShieldCheck className="size-4 shrink-0" />
-                {/* ✅ Traduit */}
                 <span className="font-black uppercase italic text-xs">{t.pioneers}</span>
               </Link>
             </DropdownMenuItem>
@@ -76,8 +75,15 @@ export default function UserButton({ className, user: propUser }: UserButtonProp
             <DropdownMenuItem asChild className="rounded-xl py-2.5 mt-1 cursor-pointer bg-[#6ab344]/5 text-[#6ab344] focus:bg-[#6ab344]/10 focus:text-[#6ab344]">
               <Link href="/delivery-dashboard" className="flex items-center gap-2.5 w-full px-3">
                 <Truck className="size-4 shrink-0" />
-                {/* ✅ Traduit */}
                 <span className="font-black uppercase italic text-xs">{t.delivery}</span>
+              </Link>
+            </DropdownMenuItem>
+
+            {/* 🚀 Pointe maintenant vers /admin/create-seller */}
+            <DropdownMenuItem asChild className="rounded-xl py-2.5 mt-1 cursor-pointer bg-amber-500/10 text-amber-600 dark:text-amber-400 focus:bg-amber-500/20 focus:text-amber-600">
+              <Link href="/admin/create-seller" className="flex items-center gap-2.5 w-full px-3">
+                <Sparkles className="size-4 shrink-0" />
+                <span className="font-black uppercase italic text-xs">Créer Vendeur (Concierge)</span>
               </Link>
             </DropdownMenuItem>
 
@@ -90,7 +96,6 @@ export default function UserButton({ className, user: propUser }: UserButtonProp
           <DropdownMenuItem asChild className="rounded-xl py-2.5 cursor-pointer focus:bg-[#4a90e2]/5">
             <Link href="/seller/dashboard" className="flex items-center gap-2.5 w-full px-3">
               <LayoutDashboard className="size-4 text-[#4a90e2] shrink-0" />
-              {/* ✅ Traduit */}
               <span className="text-xs font-black uppercase tracking-tight">{t.seller_dashboard}</span>
             </Link>
           </DropdownMenuItem>
