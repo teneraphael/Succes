@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Store, Search, MapPin, Users, Briefcase, ChevronRight, Sparkles } from "lucide-react";
+import { Store, Search, MapPin, Users, Briefcase, ChevronRight, Sparkles, Play } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -158,7 +158,7 @@ export default function BoutiquesPage() {
                 </div>
               </div>
 
-              {/* SECTION : Les 2 articles phares stylés */}
+              {/* SECTION : Les 2 articles phares stylés (Images ou Vidéos) */}
               {shop.posts && shop.posts.length > 0 && (
                 <div className="space-y-1.5">
                   <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
@@ -167,6 +167,11 @@ export default function BoutiquesPage() {
                   <div className="grid grid-cols-2 gap-2">
                     {shop.posts.map((post) => {
                       const mediaUrl = post.thumbnailUrl || (post.attachments && post.attachments.length > 0 ? post.attachments[0].url : null);
+                      const attachmentType = post.attachments && post.attachments.length > 0 ? post.attachments[0].type : "";
+                      
+                      // Détecter si c'est une vidéo via le type ou l'extension du fichier
+                      const isVideo = attachmentType?.includes("video") || 
+                        (mediaUrl && /\.(mp4|webm|ogg|mov)$/i.test(mediaUrl));
 
                       return (
                         <Link
@@ -175,12 +180,28 @@ export default function BoutiquesPage() {
                           className="relative h-20 sm:h-24 bg-muted rounded-xl overflow-hidden border border-border/60 group/post block shadow-inner"
                         >
                           {mediaUrl ? (
-                            <Image
-                              src={mediaUrl}
-                              alt="Article phare"
-                              fill
-                              className="object-cover group-hover/post:scale-110 transition-transform duration-500"
-                            />
+                            isVideo ? (
+                              // Si c'est une vidéo, on affiche un aperçu vidéo ou une vignette avec icône Play
+                              <div className="relative w-full h-full bg-black/80 flex items-center justify-center">
+                                <video
+                                  src={mediaUrl}
+                                  className="absolute inset-0 w-full h-full object-cover opacity-70"
+                                  muted
+                                  playsInline
+                                />
+                                <div className="absolute z-10 w-8 h-8 rounded-full bg-primary/90 text-primary-foreground flex items-center justify-center shadow-md">
+                                  <Play className="w-4 h-4 fill-current ml-0.5" />
+                                </div>
+                              </div>
+                            ) : (
+                              // Si c'est une image classique
+                              <Image
+                                src={mediaUrl}
+                                alt="Article phare"
+                                fill
+                                className="object-cover group-hover/post:scale-110 transition-transform duration-500"
+                              />
+                            )
                           ) : (
                             <div className="w-full h-full p-1.5 flex items-center justify-center bg-muted/80 text-[10px] text-center text-muted-foreground line-clamp-2">
                               {post.content || "Publication"}
