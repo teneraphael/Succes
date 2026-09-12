@@ -3,10 +3,11 @@
 import { 
   LayoutGrid,     
   Clapperboard,   
-  Sparkles,       
-  BadgePercent,   
-  LogIn,          
-  UserRound       
+  Store,          
+  Sparkles,      
+  BadgePercent,  
+  LogIn,         
+  UserRound      
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -27,14 +28,16 @@ function MenuItem({
     <Link
       href={href}
       className={cn(
-        "flex flex-1 flex-col lg:flex-row items-center justify-center lg:justify-start gap-1 lg:gap-3",
-        "h-auto py-2 px-1 rounded-xl transition-all group",
+        // flex-1 + min-w-0 force le partage parfait à part égale même si le texte est long
+        "flex-1 min-w-0 flex flex-col lg:flex-row items-center justify-center lg:justify-start gap-0.5 lg:gap-3",
+        "h-auto py-2 px-0.5 rounded-xl transition-all group lg:w-full",
         "hover:bg-[#4a90e2]/8 text-muted-foreground hover:text-[#4a90e2]",
         className,
       )}
     >
-      {icon}
-      <span className="text-[10px] lg:text-sm font-black uppercase tracking-tight truncate">
+      <div className="shrink-0">{icon}</div>
+      {/* w-full text-center truncate empêche le texte de déborder et le centre */}
+      <span className="w-full text-center text-[8.5px] sm:text-[10px] lg:text-sm font-black uppercase tracking-tight truncate">
         {label}
       </span>
     </Link>
@@ -57,34 +60,34 @@ export default function MenuBarClient({
   const { t } = useLanguage();
 
   return (
-    <div className={cn("flex w-full flex-row lg:flex-col lg:gap-1", className)}>
+    <div className={cn("flex w-full flex-row lg:flex-col lg:gap-1.5 items-center justify-between", className)}>
 
       {/* ✅ Accueil */}
       <MenuItem
         href="/"
-        icon={<LayoutGrid className="size-6 lg:size-5 shrink-0 transition-colors" />}
+        icon={<LayoutGrid className="size-[22px] lg:size-5 transition-colors" />}
         label={t.home}
       />
 
       {/* ✅ Vidéos */}
       <MenuItem
         href="/video"
-        icon={<Clapperboard className="size-6 lg:size-5 shrink-0 transition-colors" />}
+        icon={<Clapperboard className="size-[22px] lg:size-5 transition-colors" />}
         label={t.videos}
       />
 
-      {/* ✅ Bouton central dynamique */}
+      {/* ✅ Bouton central dynamique (Publier / Vendre / Login) */}
       {!isLoggedIn ? (
         <Link
           href="/login"
           className={cn(
-            "flex flex-1 flex-col lg:flex-row items-center justify-center lg:justify-start gap-1 lg:gap-3",
-            "h-auto py-2 px-1 rounded-xl transition-all",
+            "flex-1 min-w-0 flex flex-col lg:flex-row items-center justify-center lg:justify-start gap-0.5 lg:gap-3",
+            "h-auto py-2 px-0.5 rounded-xl transition-all lg:w-full",
             "text-[#4a90e2] hover:bg-[#4a90e2]/10 animate-pulse",
           )}
         >
-          <LogIn className="size-6 shrink-0" />
-          <span className="text-[10px] lg:text-sm font-black uppercase italic tracking-tight truncate">
+          <LogIn className="size-[22px] lg:size-6 shrink-0" />
+          <span className="w-full text-center text-[8.5px] sm:text-[10px] lg:text-sm font-black uppercase italic tracking-tight truncate">
             {t.login}
           </span>
         </Link>
@@ -92,13 +95,13 @@ export default function MenuBarClient({
         <Link
           href="/post/new"
           className={cn(
-            "flex flex-1 flex-col lg:flex-row items-center justify-center lg:justify-start gap-1 lg:gap-3",
-            "h-auto py-2 px-1 rounded-xl transition-all",
+            "flex-1 min-w-0 flex flex-col lg:flex-row items-center justify-center lg:justify-start gap-0.5 lg:gap-3",
+            "h-auto py-2 px-0.5 rounded-xl transition-all lg:w-full",
             "text-[#6ab344] hover:bg-[#6ab344]/10",
           )}
         >
-          <Sparkles className="size-6 shrink-0" />
-          <span className="text-[10px] lg:text-sm font-black uppercase tracking-tight truncate">
+          <Sparkles className="size-[22px] lg:size-6 shrink-0" />
+          <span className="w-full text-center text-[8.5px] sm:text-[10px] lg:text-sm font-black uppercase tracking-tight truncate">
             {t.publish}
           </span>
         </Link>
@@ -106,23 +109,30 @@ export default function MenuBarClient({
         <Link
           href="/become-seller"
           className={cn(
-            "flex flex-1 flex-col lg:flex-row items-center justify-center lg:justify-start gap-1 lg:gap-3",
-            "h-auto py-2 px-1 rounded-xl transition-all",
+            "flex-1 min-w-0 flex flex-col lg:flex-row items-center justify-center lg:justify-start gap-0.5 lg:gap-3",
+            "h-auto py-2 px-0.5 rounded-xl transition-all lg:w-full",
             "text-amber-500 hover:bg-amber-500/10",
           )}
         >
-          <BadgePercent className="size-6 shrink-0" />
-          <span className="text-[10px] lg:text-sm font-black uppercase tracking-tight truncate">
+          <BadgePercent className="size-[22px] lg:size-6 shrink-0" />
+          <span className="w-full text-center text-[8.5px] sm:text-[10px] lg:text-sm font-black uppercase tracking-tight truncate">
             {t.sell}
           </span>
         </Link>
       )}
 
-      {/* ✅ Profil (Juste l'icône UserRound sans conteneur superflu) */}
+      {/* ✅ Boutiques */}
+      <MenuItem
+        href="/boutiques"
+        icon={<Store className="size-[22px] lg:size-5 transition-colors text-blue-600" />}
+        label="Boutiques"
+      />
+
+      {/* ✅ Profil */}
       {isLoggedIn && username && (
         <MenuItem
           href={`/users/${username}`}
-          icon={<UserRound className="size-6 lg:size-5 shrink-0 transition-colors" />}
+          icon={<UserRound className="size-[22px] lg:size-5 transition-colors" />}
           label={t.my_profile}
         />
       )}
