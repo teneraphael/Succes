@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Store, Search, MapPin, Users, Briefcase, ChevronRight, Sparkles, Play } from "lucide-react";
+import { Store, Search, MapPin, Users, Briefcase, ChevronRight, Sparkles } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -33,12 +33,14 @@ interface Shop {
   posts: Post[];
 }
 
+const isExternalImage = (url: string) =>
+  url.includes("ufs.sh") || url.includes("utfs.io") || url.includes("lh3.googleusercontent.com");
+
 export default function BoutiquesPage() {
   const [shops, setShops] = useState<Shop[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Récupération des boutiques depuis l'API
   useEffect(() => {
     async function fetchShops() {
       try {
@@ -56,7 +58,6 @@ export default function BoutiquesPage() {
     fetchShops();
   }, []);
 
-  // Filtrer les boutiques selon la recherche
   const filteredShops = shops.filter((shop) => {
     const term = searchQuery.toLowerCase();
     const name = (shop.businessName || shop.displayName || "").toLowerCase();
@@ -69,7 +70,7 @@ export default function BoutiquesPage() {
 
   return (
     <main className="max-w-7xl mx-auto px-4 py-8 space-y-8">
-      {/* En-tête de la page ultra stylé */}
+      {/* En-tête */}
       <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-blue-600/10 via-indigo-600/5 to-transparent p-6 sm:p-8 border border-border/60 shadow-sm backdrop-blur-md">
         <div className="absolute right-4 -bottom-6 opacity-10 pointer-events-none">
           <Store className="w-52 h-52 text-primary" />
@@ -86,7 +87,7 @@ export default function BoutiquesPage() {
         </div>
       </div>
 
-      {/* Barre de recherche moderne */}
+      {/* Barre de recherche */}
       <div className="relative max-w-xl">
         <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
         <input
@@ -98,7 +99,7 @@ export default function BoutiquesPage() {
         />
       </div>
 
-      {/* Grille des boutiques (2 sur mobile, 3 sur tablette, 4 sur PC) */}
+      {/* Grille */}
       {loading ? (
         <div className="flex justify-center items-center py-24">
           <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary"></div>
@@ -118,9 +119,8 @@ export default function BoutiquesPage() {
               key={shop.id}
               className="bg-card border border-border/80 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between p-3.5 sm:p-4 gap-3.5 group"
             >
-              {/* Infos principales : Avatar circulaire + Nom */}
+              {/* Infos principales */}
               <div className="flex items-start gap-3">
-                {/* Avatar / Logo CIRCULAIRE */}
                 <div className="relative w-12 h-12 sm:w-14 sm:h-14 rounded-full overflow-hidden bg-muted flex-shrink-0 border-2 border-border/60 shadow-sm">
                   {shop.avatarUrl ? (
                     <Image
@@ -128,6 +128,7 @@ export default function BoutiquesPage() {
                       alt={shop.businessName || "Boutique"}
                       fill
                       className="object-cover"
+                      unoptimized={isExternalImage(shop.avatarUrl)}
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center bg-primary/10 text-primary font-bold text-base">
@@ -136,7 +137,6 @@ export default function BoutiquesPage() {
                   )}
                 </div>
 
-                {/* Nom et Domaine */}
                 <div className="flex-1 min-w-0">
                   <h2 className="font-bold text-sm sm:text-base tracking-tight group-hover:text-primary transition-colors truncate">
                     {shop.businessName || shop.displayName || "Boutique sans nom"}
@@ -158,7 +158,7 @@ export default function BoutiquesPage() {
                 </div>
               </div>
 
-              {/* SECTION : Les 2 articles phares stylés (Images ou Vidéos) */}
+              {/* Articles phares */}
               {shop.posts && shop.posts.length > 0 && (
                 <div className="space-y-1.5">
                   <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
@@ -166,12 +166,10 @@ export default function BoutiquesPage() {
                   </p>
                   <div className="grid grid-cols-2 gap-2">
                     {shop.posts.map((post) => {
-                      const mediaUrl = post.thumbnailUrl || (post.attachments && post.attachments.length > 0 ? post.attachments[0].url : null);
-                      const attachmentType = post.attachments && post.attachments.length > 0 ? post.attachments[0].type : "";
-                      
-                      // Détecter si c'est une vidéo via le type ou l'extension du fichier
-                      const isVideo = attachmentType?.includes("video") || 
-                        (mediaUrl && /\.(mp4|webm|ogg|mov)$/i.test(mediaUrl));
+                      const firstImage = post.attachments?.find((m: any) => m.type === "IMAGE")?.url;
+                      const firstVideo = post.attachments?.find((m: any) => m.type === "VIDEO")?.url;
+                      const mediaUrl = post.thumbnailUrl || firstImage || "";
+                      const isVideo = !mediaUrl && !!firstVideo;
 
                       return (
                         <Link
@@ -180,34 +178,37 @@ export default function BoutiquesPage() {
                           className="relative h-20 sm:h-24 bg-muted rounded-xl overflow-hidden border border-border/60 group/post block shadow-inner"
                         >
                           {mediaUrl ? (
-                            isVideo ? (
-                              // Si c'est une vidéo, on affiche un aperçu vidéo ou une vignette avec icône Play
-                              <div className="relative w-full h-full bg-black/80 flex items-center justify-center">
-                                <video
-                                  src={mediaUrl}
-                                  className="absolute inset-0 w-full h-full object-cover opacity-70"
-                                  muted
-                                  playsInline
-                                />
-                                <div className="absolute z-10 w-8 h-8 rounded-full bg-primary/90 text-primary-foreground flex items-center justify-center shadow-md">
-                                  <Play className="w-4 h-4 fill-current ml-0.5" />
-                                </div>
-                              </div>
-                            ) : (
-                              // Si c'est une image classique
-                              <Image
-                                src={mediaUrl}
-                                alt="Article phare"
-                                fill
-                                className="object-cover group-hover/post:scale-110 transition-transform duration-500"
-                              />
-                            )
+                            <Image
+                              src={mediaUrl}
+                              alt="Article phare"
+                              fill
+                              className="object-cover group-hover/post:scale-110 transition-transform duration-500"
+                              unoptimized={isExternalImage(mediaUrl)}
+                            />
+                          ) : isVideo ? (
+                            // ✅ Vidéo en lecture automatique, en boucle et muette (aperçu)
+                            <video
+                              src={firstVideo}
+                              className="w-full h-full object-cover group-hover/post:scale-110 transition-transform duration-500"
+                              muted
+                              autoPlay
+                              loop
+                              playsInline
+                              preload="metadata"
+                            />
                           ) : (
                             <div className="w-full h-full p-1.5 flex items-center justify-center bg-muted/80 text-[10px] text-center text-muted-foreground line-clamp-2">
                               {post.content || "Publication"}
                             </div>
                           )}
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover/post:opacity-100 transition-opacity" />
+
+                          {isVideo && (
+                            <div className="absolute top-1.5 left-1.5 bg-black/60 text-white text-[8px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-wider backdrop-blur-sm pointer-events-none z-10">
+                              ▶ Vidéo
+                            </div>
+                          )}
+
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover/post:opacity-100 transition-opacity pointer-events-none" />
                         </Link>
                       );
                     })}
@@ -215,7 +216,7 @@ export default function BoutiquesPage() {
                 </div>
               )}
 
-              {/* Bas de carte : Abonnés + Bouton Visiter moderne */}
+              {/* Bas de carte */}
               <div className="flex items-center justify-between pt-3 border-t border-border/60 text-xs">
                 <div className="flex items-center gap-1 font-semibold text-muted-foreground bg-muted/60 px-2 py-1 rounded-lg">
                   <Users className="w-3.5 h-3.5 text-primary" />
