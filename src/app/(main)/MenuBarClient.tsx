@@ -28,16 +28,17 @@ function MenuItem({
     <Link
       href={href}
       className={cn(
-        // flex-1 + min-w-0 force le partage parfait à part égale même si le texte est long
-        "flex-1 min-w-0 flex flex-col lg:flex-row items-center justify-center lg:justify-start gap-0.5 lg:gap-3",
-        "h-auto py-2 px-0.5 rounded-xl transition-all group lg:w-full",
+        // Mobile : flex-1 (répartition égale), empilé verticalement.
+        // PC (lg:) : flex-initial, disposition en ligne (icône à gauche, texte à gauche), w-full.
+        "flex-1 min-w-0 lg:flex-initial flex flex-col lg:flex-row items-center lg:items-center justify-center lg:justify-start gap-0.5 lg:gap-3",
+        "h-auto py-2 px-1 lg:px-3 rounded-xl transition-all group lg:w-full",
         "hover:bg-[#4a90e2]/8 text-muted-foreground hover:text-[#4a90e2]",
         className,
       )}
     >
       <div className="shrink-0">{icon}</div>
-      {/* w-full text-center truncate empêche le texte de déborder et le centre */}
-      <span className="w-full text-center text-[8.5px] sm:text-[10px] lg:text-sm font-black uppercase tracking-tight truncate">
+      {/* w-full text-center sur mobile, w-auto text-left sur PC */}
+      <span className="w-full text-center lg:w-auto lg:text-left text-[8.5px] sm:text-[10px] lg:text-sm font-black uppercase tracking-tight truncate">
         {label}
       </span>
     </Link>
@@ -81,13 +82,13 @@ export default function MenuBarClient({
         <Link
           href="/login"
           className={cn(
-            "flex-1 min-w-0 flex flex-col lg:flex-row items-center justify-center lg:justify-start gap-0.5 lg:gap-3",
-            "h-auto py-2 px-0.5 rounded-xl transition-all lg:w-full",
+            "flex-1 min-w-0 lg:flex-initial flex flex-col lg:flex-row items-center lg:items-center justify-center lg:justify-start gap-0.5 lg:gap-3",
+            "h-auto py-2 px-1 lg:px-3 rounded-xl transition-all lg:w-full",
             "text-[#4a90e2] hover:bg-[#4a90e2]/10 animate-pulse",
           )}
         >
           <LogIn className="size-[22px] lg:size-6 shrink-0" />
-          <span className="w-full text-center text-[8.5px] sm:text-[10px] lg:text-sm font-black uppercase italic tracking-tight truncate">
+          <span className="w-full text-center lg:w-auto lg:text-left text-[8.5px] sm:text-[10px] lg:text-sm font-black uppercase italic tracking-tight truncate">
             {t.login}
           </span>
         </Link>
@@ -95,13 +96,13 @@ export default function MenuBarClient({
         <Link
           href="/post/new"
           className={cn(
-            "flex-1 min-w-0 flex flex-col lg:flex-row items-center justify-center lg:justify-start gap-0.5 lg:gap-3",
-            "h-auto py-2 px-0.5 rounded-xl transition-all lg:w-full",
+            "flex-1 min-w-0 lg:flex-initial flex flex-col lg:flex-row items-center lg:items-center justify-center lg:justify-start gap-0.5 lg:gap-3",
+            "h-auto py-2 px-1 lg:px-3 rounded-xl transition-all lg:w-full",
             "text-[#6ab344] hover:bg-[#6ab344]/10",
           )}
         >
           <Sparkles className="size-[22px] lg:size-6 shrink-0" />
-          <span className="w-full text-center text-[8.5px] sm:text-[10px] lg:text-sm font-black uppercase tracking-tight truncate">
+          <span className="w-full text-center lg:w-auto lg:text-left text-[8.5px] sm:text-[10px] lg:text-sm font-black uppercase tracking-tight truncate">
             {t.publish}
           </span>
         </Link>
@@ -109,13 +110,13 @@ export default function MenuBarClient({
         <Link
           href="/become-seller"
           className={cn(
-            "flex-1 min-w-0 flex flex-col lg:flex-row items-center justify-center lg:justify-start gap-0.5 lg:gap-3",
-            "h-auto py-2 px-0.5 rounded-xl transition-all lg:w-full",
+            "flex-1 min-w-0 lg:flex-initial flex flex-col lg:flex-row items-center lg:items-center justify-center lg:justify-start gap-0.5 lg:gap-3",
+            "h-auto py-2 px-1 lg:px-3 rounded-xl transition-all lg:w-full",
             "text-amber-500 hover:bg-amber-500/10",
           )}
         >
           <BadgePercent className="size-[22px] lg:size-6 shrink-0" />
-          <span className="w-full text-center text-[8.5px] sm:text-[10px] lg:text-sm font-black uppercase tracking-tight truncate">
+          <span className="w-full text-center lg:w-auto lg:text-left text-[8.5px] sm:text-[10px] lg:text-sm font-black uppercase tracking-tight truncate">
             {t.sell}
           </span>
         </Link>
@@ -125,7 +126,7 @@ export default function MenuBarClient({
       <MenuItem
         href="/boutiques"
         icon={<Store className="size-[22px] lg:size-5 transition-colors text-blue-600" />}
-        label="Boutiques"
+        label={t.stores || "Boutiques"}
       />
 
       {/* ✅ Profil */}

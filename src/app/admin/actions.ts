@@ -43,8 +43,7 @@ export async function createSellerDirectly(formData: FormData) {
         businessName: shopName.trim(),
         passwordHash: hashedPass, // Utilisation correcte de passwordHash
         isSeller: true,          // Active le rôle vendeur
-        isPioneer: true,         // 👈 Indispensable pour l'espace pionnier et le selecteur
-        isVerified: true,        // 👈 Assure la visibilité du profil
+        isPioneer: true,         // 👈 Indispensable pour l'espace pionnier et le selecteur      // 👈 Assure la visibilité du profil
         phoneNumber: phoneNumber.trim(),
         city: city.trim(),
         neighborhood: neighborhood.trim(),
