@@ -45,6 +45,24 @@ const withPWA = withPWAInit({
         },
       },
     },
+    // ✅ Images Supabase Storage (Bannières et Avatars)
+    {
+      urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
+      handler: "CacheFirst",
+      options: {
+        cacheName: "supabase-storage-images",
+        expiration: {
+          maxEntries: 300,
+          maxAgeSeconds: 60 * 60 * 24 * 30,
+        },
+        cacheableResponse: {
+          statuses: [0, 200],
+        },
+        fetchOptions: {
+          mode: 'no-cors',
+        },
+      },
+    },
     // ✅ Avatars Google
     {
       urlPattern: /^https:\/\/lh3\.googleusercontent\.com\/.*/i,
@@ -172,6 +190,7 @@ const nextConfig = {
       { protocol: "https", hostname: "utfs.io" },
       { protocol: "https", hostname: "un9zgttebh.ufs.sh" },
       { protocol: "https", hostname: "lh3.googleusercontent.com" },
+      { protocol: "https", hostname: "bdvksesmeppwtzeofudv.supabase.co" }, // ✅ Autorise Supabase Storage
     ],
     unoptimized: false,
     minimumCacheTTL: 60 * 60 * 24 * 7,
