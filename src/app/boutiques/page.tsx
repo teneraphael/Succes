@@ -108,7 +108,7 @@ export default function BoutiquesPage() {
           <Store className="w-12 h-12 mx-auto text-muted-foreground/40" />
           <h3 className="font-bold text-lg">Aucune boutique trouvée</h3>
           <p className="text-sm text-muted-foreground max-w-sm mx-auto">
-            Aucun résultat ne correspond à votre recherche. Essayez d'autres mots-clés.
+            Aucun résultat ne correspond à votre recherche. Essayez d&apos;autres mots-clés.
           </p>
         </div>
       ) : (
