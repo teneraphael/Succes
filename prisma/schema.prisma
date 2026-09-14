@@ -34,53 +34,53 @@ model PasswordResetToken {
 }
 
 model User {
-  id                 String            @id
-  username           String            @unique
-  displayName        String
-  email              String?           @unique
-  passwordHash       String?
-  googleId           String?           @unique
-  avatarUrl          String?
-  hasDeliveryPass    Boolean           @default(false)
-  passExpiryDate     DateTime?
-  deliveryRequests   DeliveryRequest[]
-  bio                String?
-  coverUrl           String?
-  allowNotifications Boolean           @default(true)
-  sessions           Session[]
-  orders             Order[]           @relation("BuyerOrders")
-  sales              Order[]           @relation("SellerOrders")
-  posts              Post[]
-  deals              Deal[]
-  balance            Int               @default(0)
-  transactions       Transaction[]
-  interactions       UserInteraction[]
-  following          Follow[]          @relation("Following")
-  followers          Follow[]          @relation("Followers")
-  likes              Like[]
-  bookmarks          Bookmark[]
-  comments           Comment[]
-  isPioneer          Boolean           @default(false)
-  isVerified         Boolean           @default(false)
-  whatsappUrl        String?
-  facebookUrl        String?
-  instagramUrl       String?
-  tiktokUrl          String?
-  phoneNumber        String?
-  reports            Report[]
-  isSeller           Boolean           @default(false)
-  city         String?
-  neighborhood String?
-  businessName       String?
-  businessDomain     String?
-  businessEmail      String?
-  businessProducts   String?
-  receivedNotifications Notification[] @relation("Recipient")
-  issuedNotifications   Notification[] @relation("Issuer")
-  fcmToken           String?           @map("fcm_token")
-  conversations      Conversation[]    @relation("ConversationParticipants")
-  messagesSent       Message[]         @relation("UserMessagesSent")
-  createdAt          DateTime          @default(now())
+  id                    String            @id
+  username              String            @unique
+  displayName           String
+  email                 String?           @unique
+  passwordHash          String?
+  googleId              String?           @unique
+  avatarUrl             String?
+  hasDeliveryPass       Boolean           @default(false)
+  passExpiryDate        DateTime?
+  deliveryRequests      DeliveryRequest[]
+  bio                   String?
+  coverUrl              String?
+  allowNotifications    Boolean           @default(true)
+  sessions              Session[]
+  orders                Order[]           @relation("BuyerOrders")
+  sales                 Order[]           @relation("SellerOrders")
+  posts                 Post[]
+  deals                 Deal[]
+  balance               Int               @default(0)
+  transactions          Transaction[]
+  interactions          UserInteraction[]
+  following             Follow[]          @relation("Following")
+  followers             Follow[]          @relation("Followers")
+  likes                 Like[]
+  bookmarks             Bookmark[]
+  comments              Comment[]
+  isPioneer             Boolean           @default(false)
+  isVerified            Boolean           @default(false)
+  whatsappUrl           String?
+  facebookUrl           String?
+  instagramUrl          String?
+  tiktokUrl             String?
+  phoneNumber           String?
+  reports               Report[]
+  isSeller              Boolean           @default(false)
+  city                  String?
+  neighborhood          String?
+  businessName          String?
+  businessDomain        String?
+  businessEmail         String?
+  businessProducts      String?
+  receivedNotifications Notification[]    @relation("Recipient")
+  issuedNotifications   Notification[]    @relation("Issuer")
+  fcmToken              String?           @map("fcm_token")
+  conversations         Conversation[]    @relation("ConversationParticipants")
+  messagesSent          Message[]         @relation("UserMessagesSent")
+  createdAt             DateTime          @default(now())
 
   @@map("users")
 }
@@ -116,14 +116,14 @@ model Order {
 }
 
 model OrderItem {
-  id           String   @id @default(cuid())
+  id           String  @id @default(cuid())
   orderId      String
   productId    String
-  quantity     Int      @default(1)
+  quantity     Int     @default(1)
   color        String?
   price        Int
-  order        Order    @relation(fields: [orderId], references: [id])
-  post         Post     @relation(fields: [productId], references: [id])
+  order        Order   @relation(fields: [orderId], references: [id])
+  post         Post    @relation(fields: [productId], references: [id])
   optionsLabel String?
 }
 
@@ -152,33 +152,59 @@ model Transaction {
   @@index([userId])
 }
 
+model UserSellerInteraction {
+  id String @id @default(cuid())
+
+  userId String
+
+  sellerId String
+
+  type String
+
+  createdAt DateTime @default(now())
+
+  @@index([userId, sellerId])
+  @@index([sellerId])
+  @@map("user_seller_interactions")
+}
+
 model Deal {
-  id           String            @id @default(cuid())
-  title        String
-  description  String?
-  price        Float
-  images       String[]
-  category     String
-  views        Int               @default(0)
-  createdAt    DateTime          @default(now())
-  userId       String
-  user         User              @relation(fields: [userId], references: [id])
-  interactions UserInteraction[]
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  price       Float
+  images      String[]
+  category    String
+  views       Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  userId          String
+  user            User              @relation(fields: [userId], references: [id])
+  UserInteraction UserInteraction[]
 }
 
 model UserInteraction {
   id        String   @id @default(cuid())
   createdAt DateTime @default(now())
-  type      String
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  postId    String
-  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
-  dealId    String
-  deal      Deal     @relation(fields: [dealId], references: [id], onDelete: Cascade)
+
+  type String
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  postId String?
+  post   Post?   @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  dealId String?
+  deal   Deal?   @relation(fields: [dealId], references: [id], onDelete: Cascade)
+
+  duration Int?
+  metadata Json?
 
   @@index([userId])
   @@index([postId])
+  @@index([dealId])
+  @@index([userId, type])
 }
 
 model Conversation {
@@ -222,32 +248,32 @@ model Follow {
 }
 
 model Post {
-  id                  String             @id @default(cuid())
+  id                  String            @id @default(cuid())
   content             String
   userId              String
-  user                User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user                User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   attachments         Media[]
   likes               Like[]
   orders              Order[]
   bookmarks           Bookmark[]
   deliveryRequests    DeliveryRequest[]
-  category            String             @default("DIVERS")
-  views               Int                @default(0)
+  category            String            @default("DIVERS")
+  views               Int               @default(0)
   interactions        UserInteraction[]
   comments            Comment[]
   linkedNotifications Notification[]
   audioUrl            String?
-  audioTitle          String?            @default("Son original")
+  audioTitle          String?           @default("Son original")
   audioArtist         String?
   videoFilter         String?
   thumbnailUrl        String?
-  stock               Int                @default(0)
-  price               Int                @default(0)
+  stock               Int               @default(0)
+  price               Int               @default(0)
   orderItems          OrderItem[]
-  city         String?  // Rendu optionnel avec ?
-  neighborhood String?
+  city                String? // Rendu optionnel avec ?
+  neighborhood        String?
   reports             Report[]
-  createdAt           DateTime           @default(now())
+  createdAt           DateTime          @default(now())
 
   @@index([category])
   @@map("posts")
@@ -331,8 +357,11 @@ enum NotificationType {
 
 enum InteractionType {
   VIEW
-  CHAT
+  LIKE
   FAVORITE
+  CHAT
+  SHARE
+  ORDER
 }
 
 enum OrderStatus {

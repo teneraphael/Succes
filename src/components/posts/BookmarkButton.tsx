@@ -25,17 +25,20 @@ export default function BookmarkButton({
   const { user: loggedInUser } = useSession();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
   const queryKey: QueryKey = ["bookmark-info", postId];
 
   const { data } = useQuery({
     queryKey,
     queryFn: () =>
-      kyInstance.get(`/api/posts/${postId}/bookmark`).json<BookmarkInfo>(),
+      kyInstance
+        .get(`/api/posts/${postId}/bookmark`)
+        .json<BookmarkInfo>(),
     initialData: initialState,
     staleTime: Infinity,
   });
 
-  const { mutate } = useMutation({
+  const { mutate, isPending } = useMutation({
     mutationFn: async () => {
       const isBookmarking = !data.isBookmarkedByUser;
 
@@ -45,49 +48,77 @@ export default function BookmarkButton({
 
       await request;
 
-      // ✅ Tracking algo — enregistre l'action favori pour l'algorithme
+      // 🧠 TRACKING POUR L'ALGORITHME DEALCITY
+      // On enregistre uniquement l'ajout aux favoris
       if (isBookmarking) {
         fetch("/api/posts/track", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+          },
           body: JSON.stringify({
             id: postId,
             type: "FAVORITE",
             itemType: "POST",
           }),
-        }).catch((err) => console.error("Algo tracking error (bookmark):", err));
+        }).catch((err) => {
+          console.error(
+            "Erreur tracking Bookmark:",
+            err,
+          );
+        });
       }
     },
+
+    // ⚡ Mise à jour optimiste
     onMutate: async () => {
-      // ✅ Notification instantanée avant la réponse serveur
-      toast({
-        description: data.isBookmarkedByUser
-          ? "Retiré des favoris"
-          : "Enregistré dans vos favoris",
+      await queryClient.cancelQueries({
+        queryKey,
       });
 
-      await queryClient.cancelQueries({ queryKey });
-      const previousState = queryClient.getQueryData<BookmarkInfo>(queryKey);
+      const previousState =
+        queryClient.getQueryData<BookmarkInfo>(
+          queryKey,
+        );
 
-      // ✅ Mise à jour optimiste du cache — UI réactive sans attendre le serveur
-      queryClient.setQueryData<BookmarkInfo>(queryKey, () => ({
-        isBookmarkedByUser: !previousState?.isBookmarkedByUser,
-      }));
+      queryClient.setQueryData<BookmarkInfo>(
+        queryKey,
+        () => ({
+          isBookmarkedByUser:
+            !previousState?.isBookmarkedByUser,
+        }),
+      );
 
-      return { previousState };
+      return {
+        previousState,
+      };
     },
-    onError(error, variables, context) {
-      // ✅ Rollback si erreur réseau
-      queryClient.setQueryData(queryKey, context?.previousState);
+
+    // ❌ En cas d'erreur, retour à l'ancien état
+    onError: (error, variables, context) => {
+      queryClient.setQueryData(
+        queryKey,
+        context?.previousState,
+      );
+
       console.error(error);
+
       toast({
         variant: "destructive",
-        description: "Une erreur réseau est survenue. Veuillez réessayer.",
+        description:
+          "Une erreur réseau est survenue. Veuillez réessayer.",
       });
     },
+
+    // 🔄 Synchronisation avec le serveur
     onSettled: () => {
-      // ✅ Synchronisation du feed favoris après mutation
-      queryClient.invalidateQueries({ queryKey: ["bookmarks-feed"] });
+      queryClient.invalidateQueries({
+        queryKey,
+      });
+
+      queryClient.invalidateQueries({
+        queryKey: ["bookmarks-feed"],
+      });
     },
   });
 
@@ -95,24 +126,32 @@ export default function BookmarkButton({
     <button
       onClick={(e) => {
         e.preventDefault();
+        e.stopPropagation();
 
-        // ✅ Bloque l'action si non connecté
+        // 🔐 Utilisateur non connecté
         if (!loggedInUser) {
           toast({
             variant: "destructive",
-            description: "Veuillez vous connecter pour enregistrer ce post.",
+            description:
+              "Veuillez vous connecter pour enregistrer ce produit.",
           });
+
           return;
         }
 
         mutate();
       }}
-      className="flex items-center gap-2 group transition-transform active:scale-125"
+      disabled={isPending}
+      className="flex items-center gap-2 group transition-transform active:scale-125 disabled:opacity-50"
+      aria-label={
+        data.isBookmarkedByUser
+          ? "Retirer des favoris"
+          : "Ajouter aux favoris"
+      }
     >
       <Bookmark
         className={cn(
           "size-5 transition-all duration-200",
-          // ✅ Rempli en bleu DealCity si bookmarké, gris sinon
           data.isBookmarkedByUser
             ? "fill-[#4a90e2] text-[#4a90e2] scale-110"
             : "text-muted-foreground group-hover:text-[#4a90e2]",
