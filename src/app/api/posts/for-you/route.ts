@@ -4,15 +4,14 @@ import {
   getPostDataInclude,
   PostsPage,
 } from "@/lib/types";
-
 import { NextRequest } from "next/server";
 
 const PAGE_SIZE = 10;
 
 /**
- * Nombre de candidats analysés.
+ * Nombre de candidats analysés à chaque page.
  */
-const CANDIDATE_SIZE = 150;
+const CANDIDATE_SIZE = 100;
 
 /* =========================================================
    POIDS DES ACTIONS
@@ -75,9 +74,6 @@ function getTimeMultiplier(
       createdAt.getTime()) /
     (1000 * 60 * 60 * 24);
 
-  /**
-   * Les actions anciennes comptent moins.
-   */
   return Math.max(
     0.2,
     Math.exp(-ageDays / 60)
@@ -85,7 +81,7 @@ function getTimeMultiplier(
 }
 
 /* =========================================================
-   CONSTRUIRE LE PROFIL
+   CONSTRUIRE LE PROFIL UTILISATEUR
 ========================================================= */
 
 async function getUserProfile(
@@ -210,9 +206,9 @@ async function getUserProfile(
       weight * 0.35;
   }
 
-  /* =======================================================
+  /* =========================
      INTERACTIONS
-  ======================================================= */
+  ========================= */
 
   interactions.forEach((interaction) => {
     if (!interaction.post) return;
@@ -222,9 +218,6 @@ async function getUserProfile(
         interaction.type
       ] || 1;
 
-    /**
-     * VIEW LONG = signal plus fort.
-     */
     if (
       interaction.type === "VIEW" &&
       interaction.duration
@@ -248,14 +241,10 @@ async function getUserProfile(
       weight
     );
 
-    /**
-     * Les posts récemment vus sont
-     * temporairement évités.
-     */
     if (
       interaction.type === "VIEW" &&
-      recentlyViewedPostIds.length < 50 &&
-      interaction.postId
+      interaction.postId &&
+      recentlyViewedPostIds.length < 30
     ) {
       recentlyViewedPostIds.push(
         interaction.postId
@@ -263,9 +252,9 @@ async function getUserProfile(
     }
   });
 
-  /* =======================================================
-     BOOKMARKS
-  ======================================================= */
+  /* =========================
+     FAVORIS
+  ========================= */
 
   bookmarks.forEach((bookmark) => {
     addInterest(
@@ -275,9 +264,9 @@ async function getUserProfile(
     );
   });
 
-  /* =======================================================
+  /* =========================
      COMMANDES
-  ======================================================= */
+  ========================= */
 
   orders.forEach((order) => {
     let weight = 35;
@@ -296,9 +285,9 @@ async function getUserProfile(
     );
   });
 
-  /* =======================================================
+  /* =========================
      FOLLOW
-  ======================================================= */
+  ========================= */
 
   following.forEach((follow) => {
     sellerScores[follow.followingId] =
@@ -328,13 +317,7 @@ function getFreshnessScore(
       createdAt.getTime()) /
     (1000 * 60 * 60);
 
-  /**
-   * Les nouveaux produits ont
-   * une vraie chance d'être vus.
-   */
-  return (
-    Math.exp(-hours / 120) * 25
-  );
+  return Math.exp(-hours / 120) * 25;
 }
 
 /* =========================================================
@@ -415,6 +398,7 @@ function calculateScore(
       normalize(post.neighborhood)
   ) {
     score += 20;
+
   } else if (
     userCity &&
     post.city &&
@@ -439,13 +423,13 @@ function calculateScore(
   );
 
   /**
-   * Petit facteur aléatoire.
+   * Variabilité plus importante.
    *
-   * Permet de découvrir de nouveaux
-   * produits au lieu de rester enfermé
-   * dans une bulle.
+   * Permet de changer l'ordre entre
+   * les publications ayant des scores
+   * relativement proches.
    */
-  score += Math.random() * 5;
+  score += Math.random() * 15;
 
   return score;
 }
@@ -484,15 +468,14 @@ function diversifyPosts(
       categoryCount.get(category) || 0;
 
     /**
-     * Maximum 2 produits du même vendeur.
+     * Maximum 2 posts du même vendeur.
      */
     if (sellerPosts >= 2) {
       continue;
     }
 
     /**
-     * Maximum 4 produits de la même
-     * catégorie dans une page.
+     * Maximum 4 posts de la même catégorie.
      */
     if (
       category !== "DIVERS" &&
@@ -546,9 +529,8 @@ export async function GET(
   req: NextRequest
 ) {
   try {
-    const {
-      user,
-    } = await validateRequest();
+    const { user } =
+      await validateRequest();
 
     const city =
       req.nextUrl.searchParams
@@ -560,6 +542,12 @@ export async function GET(
         .get("neighborhood")
         ?.trim();
 
+    /**
+     * Cursor de pagination.
+     */
+    const cursor =
+      req.nextUrl.searchParams.get("cursor");
+
     const where: any = {
       ...(user
         ? {
@@ -570,9 +558,10 @@ export async function GET(
         : {}),
     };
 
-    /**
-     * FILTRE EXPLICITE
-     */
+    /* =========================
+       FILTRES
+    ========================= */
+
     if (city) {
       where.city = {
         equals: city,
@@ -599,16 +588,36 @@ export async function GET(
           include:
             getPostDataInclude(),
 
-          orderBy: {
-            createdAt: "desc",
-          },
+          orderBy: [
+            {
+              createdAt: "desc",
+            },
+            {
+              id: "desc",
+            },
+          ],
 
-          take: PAGE_SIZE,
+          take: PAGE_SIZE + 1,
+
+          cursor: cursor
+            ? { id: cursor }
+            : undefined,
+
+          skip: cursor ? 1 : 0,
         });
 
+      const hasMore =
+        posts.length > PAGE_SIZE;
+
+      const result =
+        posts.slice(0, PAGE_SIZE);
+
       return Response.json({
-        posts,
-        nextCursor: null,
+        posts: result,
+
+        nextCursor: hasMore
+          ? result[result.length - 1]?.id || null
+          : null,
       } satisfies PostsPage);
     }
 
@@ -635,9 +644,11 @@ export async function GET(
     ]);
 
     /**
-     * Exclure temporairement les posts vus.
+     * On évite les posts récemment vus,
+     * mais seulement sur la première page.
      */
     if (
+      !cursor &&
       profile.recentlyViewedPostIds.length
     ) {
       where.id = {
@@ -657,19 +668,42 @@ export async function GET(
         include:
           getPostDataInclude(user.id),
 
-        orderBy: {
-          createdAt: "desc",
-        },
+        orderBy: [
+          {
+            createdAt: "desc",
+          },
+          {
+            id: "desc",
+          },
+        ],
 
-        take: CANDIDATE_SIZE,
+        take: CANDIDATE_SIZE + 1,
+
+        cursor: cursor
+          ? { id: cursor }
+          : undefined,
+
+        skip: cursor ? 1 : 0,
       });
+
+    /**
+     * Vérifie s'il reste encore des candidats.
+     */
+    const hasMore =
+      candidates.length > CANDIDATE_SIZE;
+
+    const candidatesToScore =
+      candidates.slice(
+        0,
+        CANDIDATE_SIZE
+      );
 
     /* =====================================================
        SCORING
     ===================================================== */
 
     const scoredPosts =
-      candidates.map((post) => ({
+      candidatesToScore.map((post) => ({
         post,
 
         score: calculateScore(
@@ -694,12 +728,24 @@ export async function GET(
         PAGE_SIZE
       );
 
+    /**
+     * Cursor basé sur le dernier candidat
+     * récupéré, pas sur le dernier post
+     * recommandé.
+     */
+    const nextCursor =
+      hasMore
+        ? candidatesToScore[
+            candidatesToScore.length - 1
+          ]?.id || null
+        : null;
+
     return Response.json({
       posts: diversified.map(
         (item) => item.post
       ),
 
-      nextCursor: null,
+      nextCursor,
     } satisfies PostsPage);
 
   } catch (error) {
