@@ -14,9 +14,9 @@ import {
   MapPin,
   MessageCircle,
   MessageSquare,
-  Play,
 } from "lucide-react-native";
 import type { DealCityPost } from "@/services/api";
+import { useVideoPlayer, VideoView } from "expo-video";
 
 function extractInfo(content: string) {
   const productMatch = content.match(/PRODUIT\s*:\s*([^\n]+)/i);
@@ -50,6 +50,22 @@ function formatDate(value: string) {
     day: "2-digit",
     month: "short",
   });
+}
+
+function DealVideo({ uri }: { uri: string }) {
+  const player = useVideoPlayer(uri, (videoPlayer) => {
+    videoPlayer.loop = false;
+  });
+
+  return (
+    <VideoView
+      player={player}
+      style={styles.media}
+      nativeControls
+      contentFit="cover"
+      allowsFullscreen
+    />
+  );
 }
 
 export default function PostCard({ post }: { post: DealCityPost }) {
@@ -195,10 +211,7 @@ export default function PostCard({ post }: { post: DealCityPost }) {
           resizeMode="cover"
         />
       ) : video ? (
-        <View style={styles.videoPlaceholder}>
-          <Play size={42} color="#ffffff" fill="#ffffff" />
-          <Text style={styles.videoText}>VIDÉO DEAL</Text>
-        </View>
+        <DealVideo uri={video.url} />
       ) : null}
 
       <View style={styles.footer}>
