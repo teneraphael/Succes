@@ -6,7 +6,7 @@
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "dealcitymobile",
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "light",
     "updates": {
       "enabled": false
     },
