@@ -1,48 +1,116 @@
-import React, { useState } from 'react';
-import { StyleSheet, TextInput, TouchableOpacity, ScrollView, SafeAreaView, Alert, ActivityIndicator } from 'react-native';
-import { Text, View } from '@/components/Themed';
-import { PlusCircle, MapPin, Tag, DollarSign } from 'lucide-react-native';
-import { supabase } from '@/services/supabase';
+import React, { useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import {
+  Box,
+  DollarSign,
+  MapPin,
+  PackagePlus,
+  Tag,
+} from "lucide-react-native";
+import { useRouter } from "expo-router";
+import { api, ApiError } from "@/services/api";
 
 export default function CreateScreen() {
-  const [title, setTitle] = useState('');
-  const [price, setPrice] = useState('');
-  const [location, setLocation] = useState('');
-  const [description, setDescription] = useState('');
+  const router = useRouter();
+  const [product, setProduct] = useState("");
+  const [price, setPrice] = useState("");
+  const [stock, setStock] = useState("1");
+  const [city, setCity] = useState("");
+  const [neighborhood, setNeighborhood] = useState("");
+  const [description, setDescription] = useState("");
+  const [whatsapp, setWhatsapp] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async () => {
-    if (!title || !price || !location) {
-      Alert.alert('Oups !', 'Veuillez remplir au moins le titre, le prix et le quartier.');
+  const submit = async () => {
+    if (!product.trim() || !price.trim() || !city.trim()) {
+      Alert.alert(
+        "Informations manquantes",
+        "Indique au minimum le produit, son prix et la ville.",
+      );
       return;
     }
+
+    const numericPrice = Number(price.replace(/\D/g, ""));
+    const numericStock = Math.max(0, Number(stock.replace(/\D/g, "")) || 0);
+
+    if (!numericPrice) {
+      Alert.alert("Prix invalide", "Entre un prix valide en FCFA.");
+      return;
+    }
+
+    const content = [
+      `PRODUIT : ${product.trim()}`,
+      `PRIX : ${numericPrice} FCFA`,
+      "",
+      "DESCRIPTION :",
+      description.trim() || product.trim(),
+      "",
+      `LOCALISATION : ${[neighborhood.trim(), city.trim()]
+        .filter(Boolean)
+        .join(", ")}`,
+      whatsapp.trim() ? `WHATSAPP : ${whatsapp.trim()}` : "",
+    ]
+      .filter((line) => line !== "")
+      .join("\n");
 
     try {
       setLoading(true);
 
-      // Insertion dans la table "posts" de Supabase
-      const { error } = await supabase.from('posts').insert([
-        {
-          title: title,
-          content: description || title,
-          price: price,
-          location: location,
-          username: 'Utilisateur_DealCity', // Tu pourras remplacer par le vrai nom du user connecté plus tard
-        },
-      ]);
+      await api.posts.create({
+        content,
+        city: city.trim(),
+        neighborhood: neighborhood.trim(),
+        stock: numericStock,
+        mediaIds: [],
+      });
 
-      if (error) throw error;
+      Alert.alert(
+        "Annonce envoyée",
+        "Ton annonce a bien été transmise à DealCity.",
+        [
+          {
+            text: "Voir l'accueil",
+            onPress: () => router.replace("/(tabs)"),
+          },
+        ],
+      );
 
-      Alert.alert('Succès !', 'Ton annonce a été publiée sur DealCity 🇨🇲');
-      
-      // Réinitialiser le formulaire
-      setTitle('');
-      setPrice('');
-      setLocation('');
-      setDescription('');
-    } catch (error: any) {
-      console.error("Erreur lors de la publication :", error);
-      Alert.alert('Erreur', "Impossible de publier l'annonce pour le moment.");
+      setProduct("");
+      setPrice("");
+      setStock("1");
+      setCity("");
+      setNeighborhood("");
+      setDescription("");
+      setWhatsapp("");
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 401) {
+        Alert.alert(
+          "Connexion requise",
+          "Connecte-toi avec ton compte DealCity avant de publier.",
+          [
+            { text: "Annuler", style: "cancel" },
+            { text: "Se connecter", onPress: () => router.push("/auth") },
+          ],
+        );
+        return;
+      }
+
+      Alert.alert(
+        "Publication impossible",
+        error instanceof Error
+          ? error.message
+          : "Une erreur est survenue pendant la publication.",
+      );
     } finally {
       setLoading(false);
     }
@@ -51,84 +119,131 @@ export default function CreateScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Publier une affaire</Text>
-        <Text style={styles.headerSubtitle}>Mets ton produit en avant dans le quartier</Text>
+        <View>
+          <Text style={styles.title}>PUBLIER UNE AFFAIRE</Text>
+          <Text style={styles.subtitle}>
+            Ajoute un produit à la marketplace DealCity
+          </Text>
+        </View>
+        <PackagePlus size={27} color="#2563eb" />
       </View>
 
-      <ScrollView contentContainerStyle={styles.formContainer}>
-        {/* Titre de l'article */}
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Nom de l'article / Produit</Text>
-          <View style={styles.inputWrapper}>
-            <Tag size={18} color="#9ca3af" />
-            <TextInput
-              style={styles.input}
-              placeholder="Ex: iPhone 13 Pro, Chaussures Nike..."
-              placeholderTextColor="#9ca3af"
-              value={title}
-              onChangeText={setTitle}
-            />
-          </View>
-        </View>
-
-        {/* Prix */}
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Prix (en FCFA)</Text>
-          <View style={styles.inputWrapper}>
-            <DollarSign size={18} color="#9ca3af" />
-            <TextInput
-              style={styles.input}
-              placeholder="Ex: 25000"
-              placeholderTextColor="#9ca3af"
-              keyboardValue="numeric"
-              keyboardType="numeric"
-              value={price}
-              onChangeText={setPrice}
-            />
-          </View>
-        </View>
-
-        {/* Quartier / Ville */}
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Quartier / Localisation</Text>
-          <View style={styles.inputWrapper}>
-            <MapPin size={18} color="#9ca3af" />
-            <TextInput
-              style={styles.input}
-              placeholder="Ex: Akwa, Douala ou Bastos, Yaoundé"
-              placeholderTextColor="#9ca3af"
-              value={location}
-              onChangeText={setLocation}
-            />
-          </View>
-        </View>
-
-        {/* Description */}
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Description & Détails</Text>
+      <ScrollView
+        contentContainerStyle={styles.form}
+        keyboardShouldPersistTaps="handled"
+      >
+        <FieldLabel label="Nom du produit" />
+        <InputRow icon={<Tag size={18} color="#9ca3af" />}>
           <TextInput
-            style={[styles.input, styles.textArea]}
-            placeholder="État du produit, précision sur la livraison..."
+            style={styles.input}
+            value={product}
+            onChangeText={setProduct}
+            placeholder="Ex : iPhone 13 Pro"
             placeholderTextColor="#9ca3af"
-            multiline={true}
-            numberOfLines={4}
-            value={description}
-            onChangeText={setDescription}
           />
+        </InputRow>
+
+        <View style={styles.doubleRow}>
+          <View style={styles.doubleItem}>
+            <FieldLabel label="Prix (FCFA)" />
+            <InputRow icon={<DollarSign size={18} color="#9ca3af" />}>
+              <TextInput
+                style={styles.input}
+                value={price}
+                onChangeText={setPrice}
+                keyboardType="numeric"
+                placeholder="25000"
+                placeholderTextColor="#9ca3af"
+              />
+            </InputRow>
+          </View>
+
+          <View style={styles.doubleItem}>
+            <FieldLabel label="Stock" />
+            <InputRow icon={<Box size={18} color="#9ca3af" />}>
+              <TextInput
+                style={styles.input}
+                value={stock}
+                onChangeText={setStock}
+                keyboardType="numeric"
+                placeholder="1"
+                placeholderTextColor="#9ca3af"
+              />
+            </InputRow>
+          </View>
         </View>
 
-        {/* Bouton de validation */}
-        <TouchableOpacity 
-          style={[styles.submitButton, loading && { opacity: 0.7 }]} 
-          onPress={handleSubmit}
+        <View style={styles.doubleRow}>
+          <View style={styles.doubleItem}>
+            <FieldLabel label="Ville" />
+            <InputRow icon={<MapPin size={18} color="#9ca3af" />}>
+              <TextInput
+                style={styles.input}
+                value={city}
+                onChangeText={setCity}
+                placeholder="Douala"
+                placeholderTextColor="#9ca3af"
+              />
+            </InputRow>
+          </View>
+
+          <View style={styles.doubleItem}>
+            <FieldLabel label="Quartier" />
+            <InputRow icon={<MapPin size={18} color="#9ca3af" />}>
+              <TextInput
+                style={styles.input}
+                value={neighborhood}
+                onChangeText={setNeighborhood}
+                placeholder="Akwa"
+                placeholderTextColor="#9ca3af"
+              />
+            </InputRow>
+          </View>
+        </View>
+
+        <FieldLabel label="Numéro WhatsApp" />
+        <InputRow icon={<Text style={styles.whatsappIcon}>WA</Text>}>
+          <TextInput
+            style={styles.input}
+            value={whatsapp}
+            onChangeText={setWhatsapp}
+            keyboardType="phone-pad"
+            placeholder="+237 6..."
+            placeholderTextColor="#9ca3af"
+          />
+        </InputRow>
+
+        <FieldLabel label="Description" />
+        <TextInput
+          style={styles.textarea}
+          value={description}
+          onChangeText={setDescription}
+          multiline
+          textAlignVertical="top"
+          placeholder="État du produit, caractéristiques, livraison..."
+          placeholderTextColor="#9ca3af"
+        />
+
+        <View style={styles.mediaNotice}>
+          <Text style={styles.mediaNoticeTitle}>PHOTOS & VIDÉOS</Text>
+          <Text style={styles.mediaNoticeText}>
+            L'ajout de médias natifs sera relié au système UploadThing de DealCity
+            dans la prochaine couche du formulaire. Le backend de publication est
+            déjà connecté.
+          </Text>
+        </View>
+
+        <TouchableOpacity
+          style={[styles.submit, loading && styles.submitDisabled]}
           disabled={loading}
+          onPress={submit}
         >
           {loading ? (
             <ActivityIndicator color="#ffffff" />
           ) : (
             <>
-              <PlusCircle size={20} color="#ffffff" />
-              <Text style={styles.submitButtonText}>Publier sur DealCity</Text>
+              <PackagePlus size={19} color="#ffffff" />
+              <Text style={styles.submitText}>PUBLIER SUR DEALCITY</Text>
             </>
           )}
         </TouchableOpacity>
@@ -137,85 +252,113 @@ export default function CreateScreen() {
   );
 }
 
+function FieldLabel({ label }: { label: string }) {
+  return <Text style={styles.label}>{label}</Text>;
+}
+
+function InputRow({
+  icon,
+  children,
+}: {
+  icon: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <View style={styles.inputRow}>
+      {icon}
+      {children}
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f9fafb',
-  },
+  container: { flex: 1, backgroundColor: "#f3f4f6" },
   header: {
-    padding: 16,
-    backgroundColor: '#ffffff',
+    minHeight: 70,
+    backgroundColor: "#ffffff",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
+    borderBottomColor: "#e5e7eb",
   },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '900',
-    color: '#111827',
-  },
-  headerSubtitle: {
-    fontSize: 12,
-    color: '#6b7280',
-    marginTop: 2,
-  },
-  formContainer: {
-    padding: 16,
-  },
-  inputGroup: {
-    marginBottom: 16,
-    backgroundColor: 'transparent',
-  },
+  title: { color: "#111827", fontSize: 19, fontWeight: "900" },
+  subtitle: { color: "#6b7280", fontSize: 11, marginTop: 2 },
+  form: { padding: 16, paddingBottom: 35 },
   label: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#374151',
+    color: "#374151",
+    fontWeight: "800",
+    fontSize: 12,
+    marginTop: 12,
     marginBottom: 6,
   },
-  inputWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#ffffff',
+  inputRow: {
+    height: 51,
+    borderRadius: 13,
+    backgroundColor: "#ffffff",
     borderWidth: 1,
-    borderColor: '#e5e7eb',
-    borderRadius: 12,
+    borderColor: "#e5e7eb",
     paddingHorizontal: 12,
-    height: 50,
+    flexDirection: "row",
+    alignItems: "center",
   },
   input: {
     flex: 1,
-    fontSize: 14,
-    color: '#111827',
+    height: "100%",
     marginLeft: 8,
+    color: "#111827",
+    fontSize: 14,
   },
-  textArea: {
-    backgroundColor: '#ffffff',
+  doubleRow: { flexDirection: "row", gap: 10 },
+  doubleItem: { flex: 1 },
+  textarea: {
+    minHeight: 125,
+    borderRadius: 13,
+    backgroundColor: "#ffffff",
     borderWidth: 1,
-    borderColor: '#e5e7eb',
-    borderRadius: 12,
+    borderColor: "#e5e7eb",
     paddingHorizontal: 12,
-    paddingTop: 12,
-    height: 100,
-    textAlignVertical: 'top',
-    marginLeft: 0,
+    paddingVertical: 12,
+    color: "#111827",
+    fontSize: 14,
   },
-  submitButton: {
-    flexDirection: 'row',
-    backgroundColor: '#4a90e2',
-    height: 52,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 10,
+  whatsappIcon: {
+    color: "#16a34a",
+    fontSize: 10,
+    fontWeight: "900",
+  },
+  mediaNotice: {
+    marginTop: 18,
+    borderRadius: 14,
+    backgroundColor: "#eff6ff",
+    padding: 13,
+    borderWidth: 1,
+    borderColor: "#bfdbfe",
+  },
+  mediaNoticeTitle: {
+    color: "#2563eb",
+    fontWeight: "900",
+    fontSize: 10,
+    letterSpacing: 0.7,
+  },
+  mediaNoticeText: {
+    color: "#4b5563",
+    marginTop: 5,
+    fontSize: 11,
+    lineHeight: 16,
+  },
+  submit: {
+    marginTop: 20,
+    height: 54,
+    borderRadius: 14,
+    backgroundColor: "#2563eb",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     gap: 8,
-    shadowColor: '#4a90e2',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
   },
-  submitButtonText: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
+  submitDisabled: { opacity: 0.65 },
+  submitText: { color: "#ffffff", fontSize: 11, fontWeight: "900" },
 });
