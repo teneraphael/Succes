@@ -1,5 +1,11 @@
 import { getSessionToken } from "@/services/session";
 
+function isCodespacesWebPreview() {
+  const location = (globalThis as any)?.location;
+  const hostname = location?.hostname as string | undefined;
+  return Boolean(hostname?.endsWith(".app.github.dev"));
+}
+
 function resolveApiUrl() {
   const configured = process.env.EXPO_PUBLIC_API_URL?.replace(/\/$/, "");
   if (configured) return configured;
@@ -23,6 +29,12 @@ function resolveApiUrl() {
 }
 
 const API_URL = resolveApiUrl();
+const IS_CODESPACES_PREVIEW = isCodespacesWebPreview();
+
+function publicEndpoint(endpoint: string) {
+  if (!IS_CODESPACES_PREVIEW) return endpoint;
+  return `/mobile-preview${endpoint}`;
+}
 
 export type MediaType = "IMAGE" | "VIDEO" | "AUDIO";
 
@@ -192,7 +204,7 @@ export const api = {
 
   posts: {
     getForYou: (params?: { cursor?: string | null; city?: string; neighborhood?: string }) =>
-      fetchApi<PostsPage>(withQuery("/posts/for-you", params)),
+      fetchApi<PostsPage>(withQuery(publicEndpoint("/posts/for-you"), params)),
 
     getFollowing: (cursor?: string | null) =>
       fetchApi<PostsPage>(withQuery("/posts/following", { cursor })),
@@ -201,7 +213,7 @@ export const api = {
       fetchApi<PostsPage>(withQuery("/posts/bookmarked", { cursor })),
 
     getVideos: (cursor?: string | null) =>
-      fetchApi<PostsPage>(withQuery("/posts/videos", { cursor })),
+      fetchApi<PostsPage>(withQuery(publicEndpoint("/posts/videos"), { cursor })),
 
     create: (payload: {
       content: string;
@@ -236,7 +248,7 @@ export const api = {
   },
 
   shops: {
-    getAll: () => fetchApi<Shop[]>("/shops"),
+    getAll: () => fetchApi<Shop[]>(publicEndpoint("/shops")),
   },
 
   search: {
