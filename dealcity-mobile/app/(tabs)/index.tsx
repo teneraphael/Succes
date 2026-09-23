@@ -33,10 +33,13 @@ export default function HomeScreen() {
           : await api.posts.getFollowing();
       setPosts(data.posts || []);
     } catch (err: any) {
+      console.error("Erreur feed DealCity:", err);
       setError(
         err?.status === 401
           ? "Connecte-toi pour voir les vendeurs que tu suis."
-          : "Impossible de charger DealCity pour le moment.",
+          : err?.message
+            ? "Impossible de charger les annonces : " + err.message
+            : "Impossible de charger DealCity pour le moment.",
       );
       setPosts([]);
     } finally {
