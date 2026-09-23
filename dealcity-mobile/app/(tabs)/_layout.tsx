@@ -1,56 +1,97 @@
-import { Tabs } from 'expo-router';
-import { Home, Search, PlusCircle, User } from 'lucide-react-native';
+import { Tabs } from "expo-router";
+import {
+  Home,
+  PlaySquare,
+  PlusCircle,
+  Store,
+  User,
+} from "lucide-react-native";
 
-import Colors from '@/constants/Colors';
-import { useColorScheme } from '@/components/useColorScheme';
-import { useClientOnlyValue } from '@/components/useClientOnlyValue';
+const ACTIVE = "#2563eb";
+const INACTIVE = "#6b7280";
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
-
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme].tint,
-        headerShown: useClientOnlyValue(false, true),
-        tabBarStyle: {
-          backgroundColor: colorScheme === 'dark' ? '#1f2937' : '#ffffff',
-          borderTopColor: colorScheme === 'dark' ? '#374151' : '#e5e7eb',
-          height: 60,
-          paddingBottom: 8,
-          paddingTop: 8,
+        headerShown: false,
+        tabBarActiveTintColor: ACTIVE,
+        tabBarInactiveTintColor: INACTIVE,
+        tabBarLabelStyle: {
+          fontSize: 10,
+          fontWeight: "800",
+          paddingBottom: 2,
         },
-      }}>
+        tabBarStyle: {
+          backgroundColor: "#ffffff",
+          borderTopColor: "#e5e7eb",
+          height: 66,
+          paddingTop: 7,
+          paddingBottom: 7,
+        },
+      }}
+    >
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Accueil',
-          headerShown: false,
-          tabBarIcon: ({ color, size }) => <Home color={color} size={size || 24} />,
+          title: "Accueil",
+          tabBarIcon: ({ color, size }) => (
+            <Home color={color} size={size || 23} />
+          ),
         }}
       />
+
       <Tabs.Screen
-        name="explore"
+        name="videos"
         options={{
-          title: 'Recherche',
-          headerShown: false,
-          tabBarIcon: ({ color, size }) => <Search color={color} size={size || 24} />,
+          title: "Vidéos",
+          tabBarIcon: ({ color, size }) => (
+            <PlaySquare color={color} size={size || 23} />
+          ),
         }}
       />
+
       <Tabs.Screen
         name="create"
         options={{
-          title: 'Publier',
-          headerShown: false,
-          tabBarIcon: ({ color, size }) => <PlusCircle color="#4a90e2" size={size || 24} />,
+          title: "Publier",
+          tabBarIcon: ({ size }) => (
+            <PlusCircle color={ACTIVE} size={(size || 23) + 4} />
+          ),
         }}
       />
+
+      <Tabs.Screen
+        name="shops"
+        options={{
+          title: "Boutiques",
+          tabBarIcon: ({ color, size }) => (
+            <Store color={color} size={size || 23} />
+          ),
+        }}
+      />
+
       <Tabs.Screen
         name="profile"
         options={{
-          title: 'Profil',
-          headerShown: false,
-          tabBarIcon: ({ color, size }) => <User color={color} size={size || 24} />,
+          title: "Profil",
+          tabBarIcon: ({ color, size }) => (
+            <User color={color} size={size || 23} />
+          ),
+        }}
+      />
+
+      <Tabs.Screen
+        name="explore"
+        options={{
+          href: null,
+        }}
+      />
+
+      <Tabs.Screen
+        name="two"
+        options={{
+          href: null,
         }}
       />
     </Tabs>
