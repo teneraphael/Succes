@@ -1,6 +1,28 @@
 import { getSessionToken } from "@/services/session";
 
-const API_URL = "https://dealcity.app/api";
+function resolveApiUrl() {
+  const configured = process.env.EXPO_PUBLIC_API_URL?.replace(/\/$/, "");
+  if (configured) return configured;
+
+  const location = (globalThis as any)?.location;
+  const hostname = location?.hostname as string | undefined;
+  const protocol = location?.protocol as string | undefined;
+
+  // GitHub Codespaces: Expo Web est généralement sur le port 8081 et
+  // le backend Next.js sur le port 3000. On retrouve automatiquement
+  // l'URL du backend à partir de l'URL de prévisualisation.
+  if (hostname?.endsWith(".app.github.dev") && protocol) {
+    const backendHost = hostname.replace(
+      /-\d+\.app\.github\.dev$/,
+      "-3000.app.github.dev",
+    );
+    return `${protocol}//${backendHost}/api`;
+  }
+
+  return "https://dealcity.app/api";
+}
+
+const API_URL = resolveApiUrl();
 
 export type MediaType = "IMAGE" | "VIDEO" | "AUDIO";
 
