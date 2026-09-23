@@ -1,3 +1,5 @@
+import { getSessionToken } from "@/services/session";
+
 const API_URL = "https://dealcity.app/api";
 
 export type MediaType = "IMAGE" | "VIDEO" | "AUDIO";
@@ -100,11 +102,14 @@ function withQuery(
 }
 
 async function fetchApi<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+  const token = await getSessionToken();
+
   const response = await fetch(`${API_URL}${endpoint}`, {
     ...options,
     headers: {
       Accept: "application/json",
       ...(options.body ? { "Content-Type": "application/json" } : {}),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...options.headers,
     },
   });
@@ -131,6 +136,38 @@ async function fetchApi<T>(endpoint: string, options: RequestInit = {}): Promise
 }
 
 export const api = {
+  auth: {
+    login: (identifier: string, password: string) =>
+      fetchApi<{
+        token: string;
+        needsOnboarding: boolean;
+        user: DealCityUser & { email?: string | null };
+      }>("/mobile/auth/login", {
+        method: "POST",
+        body: JSON.stringify({ identifier, password }),
+      }),
+
+    signup: (username: string, email: string, password: string) =>
+      fetchApi<{
+        token: string;
+        needsOnboarding: boolean;
+        user: DealCityUser & { email?: string | null };
+      }>("/mobile/auth/signup", {
+        method: "POST",
+        body: JSON.stringify({ username, email, password }),
+      }),
+
+    me: () =>
+      fetchApi<{ user: DealCityUser & { email?: string | null } }>(
+        "/mobile/auth/me",
+      ),
+
+    logout: () =>
+      fetchApi<{ success: boolean }>("/mobile/auth/logout", {
+        method: "POST",
+      }),
+  },
+
   posts: {
     getForYou: (params?: { cursor?: string | null; city?: string; neighborhood?: string }) =>
       fetchApi<PostsPage>(withQuery("/posts/for-you", params)),
