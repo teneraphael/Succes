@@ -1,227 +1,434 @@
-import React, { useState, useEffect } from "react";
-import { View, Text, TouchableOpacity, Image as RNImage, Dimensions } from "react-native";
-import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
-import * as Linking from "expo-linking";
+import React, { useMemo, useState } from "react";
+import {
+  Image,
+  Linking,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import {
+  BadgeCheck,
+  Bookmark,
+  Heart,
+  MapPin,
+  MessageCircle,
+  MessageSquare,
+  Play,
+} from "lucide-react-native";
+import type { DealCityPost } from "@/services/api";
 
-const { width } = Dimensions.get("window");
-
-// Fonction d'extraction identique au web
-const extractInfo = (content: string) => {
+function extractInfo(content: string) {
   const productMatch = content.match(/PRODUIT\s*:\s*([^\n]+)/i);
   const priceMatch = content.match(/PRIX\s*:\s*([\d\s,._]+)\s*FCFA/i);
-  const descMatch = content.match(/DESCRIPTION\s*:\s*\n?([\s\S]*?)(?=\n\n|📞|🔗|$)/i);
+  const descMatch = content.match(
+    /DESCRIPTION\s*:\s*\n?([\s\S]*?)(?=\n\n|📞|🔗|$)/i,
+  );
   const whatsappMatch = content.match(/WHATSAPP\s*:\s*([^\n]+)/i);
+  const locationMatch = content.match(/LOCALISATION\s*:\s*([^\n]+)/i);
+
   return {
-    productName: productMatch ? productMatch[1].trim() : null,
-    price: priceMatch ? priceMatch[1].trim().replace(/\s/g, "") : null,
-    cleanDescription: descMatch ? descMatch[1].trim() : content,
-    whatsappNumber: whatsappMatch ? whatsappMatch[1].trim() : null,
+    productName: productMatch?.[1]?.trim() || null,
+    price: priceMatch?.[1]?.trim().replace(/\s/g, "") || null,
+    description: descMatch?.[1]?.trim() || content,
+    whatsappNumber: whatsappMatch?.[1]?.trim() || null,
+    location: locationMatch?.[1]?.trim() || null,
   };
-};
+}
 
-export default function PostCard({ post }: { post: any }) {
-  const { productName, price: defaultPrice, cleanDescription, whatsappNumber } = extractInfo(post.content);
-  const [selectedAttributes, setSelectedAttributes] = useState<Record<string, string>>({});
-  const [activeVariant, setActiveVariant] = useState<any>(null);
-  const [isExpanded, setIsExpanded] = useState(false);
+function formatPrice(value?: number | string | null) {
+  if (value === null || value === undefined || value === "") return null;
+  const number = Number(String(value).replace(/[^\d]/g, ""));
+  if (!Number.isFinite(number)) return String(value);
+  return new Intl.NumberFormat("fr-FR").format(number);
+}
 
-  // Gestion des attributs et variantes comme sur le web
-  useEffect(() => {
-    if (post.attributes && post.attributes.length > 0) {
-      const initialSelection: Record<string, string> = {};
-      post.attributes.forEach((attr: any) => {
-        if (attr.values && attr.values.length > 0) initialSelection[attr.name] = attr.values[0];
-      });
-      setSelectedAttributes(initialSelection);
-    }
-  }, [post.attributes]);
+function formatDate(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleDateString("fr-FR", {
+    day: "2-digit",
+    month: "short",
+  });
+}
 
-  useEffect(() => {
-    if (post.variants && post.variants.length > 0 && Object.keys(selectedAttributes).length > 0) {
-      const matched = post.variants.find((variant: any) => {
-        const combo = variant.combinations as Record<string, string>;
-        return Object.entries(selectedAttributes).every(([key, value]) => combo[key] === value);
-      });
-      setActiveVariant(matched || null);
-    }
-  }, [selectedAttributes, post.variants]);
+export default function PostCard({ post }: { post: DealCityPost }) {
+  const [expanded, setExpanded] = useState(false);
+  const info = useMemo(() => extractInfo(post.content || ""), [post.content]);
 
-  const currentStock = activeVariant !== null ? activeVariant.stock : (post.stock ?? 0);
-  const currentPrice = activeVariant !== null ? activeVariant.price.toLocaleString() : (defaultPrice || "0");
-  const isAvailable = currentStock > 0;
+  const productName = info.productName || post.content?.split("\n")[0] || "Article";
+  const price = formatPrice(post.price || info.price);
+  const stock = post.stock ?? 0;
+  const isAvailable = stock > 0;
+  const location =
+    info.location ||
+    [post.neighborhood, post.city].filter(Boolean).join(", ") ||
+    null;
 
-  const visualAttachments = post.attachments?.filter((m: any) => m.type !== "AUDIO") || [];
+  const image = post.attachments?.find((item) => item.type === "IMAGE");
+  const video = post.attachments?.find((item) => item.type === "VIDEO");
 
-  // Action WhatsApp identique
-  const handleWhatsApp = () => {
+  const openWhatsApp = async () => {
     if (!isAvailable) return;
-    const number = whatsappNumber || post.user?.phoneNumber || post.user?.phone || "";
+
+    const number = (info.whatsappNumber || post.user?.phoneNumber || "").replace(
+      /\D/g,
+      "",
+    );
+
     if (!number) return;
 
-    const choiceLabel = Object.entries(selectedAttributes).map(([key, val]) => `${key}: ${val}`).join(", ");
-    const lines: string[] = [];
-    lines.push("Bonjour ! 👋");
-    lines.push(`Je suis intéressé(e) par votre produit sur *DealCity* :`);
-    lines.push("");
-    lines.push(`*${productName || "Article"}*`);
-    lines.push(`Prix : *${currentPrice} FCFA*`);
-    if (choiceLabel) lines.push(`Options choisies : *${choiceLabel}*`);
-    lines.push("");
-    lines.push("Est-ce que ce produit est toujours disponible ? Merci !");
+    const lines = [
+      "Bonjour ! 👋",
+      "Je suis intéressé(e) par votre produit sur DealCity :",
+      "",
+      `*${productName}*`,
+      price ? `Prix : *${price} FCFA*` : "",
+      "",
+      "Est-ce que ce produit est toujours disponible ? Merci !",
+    ].filter(Boolean);
 
-    const cleanNumber = number.replace(/\D/g, "");
-    Linking.openURL(`https://wa.me/${cleanNumber}?text=${encodeURIComponent(lines.join("\n"))}`);
+    await Linking.openURL(
+      `https://wa.me/${number}?text=${encodeURIComponent(lines.join("\n"))}`,
+    );
   };
 
   return (
-    <View className="bg-white dark:bg-zinc-900 w-full mb-4 border-b border-gray-200 dark:border-zinc-800 shadow-sm md:rounded-2xl overflow-hidden">
-      
-      {/* En-tête (Utilisateur) */}
-      <View className="flex-row justify-between items-center px-4 py-3">
-        <View className="flex-row items-center gap-3">
+    <View style={styles.card}>
+      <View style={styles.header}>
+        <View style={styles.seller}>
           {post.user?.avatarUrl ? (
-            <RNImage source={{ uri: post.user.avatarUrl }} className="size-10 rounded-full" />
+            <Image source={{ uri: post.user.avatarUrl }} style={styles.avatar} />
           ) : (
-            <View className="size-10 rounded-full bg-gray-300 items-center justify-center">
-              <Text className="font-bold text-gray-600">{post.user?.displayName?.[0] || "U"}</Text>
+            <View style={styles.avatarFallback}>
+              <Text style={styles.avatarLetter}>
+                {(post.user?.displayName || post.user?.username || "D")
+                  .slice(0, 1)
+                  .toUpperCase()}
+              </Text>
             </View>
           )}
-          <View>
-            <View className="flex-row items-center gap-1">
-              <Text className="font-extrabold text-sm text-gray-900 dark:text-white">
-                {post.user?.displayName || post.user?.username}
+
+          <View style={styles.sellerText}>
+            <View style={styles.nameRow}>
+              <Text style={styles.sellerName} numberOfLines={1}>
+                {post.user?.businessName ||
+                  post.user?.displayName ||
+                  post.user?.username ||
+                  "Vendeur DealCity"}
               </Text>
-              {post.user?.isVerified && (
-                <Ionicons name="checkmark-circle" size={14} color="#4a90e2" />
-              )}
+              {post.user?.isVerified ? (
+                <BadgeCheck size={16} color="#2563eb" />
+              ) : null}
             </View>
-            <Text className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">
-              {new Date(post.createdAt).toLocaleDateString()}
-            </Text>
+
+            <View style={styles.metaRow}>
+              <Text style={styles.date}>{formatDate(post.createdAt)}</Text>
+              {location ? (
+                <>
+                  <Text style={styles.dot}>•</Text>
+                  <MapPin size={12} color="#9ca3af" />
+                  <Text style={styles.location} numberOfLines={1}>
+                    {location}
+                  </Text>
+                </>
+              ) : null}
+            </View>
           </View>
         </View>
       </View>
 
-      {/* Nom + Prix + Stock */}
-      <View className="px-4 py-1 flex-row items-start justify-between gap-2">
-        <View className="flex-1">
-          {productName && (
-            <Text className="font-black text-lg uppercase tracking-tight text-gray-900 dark:text-white">
+      <View style={styles.productBlock}>
+        <View style={styles.productTop}>
+          <View style={styles.productText}>
+            <Text style={styles.productName} numberOfLines={2}>
               {productName}
             </Text>
-          )}
-          {isAvailable ? (
-            <View className="self-start mt-1 bg-green-500/10 px-2 py-0.5 rounded border border-green-500/20">
-              <Text className="text-[9px] font-black uppercase tracking-widest text-green-600">
-                Disponible ({currentStock})
+
+            <View
+              style={[
+                styles.stockBadge,
+                !isAvailable && styles.stockBadgeUnavailable,
+              ]}
+            >
+              <Text
+                style={[
+                  styles.stockText,
+                  !isAvailable && styles.stockTextUnavailable,
+                ]}
+              >
+                {isAvailable
+                  ? `DISPONIBLE EN STOCK (${stock})`
+                  : "RUPTURE DE STOCK"}
               </Text>
             </View>
-          ) : (
-            <View className="self-start mt-1 bg-red-500/10 px-2 py-0.5 rounded border border-red-500/20">
-              <Text className="text-[9px] font-black uppercase tracking-widest text-red-600">
-                Rupture de stock
-              </Text>
+          </View>
+
+          {price ? (
+            <View style={styles.priceBadge}>
+              <Text style={styles.price}>{price}</Text>
+              <Text style={styles.currency}> FCFA</Text>
             </View>
-          )}
+          ) : null}
         </View>
 
-        {currentPrice && (
-          <View className="bg-green-500/10 border border-green-500/20 px-3 py-1 rounded-xl transform -rotate-1">
-            <Text className="text-lg font-black text-green-600 tracking-tighter">
-              {currentPrice} <Text className="text-[10px]">FCFA</Text>
+        {info.description ? (
+          <>
+            <Text style={styles.description} numberOfLines={expanded ? undefined : 3}>
+              {info.description}
             </Text>
-          </View>
-        )}
+            {info.description.length > 120 ? (
+              <TouchableOpacity onPress={() => setExpanded((value) => !value)}>
+                <Text style={styles.moreText}>
+                  {expanded ? "VOIR MOINS" : "VOIR PLUS"}
+                </Text>
+              </TouchableOpacity>
+            ) : null}
+          </>
+        ) : null}
       </View>
 
-      {/* Description avec Voir plus / Voir moins */}
-      {cleanDescription && (
-        <View className="px-4 py-2">
-          <Text className="text-xs text-gray-600 dark:text-gray-300 leading-relaxed" numberOfLines={isExpanded ? undefined : 3}>
-            {cleanDescription}
-          </Text>
-          {cleanDescription.length > 120 && (
-            <TouchableOpacity onPress={() => setIsExpanded(!isExpanded)} className="mt-1">
-              <Text className="text-[10px] font-black uppercase text-[#4a90e2] tracking-wide">
-                {isExpanded ? "Voir moins" : "Voir plus"}
-              </Text>
-            </TouchableOpacity>
-          )}
+      {image ? (
+        <Image
+          source={{ uri: image.url }}
+          style={styles.media}
+          resizeMode="cover"
+        />
+      ) : video ? (
+        <View style={styles.videoPlaceholder}>
+          <Play size={42} color="#ffffff" fill="#ffffff" />
+          <Text style={styles.videoText}>VIDÉO DEAL</Text>
         </View>
-      )}
+      ) : null}
 
-      {/* Médias (Images du post) */}
-      {visualAttachments.length > 0 && (
-        <View className="w-full h-80 bg-black mt-2">
-          <RNImage
-            source={{ uri: visualAttachments[0].url }}
-            className="w-full h-full object-cover"
-            resizeMode="cover"
-          />
-        </View>
-      )}
-
-      {/* Attributs / Variantes interactives */}
-      {post.attributes && post.attributes.length > 0 && (
-        <View className="px-4 py-3 bg-gray-50 dark:bg-zinc-800/50 space-y-2">
-          {post.attributes.map((attr: any) => (
-            <View key={attr.id || attr.name}>
-              <Text className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1">
-                {attr.name}
-              </Text>
-              <View className="flex-row flex-wrap gap-2">
-                {attr.values.map((val: string) => {
-                  const isSelected = selectedAttributes[attr.name] === val;
-                  return (
-                    <TouchableOpacity
-                      key={val}
-                      onPress={() => setSelectedAttributes((prev: any) => ({ ...prev, [attr.name]: val }))}
-                      className={`px-3 py-1.5 rounded-xl border-2 ${
-                        isSelected
-                          ? "bg-[#4a90e2] border-[#4a90e2]"
-                          : "bg-transparent border-gray-200 dark:border-zinc-700"
-                      }`}
-                    >
-                      <Text className={`text-[10px] font-black uppercase ${isSelected ? "text-white" : "text-gray-600 dark:text-gray-300"}`}>
-                        {val}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            </View>
-          ))}
-        </View>
-      )}
-
-      {/* Bas du post : Likes, Commentaires & Bouton WhatsApp */}
-      <View className="px-4 py-3 flex-row items-center justify-between border-t border-gray-100 dark:border-zinc-800">
-        <View className="flex-row items-center gap-4">
-          <View className="flex-row items-center gap-1">
-            <Ionicons name="heart-outline" size={20} color="gray" />
-            <Text className="text-xs font-bold text-gray-600 dark:text-gray-400">{post._count?.likes || 0}</Text>
+      <View style={styles.footer}>
+        <View style={styles.metrics}>
+          <View style={styles.metric}>
+            <Heart size={20} color="#4b5563" />
+            <Text style={styles.metricText}>{post._count?.likes || 0}</Text>
           </View>
-          <View className="flex-row items-center gap-1">
-            <Ionicons name="chatbubble-outline" size={18} color="gray" />
-            <Text className="text-xs font-bold text-gray-600 dark:text-gray-400">{post._count?.comments || 0}</Text>
+          <View style={styles.metric}>
+            <MessageSquare size={19} color="#4b5563" />
+            <Text style={styles.metricText}>{post._count?.comments || 0}</Text>
           </View>
+          <Bookmark size={20} color="#4b5563" />
         </View>
 
-        {/* Bouton WhatsApp */}
         <TouchableOpacity
-          onPress={handleWhatsApp}
+          style={[styles.whatsapp, !isAvailable && styles.disabledButton]}
           disabled={!isAvailable}
-          className={`flex-row items-center gap-2 px-4 py-2 rounded-xl shadow-sm ${
-            isAvailable ? "bg-[#25D366]" : "bg-gray-300 opacity-50"
-          }`}
+          onPress={openWhatsApp}
         >
-          <MaterialCommunityIcons name="whatsapp" size={16} color="white" />
-          <Text className="text-[10px] font-black uppercase text-white tracking-widest">
-            {isAvailable ? "Discuter via WhatsApp" : "Indisponible"}
+          <MessageCircle size={17} color="#ffffff" />
+          <Text style={styles.whatsappText}>
+            {isAvailable ? "DISCUTER VIA WHATSAPP" : "INDISPONIBLE"}
           </Text>
         </TouchableOpacity>
       </View>
-
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  card: {
+    backgroundColor: "#ffffff",
+    borderRadius: 18,
+    marginBottom: 14,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+  },
+  header: {
+    paddingHorizontal: 14,
+    paddingTop: 13,
+    paddingBottom: 9,
+  },
+  seller: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  avatar: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+  },
+  avatarFallback: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: "#dbeafe",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  avatarLetter: {
+    color: "#2563eb",
+    fontWeight: "900",
+    fontSize: 17,
+  },
+  sellerText: {
+    flex: 1,
+    marginLeft: 10,
+  },
+  nameRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  sellerName: {
+    maxWidth: "90%",
+    color: "#111827",
+    fontWeight: "900",
+    fontSize: 14,
+  },
+  metaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 3,
+    gap: 4,
+  },
+  date: {
+    color: "#9ca3af",
+    fontWeight: "700",
+    fontSize: 10,
+    textTransform: "uppercase",
+  },
+  dot: {
+    color: "#d1d5db",
+  },
+  location: {
+    flex: 1,
+    color: "#9ca3af",
+    fontSize: 10,
+    fontWeight: "700",
+  },
+  productBlock: {
+    paddingHorizontal: 14,
+    paddingBottom: 10,
+  },
+  productTop: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+  },
+  productText: {
+    flex: 1,
+    paddingRight: 10,
+  },
+  productName: {
+    color: "#111827",
+    fontWeight: "900",
+    fontSize: 17,
+    textTransform: "uppercase",
+  },
+  stockBadge: {
+    alignSelf: "flex-start",
+    marginTop: 6,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 6,
+    backgroundColor: "#ecfdf5",
+    borderWidth: 1,
+    borderColor: "#a7f3d0",
+  },
+  stockBadgeUnavailable: {
+    backgroundColor: "#fef2f2",
+    borderColor: "#fecaca",
+  },
+  stockText: {
+    fontSize: 9,
+    fontWeight: "900",
+    color: "#059669",
+  },
+  stockTextUnavailable: {
+    color: "#dc2626",
+  },
+  priceBadge: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    borderRadius: 14,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    backgroundColor: "#ecfdf5",
+    borderWidth: 1,
+    borderColor: "#a7f3d0",
+  },
+  price: {
+    color: "#059669",
+    fontWeight: "900",
+    fontSize: 17,
+  },
+  currency: {
+    color: "#059669",
+    fontWeight: "900",
+    fontSize: 9,
+  },
+  description: {
+    marginTop: 9,
+    color: "#4b5563",
+    fontSize: 12,
+    lineHeight: 17,
+  },
+  moreText: {
+    marginTop: 5,
+    color: "#2563eb",
+    fontSize: 10,
+    fontWeight: "900",
+  },
+  media: {
+    width: "100%",
+    height: 330,
+    backgroundColor: "#f3f4f6",
+  },
+  videoPlaceholder: {
+    width: "100%",
+    height: 330,
+    backgroundColor: "#111827",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  videoText: {
+    marginTop: 8,
+    color: "#ffffff",
+    fontWeight: "900",
+    letterSpacing: 1,
+  },
+  footer: {
+    minHeight: 58,
+    paddingHorizontal: 13,
+    paddingVertical: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  metrics: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+  },
+  metric: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  metricText: {
+    color: "#4b5563",
+    fontSize: 12,
+    fontWeight: "800",
+  },
+  whatsapp: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "#25D366",
+    borderRadius: 11,
+    paddingHorizontal: 11,
+    paddingVertical: 9,
+  },
+  disabledButton: {
+    backgroundColor: "#9ca3af",
+  },
+  whatsappText: {
+    color: "#ffffff",
+    fontSize: 9,
+    fontWeight: "900",
+  },
+});
