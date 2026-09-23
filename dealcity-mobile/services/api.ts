@@ -140,6 +140,7 @@ async function fetchApi<T>(endpoint: string, options: RequestInit = {}): Promise
 
   const response = await fetch(`${API_URL}${endpoint}`, {
     ...options,
+    ...(IS_CODESPACES_PREVIEW ? { credentials: "include" as RequestCredentials } : {}),
     headers: {
       Accept: "application/json",
       ...(options.body ? { "Content-Type": "application/json" } : {}),
