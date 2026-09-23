@@ -9,7 +9,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { Bell, Search } from "lucide-react-native";
+import { Bell, Search, ShoppingBag, TrendingUp, Zap } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import PostCard from "@/components/PostCard";
 import { api, DealCityPost } from "@/services/api";
@@ -58,7 +58,15 @@ export default function HomeScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.logo}>DEALCITY</Text>
+        <View style={styles.brand}>
+          <View style={styles.brandBars}>
+            <View style={[styles.brandBar, { height: 16 }]} />
+            <View style={[styles.brandBar, { height: 24 }]} />
+            <View style={[styles.brandBar, { height: 32 }]} />
+            <View style={[styles.brandBar, { height: 20 }]} />
+          </View>
+          <Text style={styles.logo}>DealCity</Text>
+        </View>
         <View style={styles.headerActions}>
           <TouchableOpacity
             style={styles.iconButton}
@@ -70,6 +78,70 @@ export default function HomeScreen() {
             <Bell size={22} color="#111827" />
           </TouchableOpacity>
         </View>
+      </View>
+
+      <View style={styles.hero}>
+        <View style={styles.heroBrandLine}>
+          <View style={styles.heroBars}>
+            <View style={[styles.heroBar, { height: 14 }]} />
+            <View style={[styles.heroBar, { height: 21 }]} />
+            <View style={[styles.heroBar, { height: 28 }]} />
+            <View style={[styles.heroBar, { height: 18 }]} />
+          </View>
+          <Text style={styles.heroBrand}>DealCity</Text>
+          <View style={styles.countryBadge}>
+            <Text style={styles.countryBadgeText}>CAMEROUN</Text>
+          </View>
+        </View>
+
+        <Text style={styles.heroTitle}>
+          La marketplace qui{"\n"}connecte vendeurs{"\n"}et acheteurs
+        </Text>
+        <Text style={styles.heroSubtitle}>
+          Découvrez des milliers de produits · Discutez via WhatsApp · 100% Camerounais
+        </Text>
+
+        <View style={styles.heroStats}>
+          <View style={styles.statChipBlue}>
+            <ShoppingBag size={14} color="#3a81f3" />
+            <Text style={styles.statChipBlueText}>Produits</Text>
+          </View>
+          <View style={styles.statChipGreen}>
+            <TrendingUp size={14} color="#1aa04b" />
+            <Text style={styles.statChipGreenText}>Vendeurs</Text>
+          </View>
+          <View style={styles.statChipGray}>
+            <Zap size={14} color="#4b5563" />
+            <Text style={styles.statChipGrayText}>Via WhatsApp</Text>
+          </View>
+        </View>
+
+        <View style={styles.heroButtons}>
+          <TouchableOpacity
+            style={styles.heroLogin}
+            onPress={() => router.push("/auth")}
+          >
+            <Text style={styles.heroLoginText}>SE CONNECTER</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.heroSignup}
+            onPress={() => router.push("/auth")}
+          >
+            <Text style={styles.heroSignupText}>S'INSCRIRE</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      <View style={styles.searchStrip}>
+        <TouchableOpacity
+          style={styles.searchPill}
+          onPress={() => router.push("/(tabs)/explore")}
+        >
+          <Search size={18} color="#9ca3af" />
+          <Text style={styles.searchPlaceholder}>
+            Rechercher un produit, une boutique...
+          </Text>
+        </TouchableOpacity>
       </View>
 
       <View style={styles.feedTabs}>
@@ -153,11 +225,28 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
   },
+  brand: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    gap: 8,
+  },
+  brandBars: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    gap: 3,
+    height: 32,
+  },
+  brandBar: {
+    width: 5,
+    borderRadius: 3,
+    backgroundColor: "#4a90e2",
+  },
   logo: {
-    color: "#2563eb",
-    fontSize: 24,
+    color: "#6ab344",
+    fontSize: 22,
     fontWeight: "900",
-    letterSpacing: 1,
+    letterSpacing: -0.4,
+    paddingBottom: 1,
   },
   headerActions: {
     flexDirection: "row",
@@ -172,7 +261,177 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  hero: {
+    backgroundColor: "#ffffff",
+    marginHorizontal: 12,
+    marginTop: 12,
+    borderRadius: 22,
+    paddingHorizontal: 18,
+    paddingVertical: 20,
+    borderWidth: 1,
+    borderColor: "#eef2f7",
+  },
+  heroBrandLine: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  heroBars: {
+    height: 28,
+    flexDirection: "row",
+    alignItems: "flex-end",
+    gap: 3,
+  },
+  heroBar: {
+    width: 4,
+    backgroundColor: "#3a81f3",
+    borderRadius: 3,
+  },
+  heroBrand: {
+    marginLeft: 8,
+    color: "#1aa04b",
+    fontSize: 18,
+    fontWeight: "900",
+  },
+  countryBadge: {
+    marginLeft: 8,
+    backgroundColor: "#eff6ff",
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: "#dbeafe",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  countryBadgeText: {
+    color: "#3a81f3",
+    fontSize: 8,
+    fontWeight: "900",
+    letterSpacing: 0.8,
+  },
+  heroTitle: {
+    marginTop: 18,
+    color: "#111827",
+    fontSize: 27,
+    lineHeight: 31,
+    fontWeight: "900",
+    letterSpacing: -0.7,
+  },
+  heroSubtitle: {
+    marginTop: 9,
+    color: "#6b7280",
+    fontSize: 12,
+    lineHeight: 18,
+    fontWeight: "600",
+  },
+  heroStats: {
+    marginTop: 15,
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 7,
+  },
+  statChipBlue: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    backgroundColor: "#eff6ff",
+    borderWidth: 1,
+    borderColor: "#dbeafe",
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  statChipBlueText: {
+    color: "#3a81f3",
+    fontSize: 9,
+    fontWeight: "800",
+  },
+  statChipGreen: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    backgroundColor: "#ecfdf5",
+    borderWidth: 1,
+    borderColor: "#d1fae5",
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  statChipGreenText: {
+    color: "#1aa04b",
+    fontSize: 9,
+    fontWeight: "800",
+  },
+  statChipGray: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    backgroundColor: "#f9fafb",
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  statChipGrayText: {
+    color: "#4b5563",
+    fontSize: 9,
+    fontWeight: "800",
+  },
+  heroButtons: {
+    marginTop: 16,
+    flexDirection: "row",
+    gap: 10,
+  },
+  heroLogin: {
+    flex: 1,
+    height: 42,
+    borderRadius: 999,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#3a81f3",
+  },
+  heroLoginText: {
+    color: "#ffffff",
+    fontSize: 10,
+    fontWeight: "900",
+    letterSpacing: 0.7,
+  },
+  heroSignup: {
+    flex: 1,
+    height: 42,
+    borderRadius: 999,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#1aa04b",
+  },
+  heroSignupText: {
+    color: "#ffffff",
+    fontSize: 10,
+    fontWeight: "900",
+    letterSpacing: 0.7,
+  },
+  searchStrip: {
+    paddingHorizontal: 12,
+    paddingTop: 10,
+    backgroundColor: "#f3f4f6",
+  },
+  searchPill: {
+    height: 44,
+    borderRadius: 999,
+    backgroundColor: "#ffffff",
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    paddingHorizontal: 14,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  searchPlaceholder: {
+    marginLeft: 8,
+    color: "#9ca3af",
+    fontSize: 12,
+    fontWeight: "600",
+  },
   feedTabs: {
+    marginTop: 10,
     backgroundColor: "#ffffff",
     flexDirection: "row",
     justifyContent: "center",
@@ -200,7 +459,7 @@ const styles = StyleSheet.create({
     color: "#ffffff",
   },
   list: {
-    padding: 12,
+    paddingTop: 12,
     paddingBottom: 30,
   },
   center: {
