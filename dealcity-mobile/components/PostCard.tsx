@@ -63,7 +63,7 @@ function DealVideo({ uri }: { uri: string }) {
       style={styles.media}
       nativeControls
       contentFit="cover"
-      allowsFullscreen
+      fullscreenOptions={{ enable: true }}
     />
   );
 }
@@ -245,10 +245,11 @@ export default function PostCard({ post }: { post: DealCityPost }) {
 const styles = StyleSheet.create({
   card: {
     backgroundColor: "#ffffff",
-    borderRadius: 18,
-    marginBottom: 14,
+    borderRadius: 0,
+    marginBottom: 12,
     overflow: "hidden",
-    borderWidth: 1,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
     borderColor: "#e5e7eb",
   },
   header: {
@@ -388,7 +389,7 @@ const styles = StyleSheet.create({
   },
   media: {
     width: "100%",
-    height: 330,
+    height: 500,
     backgroundColor: "#f3f4f6",
   },
   videoPlaceholder: {
