@@ -1,111 +1,216 @@
-import { Platform } from "react-native";
+const API_URL = "https://dealcity.app/api";
 
-// Remplace cette URL par ton adresse IP locale en dev (ex: http://192.168.1.15:3000/api) ou ton URL de production
-const API_URL = 'https://api.dealcity.app/v1';
+export type MediaType = "IMAGE" | "VIDEO" | "AUDIO";
 
-// ================= 1. CLIENT GÉNÉRIQUE =================
-async function fetchApi(endpoint: string, options?: RequestInit) {
-  try {
-    const response = await fetch(`${API_URL}${endpoint}`, {
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        ...options?.headers,
-      },
-    });
-
-    const data = await response.json();
-    if (!response.ok) {
-      throw new Error(data.error || "Une erreur est survenue lors de la requête");
-    }
-    return data;
-  } catch (error) {
-    console.error(`Erreur API [${endpoint}] :`, error);
-    throw error;
-  }
-}
-
-// ================= 2. FONCTIONS DE BASE (Rétrocompatibilité) =================
-export async function fetchPosts() {
-  try {
-    const response = await fetch(`${API_URL}/posts`);
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    console.error("Erreur lors de la récupération des posts :", error);
-    return [];
-  }
-}
-
-export async function createPost(postData: { title: string; price: string; location: string; description: string }) {
-  try {
-    const response = await fetch(`${API_URL}/posts`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(postData),
-    });
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.error || "Erreur de création");
-    return data;
-  } catch (error) {
-    console.error("Erreur lors de la création du post :", error);
-    throw error;
-  }
-}
-
-// ================= 3. STRUCTURE GLOBALE DE TOUTES LES TABLES =================
-export const api = {
-  // --- Posts & Interactions ---
-  posts: {
-    getAll: fetchPosts,
-    create: createPost,
-    getForYou: () => fetchApi('/posts/for-you'),
-    getFollowing: () => fetchApi('/posts/following'),
-    getBookmarked: () => fetchApi('/posts/bookmarked'),
-    getVideos: () => fetchApi('/posts/videos'),
-    
-    toggleLike: (postId: string) => fetchApi(`/posts/${postId}/likes`, { method: 'POST' }),
-    toggleBookmark: (postId: string) => fetchApi(`/posts/${postId}/bookmark`, { method: 'POST' }),
-    report: (postId: string) => fetchApi(`/posts/${postId}/report`, { method: 'POST' }),
-    
-    getComments: (postId: string) => fetchApi(`/posts/${postId}/comments`),
-    addComment: (postId: string, content: string) => 
-      fetchApi(`/posts/${postId}/comments`, { method: 'POST', body: JSON.stringify({ content }) }),
-  },
-
-  // --- Utilisateurs & Profils ---
-  users: {
-    getProfile: (userId: string) => fetchApi(`/users/${userId}`),
-    updateUsername: (username: string) => fetchApi('/users/username', { method: 'PUT', body: JSON.stringify({ username }) }),
-    becomeSeller: (sellerData: any) => fetchApi('/users/become-seller', { method: 'POST', body: JSON.stringify(sellerData) }),
-    getFollowers: (userId: string) => fetchApi(`/users/${userId}/followers`),
-    getOrders: (userId: string) => fetchApi(`/users/${userId}/orders`),
-  },
-
-  // --- Deals & Recherche ---
-  deals: {
-    getRecommended: () => fetchApi('/deals/recommended'),
-  },
-  search: {
-    query: (keyword: string) => fetchApi(`/search?q=${encodeURIComponent(keyword)}`),
-    getSuggestions: () => fetchApi('/search/suggestions'),
-  },
-
-  // --- Notifications ---
-  notifications: {
-    getAll: () => fetchApi('/notifications'),
-    getUnreadCount: () => fetchApi('/notifications/unread-count'),
-    markAsRead: () => fetchApi('/notifications/mark-as-read', { method: 'POST' }),
-    saveToken: (token: string) => fetchApi('/notifications/save-token', { method: 'POST', body: JSON.stringify({ token }) }),
-  },
-
-  // --- Admin & Analytics ---
-  analytics: {
-    track: (eventData: any) => fetchApi('/analytics/track', { method: 'POST', body: JSON.stringify(eventData) }),
-  },
-  admin: {
-    getPioneers: () => fetchApi('/admin/pioneers'),
-  }
+export type DealCityMedia = {
+  id: string;
+  type: MediaType;
+  url: string;
+  settings?: unknown;
 };
+
+export type DealCityUser = {
+  id: string;
+  username: string;
+  displayName: string;
+  avatarUrl?: string | null;
+  coverUrl?: string | null;
+  bio?: string | null;
+  isSeller?: boolean;
+  isPioneer?: boolean;
+  isVerified?: boolean;
+  phoneNumber?: string | null;
+  city?: string | null;
+  neighborhood?: string | null;
+  businessName?: string | null;
+  businessDomain?: string | null;
+  followers?: unknown[];
+  _count?: {
+    posts?: number;
+    followers?: number;
+    sales?: number;
+  };
+};
+
+export type DealCityPost = {
+  id: string;
+  content: string;
+  userId: string;
+  user: DealCityUser;
+  attachments: DealCityMedia[];
+  category?: string;
+  views?: number;
+  thumbnailUrl?: string | null;
+  stock?: number;
+  price?: number;
+  city?: string | null;
+  neighborhood?: string | null;
+  createdAt: string;
+  likes?: unknown[];
+  bookmarks?: unknown[];
+  _count?: {
+    likes?: number;
+    comments?: number;
+    orders?: number;
+  };
+};
+
+export type PostsPage = {
+  posts: DealCityPost[];
+  nextCursor: string | null;
+};
+
+export type Shop = DealCityUser & {
+  posts?: Array<{
+    id: string;
+    content: string;
+    thumbnailUrl?: string | null;
+    attachments?: Array<Pick<DealCityMedia, "url" | "type">>;
+  }>;
+};
+
+export type SearchResult = {
+  posts: DealCityPost[];
+  users: DealCityUser[];
+  nextCursor: string | null;
+};
+
+export class ApiError extends Error {
+  status: number;
+
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+  }
+}
+
+function withQuery(
+  endpoint: string,
+  params?: Record<string, string | number | null | undefined>,
+) {
+  if (!params) return endpoint;
+
+  const query = Object.entries(params)
+    .filter(([, value]) => value !== undefined && value !== null && value !== "")
+    .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`)
+    .join("&");
+
+  return query ? `${endpoint}?${query}` : endpoint;
+}
+
+async function fetchApi<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+  const response = await fetch(`${API_URL}${endpoint}`, {
+    ...options,
+    headers: {
+      Accept: "application/json",
+      ...(options.body ? { "Content-Type": "application/json" } : {}),
+      ...options.headers,
+    },
+  });
+
+  const raw = await response.text();
+  let data: any = null;
+
+  if (raw) {
+    try {
+      data = JSON.parse(raw);
+    } catch {
+      data = raw;
+    }
+  }
+
+  if (!response.ok) {
+    const message =
+      (data && typeof data === "object" && (data.error || data.message)) ||
+      `Erreur DealCity (${response.status})`;
+    throw new ApiError(String(message), response.status);
+  }
+
+  return data as T;
+}
+
+export const api = {
+  posts: {
+    getForYou: (params?: { cursor?: string | null; city?: string; neighborhood?: string }) =>
+      fetchApi<PostsPage>(withQuery("/posts/for-you", params)),
+
+    getFollowing: (cursor?: string | null) =>
+      fetchApi<PostsPage>(withQuery("/posts/following", { cursor })),
+
+    getBookmarked: (cursor?: string | null) =>
+      fetchApi<PostsPage>(withQuery("/posts/bookmarked", { cursor })),
+
+    getVideos: (cursor?: string | null) =>
+      fetchApi<PostsPage>(withQuery("/posts/videos", { cursor })),
+
+    create: (payload: {
+      content: string;
+      city?: string;
+      neighborhood?: string;
+      mediaIds?: string[];
+      stock?: number;
+      targetUserId?: string;
+    }) =>
+      fetchApi<DealCityPost>("/posts", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      }),
+
+    toggleLike: (postId: string) =>
+      fetchApi(`/posts/${postId}/likes`, { method: "POST" }),
+
+    toggleBookmark: (postId: string) =>
+      fetchApi(`/posts/${postId}/bookmark`, { method: "POST" }),
+
+    report: (postId: string) =>
+      fetchApi(`/posts/${postId}/report`, { method: "POST" }),
+
+    getComments: (postId: string) =>
+      fetchApi(`/posts/${postId}/comments`),
+
+    addComment: (postId: string, content: string) =>
+      fetchApi(`/posts/${postId}/comments`, {
+        method: "POST",
+        body: JSON.stringify({ content }),
+      }),
+  },
+
+  shops: {
+    getAll: () => fetchApi<Shop[]>("/shops"),
+  },
+
+  search: {
+    query: (keyword: string, cursor?: string | null) =>
+      fetchApi<SearchResult>(
+        withQuery("/search", {
+          q: keyword.trim(),
+          cursor,
+        }),
+      ),
+  },
+
+  notifications: {
+    getAll: () => fetchApi("/notifications"),
+    getUnreadCount: () => fetchApi<{ unreadCount: number }>("/notifications/unread-count"),
+    markAsRead: () =>
+      fetchApi("/notifications/mark-as-read", { method: "POST" }),
+  },
+
+  users: {
+    getFollowers: (userId: string) =>
+      fetchApi(`/users/${userId}/followers`),
+    getOrders: (userId: string) =>
+      fetchApi(`/users/${userId}/orders`),
+  },
+
+  analytics: {
+    track: (eventData: unknown) =>
+      fetchApi("/analytics/track", {
+        method: "POST",
+        body: JSON.stringify(eventData),
+      }),
+  },
+};
+
+export { API_URL };
