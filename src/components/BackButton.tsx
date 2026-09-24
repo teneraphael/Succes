@@ -7,9 +7,10 @@ interface BackButtonProps {
   fallback?: string;
   label?: string;
   className?: string;
+  overlay?: boolean;
 }
 
-export default function BackButton({ fallback = "/", label = "Retour", className = "" }: BackButtonProps) {
+export default function BackButton({ fallback = "/", label = "Retour", className = "", overlay = false }: BackButtonProps) {
   const router = useRouter();
   const pathname = usePathname();
 
@@ -30,7 +31,9 @@ export default function BackButton({ fallback = "/", label = "Retour", className
 
   return (
     <button type="button" onClick={goBack} aria-label={label}
-      className={`inline-flex min-h-11 items-center gap-2 rounded-xl border border-border/60 bg-card px-3 text-sm font-semibold text-foreground shadow-sm transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${className}`}>
+      className={`inline-flex min-h-11 items-center gap-2 rounded-xl border px-3 text-sm font-semibold shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 ${overlay
+        ? "border-white/30 bg-zinc-950/80 text-white hover:bg-zinc-950 focus-visible:ring-white"
+        : "border-border/60 bg-card text-foreground hover:bg-muted focus-visible:ring-primary"} ${className}`}>
       <ArrowLeft className="size-4" aria-hidden="true" />
       <span>{label}</span>
     </button>

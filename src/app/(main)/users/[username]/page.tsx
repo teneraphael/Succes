@@ -179,7 +179,8 @@ async function UserProfile({ user, loggedInUserId }: UserProfileProps) {
           <BackButton
             fallback="/"
             label="Retour"
-            className="absolute left-3 top-3 z-20 border-white/30 bg-black/55 text-white shadow-lg backdrop-blur-sm hover:bg-black/70 focus-visible:ring-white sm:left-5 sm:top-5"
+            overlay
+            className="absolute left-3 top-3 z-20 shadow-lg backdrop-blur-sm sm:left-5 sm:top-5"
           />
           <OnlineBadge />
         </div>
