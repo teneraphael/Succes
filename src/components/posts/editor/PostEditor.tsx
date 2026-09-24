@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/select";
 import { useLanguage } from "@/components/LanguageProvider";
 import { POST_CATEGORIES } from "@/lib/post-categories";
+import { canPublishForSeller } from "@/lib/seller-creator-access";
 
 // ✅ Liste officielle et complète des villes et quartiers du Cameroun
 const CITIES_WITH_QUARTERS: Record<string, string[]> = {
@@ -174,7 +175,7 @@ export default function PostEditor() {
   const [targetUserId, setTargetUserId] = useState("me");
   const [pioneers, setPioneers] = useState<{ id: string; displayName: string; username: string }[]>([]);
 
-  const isAdmin = !!user && (user.username === "dealcity" || user.id === "22lmc64bcqwsqybu");
+  const isAdmin = canPublishForSeller(user);
 
   const availableNeighborhoods = CITIES_WITH_QUARTERS[city as keyof typeof CITIES_WITH_QUARTERS] || [];
 

@@ -14,6 +14,7 @@ import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import { createSellerDirectly } from "../actions"; // 👈 Votre Server Action Admin
+import { canCreateSeller } from "@/lib/seller-creator-access";
 
 const slides = [
   {
@@ -61,11 +62,11 @@ export default function BecomeSellerPage() {
     return () => clearInterval(timer);
   }, []);
 
-  // Sécurité : Réservé exclusivement à l'admin (dgd2ohqrx3tqezng)
+  // Autoriser les comptes de conciergerie désignés.
   useEffect(() => {
     if (!user) {
-      router.push("/login?callbackUrl=/become-seller");
-    } else if (user.id !== "dgd2ohqrx3tqezng") {
+      router.push("/login?callbackUrl=/admin/create-seller");
+    } else if (!canCreateSeller(user.id)) {
       router.push("/");
       toast({ variant: "destructive", description: "Accès refusé : Réservé à l'administrateur." });
     }
@@ -97,7 +98,7 @@ export default function BecomeSellerPage() {
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    if (!user || user.id !== "dgd2ohqrx3tqezng") return;
+    if (!canCreateSeller(user?.id)) return;
 
     const formElement = e.currentTarget;
     const data = new FormData(formElement);
@@ -133,7 +134,7 @@ if (!result.success) throw new Error(result.error || "Erreur lors de la créatio
     });
   }
 
-  if (!user || user.id !== "dgd2ohqrx3tqezng") return null;
+  if (!canCreateSeller(user?.id)) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex w-screen h-dvh overflow-hidden bg-[#f8fbff] dark:bg-[#09090b]">
