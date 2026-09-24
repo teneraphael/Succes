@@ -23,6 +23,7 @@ import {
   SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { useLanguage } from "@/components/LanguageProvider";
+import { POST_CATEGORIES } from "@/lib/post-categories";
 
 // ✅ Liste officielle et complète des villes et quartiers du Cameroun
 const CITIES_WITH_QUARTERS: Record<string, string[]> = {
@@ -163,6 +164,7 @@ export default function PostEditor() {
   const { toast } = useToast();
 
   const [productName, setProductName] = useState("");
+  const [category, setCategory] = useState("");
   const [price, setPrice] = useState("");
   const [priceType, setPriceType] = useState("Prix taxer / Discutable");
   const [stock, setStock] = useState("1");
@@ -232,6 +234,7 @@ export default function PostEditor() {
 
   const isFormValid =
     productName.trim() !== "" &&
+    category !== "" &&
     price.trim() !== "" &&
     priceType.trim() !== "" &&
     stock.trim() !== "" &&
@@ -253,6 +256,7 @@ export default function PostEditor() {
     mutation.mutate(
       {
         content: ` PRODUIT : ${productName}\n PRIX : ${price} FCFA (${priceType})${stockInfo}${whatsappInfo}${locationInfo}\n\n DESCRIPTION :\n${description}`,
+        category,
         mediaIds: attachments.map((a: any) => a.mediaId).filter(Boolean) as string[],
         stock: parseInt(stock),
         city: formattedCity,
@@ -264,6 +268,7 @@ export default function PostEditor() {
         onSuccess: () => {
           editor?.commands.clearContent();
           setProductName("");
+          setCategory("");
           setPrice("");
           setPriceType("Prix taxer / Discutable");
           setPhone("");
@@ -316,6 +321,16 @@ export default function PostEditor() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+        <Select value={category} onValueChange={setCategory}>
+          <SelectTrigger className="h-12 rounded-2xl border border-[#4a90e2]/10 px-4 text-xs font-black uppercase">
+            <SelectValue placeholder="Catégorie du produit" />
+          </SelectTrigger>
+          <SelectContent>
+            {POST_CATEGORIES.map((value) => (
+              <SelectItem key={value} value={value}>{value}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <div className="relative md:col-span-1">
           <Tag className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
           <input

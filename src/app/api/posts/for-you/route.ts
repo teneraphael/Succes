@@ -8,10 +8,8 @@ import { NextRequest } from "next/server";
 
 const PAGE_SIZE = 10;
 
-/**
- * Nombre de candidats analysés à chaque page.
- */
-const CANDIDATE_SIZE = 100;
+// Chaque candidat parcouru doit être renvoyé avant de déplacer le curseur.
+const CANDIDATE_SIZE = PAGE_SIZE;
 
 /* =========================================================
    POIDS DES ACTIONS
@@ -26,6 +24,8 @@ const INTERACTION_WEIGHTS: Record<
   VIEW: 2,
 
   LIKE: 8,
+
+  COMMENT: 12,
 
   FAVORITE: 15,
 
@@ -421,15 +421,6 @@ function calculateScore(
   score += getFreshnessScore(
     post.createdAt
   );
-
-  /**
-   * Variabilité plus importante.
-   *
-   * Permet de changer l'ordre entre
-   * les publications ayant des scores
-   * relativement proches.
-   */
-  score += Math.random() * 15;
 
   return score;
 }

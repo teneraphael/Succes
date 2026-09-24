@@ -4,6 +4,7 @@ import { validateRequest } from "@/auth";
 import prisma from "@/lib/prisma";
 import { getPostDataInclude } from "@/lib/types";
 import { createPostSchema } from "@/lib/validation";
+import { getPostCategory } from "@/lib/post-categories";
 
 const ADMIN_IDS = ["22lmc64bcqwsqybu"]; 
 const ADMIN_USERNAMES = ["dealcity"];
@@ -14,6 +15,7 @@ interface DynamicAttributeInput {
 }
 
 interface SubmitPostInput {
+  category?: string;
   content: string;
   mediaIds: string[];
   stock: number;
@@ -78,6 +80,7 @@ export async function submitPost(input: SubmitPostInput) {
     const post = await tx.post.create({
       data: {
         content,
+        category: getPostCategory(input.category),
         userId: finalAuthorId,
         stock: validatedStock,
         city: input.city || null,                 // 👈 Enregistré en base
