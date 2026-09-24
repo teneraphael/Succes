@@ -3,13 +3,14 @@
 import { lucia } from "@/auth";
 import prisma from "@/lib/prisma";
 import { loginSchema, LoginValues } from "@/lib/validation";
-import { verify } from "@node-rs/argon2";
+import { verifyPassword } from "@/lib/verify-password";
 import { isRedirectError } from "next/dist/client/components/redirect";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 export async function login(
   credentials: LoginValues,
+  returnTo?: string,
 ): Promise<{ error: string }> {
   try {
     const { username, password } = loginSchema.parse(credentials);
@@ -29,12 +30,7 @@ export async function login(
       };
     }
 
-    const validPassword = await verify(existingUser.passwordHash, password, {
-      memoryCost: 19456,
-      timeCost: 2,
-      outputLen: 32,
-      parallelism: 1,
-    });
+    const validPassword = await verifyPassword(existingUser.passwordHash, password);
 
     if (!validPassword) {
       return {
@@ -55,7 +51,7 @@ export async function login(
       return redirect("/onboarding");
     }
 
-    return redirect("/");
+    return redirect(returnTo?.startsWith("/") && !returnTo.startsWith("//") && !returnTo.includes("\\") ? returnTo : "/");
   } catch (error) {
     if (isRedirectError(error)) throw error;
     console.error(error);

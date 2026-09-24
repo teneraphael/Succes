@@ -42,6 +42,7 @@ export default function BecomeSellerPage() {
   const [isPending, startTransition] = useTransition();
   const [currentSlide, setCurrentSlide] = useState(0);
   const [formProgress, setFormProgress] = useState(0);
+  const [draftReady, setDraftReady] = useState(false);
   const [copied, setCopied] = useState(false);
   const [createdSellerInfo, setCreatedSellerInfo] = useState<{ username: string; tempPass: string } | null>(null);
 
@@ -53,6 +54,21 @@ export default function BecomeSellerPage() {
     city: "",
     neighborhood: "",
   });
+
+  const draftKey = `dealcity:seller-draft:${user?.id ?? "anonymous"}`;
+  useEffect(() => {
+    if (!user || draftReady) return;
+    try {
+      const saved = sessionStorage.getItem(draftKey);
+      if (saved) setFormDataValues((current) => ({ ...current, ...JSON.parse(saved) }));
+    } catch {}
+    setDraftReady(true);
+  }, [user, draftKey, draftReady]);
+
+  useEffect(() => {
+    if (!draftReady) return;
+    try { sessionStorage.setItem(draftKey, JSON.stringify(formDataValues)); } catch {}
+  }, [draftReady, draftKey, formDataValues]);
 
   // Rotation des diapositives d'illustration
   useEffect(() => {
@@ -119,6 +135,7 @@ export default function BecomeSellerPage() {
 };
 
 if (!result.success) throw new Error(result.error || "Erreur lors de la création");
+        try { sessionStorage.removeItem(draftKey); } catch {}
         setCreatedSellerInfo({
           username: result.seller.username,
           tempPass: result.tempPassword,

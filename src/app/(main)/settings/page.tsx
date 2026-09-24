@@ -14,8 +14,10 @@ import {
 import { deleteAccount } from "./actions";
 import { logout } from "@/app/(auth)/actions";
 import Link from "next/link";
+import { useSession } from "@/app/(main)/SessionProvider";
 
 export default function SettingsPage() {
+  const { user } = useSession();
   const handleDeleteAction = async () => {
     if (confirm("Êtes-vous sûr de vouloir supprimer votre compte définitivement ? Cette action est irréversible.")) {
       try {
@@ -51,7 +53,7 @@ export default function SettingsPage() {
         </p>
         <div className="bg-card rounded-3xl border border-border/60 shadow-sm overflow-hidden">
           <Link
-            href="/user/profile"
+            href={user ? `/users/${user.username}` : "/login?callbackUrl=/settings"}
             className="flex items-center justify-between p-4 hover:bg-[#4a90e2]/[0.03] transition-all border-b border-border/40 group"
           >
             <div className="flex items-center gap-3">
