@@ -20,6 +20,7 @@ import { Calendar, ShieldCheck, CheckCircle2, Store } from "lucide-react";
 import ShareProfileButton from "./ShareProfileButton";
 import MoreOptionsButton from "./MoreOptionsButton";
 import UserProfileStickyHeader from "./UserProfileStickyHeader";
+import BackButton from "@/components/BackButton";
 import {
   ProfileTabs, ProfileStats, OnlineBadge, MemberSince, DefaultBio,
 } from "./UserProfileClient";
@@ -175,6 +176,11 @@ async function UserProfile({ user, loggedInUserId }: UserProfileProps) {
               <div className="absolute -top-6 -left-6 w-32 h-32 rounded-full bg-[#6ab344]/10 blur-2xl" />
             </div>
           )}
+          <BackButton
+            fallback="/"
+            label="Retour"
+            className="absolute left-3 top-3 z-20 border-white/30 bg-black/55 text-white shadow-lg backdrop-blur-sm hover:bg-black/70 focus-visible:ring-white sm:left-5 sm:top-5"
+          />
           <OnlineBadge />
         </div>
 
