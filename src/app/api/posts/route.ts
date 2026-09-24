@@ -2,6 +2,7 @@ import { validateRequest } from "@/auth";
 import prisma from "@/lib/prisma";
 import { moderatePostContent } from "@/lib/moderation";
 import { NextRequest } from "next/server";
+import { getPostCategory } from "@/lib/post-categories";
 
 export async function POST(req: NextRequest) {
   try {
@@ -11,7 +12,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { content, city, neighborhood, mediaIds, stock, targetUserId } = body;
+    const { content, category, city, neighborhood, mediaIds, stock, targetUserId } = body;
 
     // 1️⃣ Récupération des URLs et des types des médias depuis les IDs envoyés par le PostEditor
     let mediaUrls: { url: string; type: "IMAGE" | "VIDEO" }[] = [];
@@ -51,6 +52,7 @@ export async function POST(req: NextRequest) {
     const newPost = await prisma.post.create({
       data: {
         content: content.trim(),
+        category: getPostCategory(category),
         city: city?.trim() || "",
         neighborhood: neighborhood?.trim() || "",
         stock: typeof stock === "number" ? stock : parseInt(stock) || 1,

@@ -2,7 +2,6 @@
 
 import InfiniteScrollContainer from "@/components/InfiniteScrollContainer";
 import Post from "@/components/posts/Post";
-import TrackedPost from "@/components/posts/TrackedPost";
 import kyInstance from "@/lib/ky";
 import { PostsPage } from "@/lib/types";
 import { useInfiniteQuery } from "@tanstack/react-query";
@@ -164,13 +163,7 @@ export default function ForYouFeed({
       }}
     >
       {posts.map((post) => (
-        <TrackedPost
-          key={post.id}
-          post={post}
-          userId={userId}
-        >
-          <Post post={post} />
-        </TrackedPost>
+        <Post key={post.id} post={post} />
       ))}
 
       {isFetchingNextPage && (
