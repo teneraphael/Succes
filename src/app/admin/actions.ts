@@ -3,13 +3,14 @@
 import { validateRequest } from "@/auth";
 import prisma from "@/lib/prisma";
 import crypto from "crypto";
+import { canCreateSeller } from "@/lib/seller-creator-access";
 
 export async function createSellerDirectly(formData: FormData) {
   try {
     const { user: loggedInUser } = await validateRequest();
 
-    if (!loggedInUser || loggedInUser.id !== "dgd2ohqrx3tqezng") {
-      return { success: false, error: "Accès refusé : réservé à l'administrateur." };
+    if (!canCreateSeller(loggedInUser?.id)) {
+      return { success: false, error: "Accès refusé : compte non autorisé à créer des vendeurs." };
     }
 
     // 1. Récupération des données du formulaire
