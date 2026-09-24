@@ -30,7 +30,7 @@ export default function LoginForm() {
   async function onSubmit(values: LoginValues) {
     setError(undefined);
     startTransition(async () => {
-      const { error } = await login(values);
+      const { error } = await login(values, searchParams.get("callbackUrl") || redirectTo || undefined);
       if (error) setError(error);
     });
   }

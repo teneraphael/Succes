@@ -3,6 +3,7 @@
 import { validateRequest } from "@/auth";
 import prisma from "@/lib/prisma";
 import crypto from "crypto";
+import { hash } from "@node-rs/argon2";
 import { canCreateSeller } from "@/lib/seller-creator-access";
 
 export async function createSellerDirectly(formData: FormData) {
@@ -30,10 +31,10 @@ export async function createSellerDirectly(formData: FormData) {
     const username = `${usernameBase}_${randomSuffix}`;
     const tempPassword = `dealcity${randomSuffix}`;
 
-    // 3. Hachage sécurisé natif
-    const salt = crypto.randomBytes(16).toString("hex");
-    const derivedKey = crypto.scryptSync(tempPassword, salt, 64).toString("hex");
-    const hashedPass = `${salt}:${derivedKey}`;
+    // Même format de mot de passe que la connexion et l'inscription.
+    const hashedPass = await hash(tempPassword, {
+      memoryCost: 19456, timeCost: 2, outputLen: 32, parallelism: 1,
+    });
 
     // 4. Création de l'utilisateur avec tous les flags requis
     const newSeller = await prisma.user.create({

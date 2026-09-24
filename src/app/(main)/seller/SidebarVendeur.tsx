@@ -4,10 +4,8 @@ import { cn } from "@/lib/utils";
 import {
   LayoutDashboard,
   Package,
-  MessageSquare,
   ArrowLeft,
   Settings,
-  Wallet,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -21,8 +19,6 @@ export default function SidebarVendeur({ className }: { className?: string }) {
   const menu = [
     { label: t.seller_dashboard, href: "/seller/dashboard", icon: LayoutDashboard },
     { label: "Mes Articles", href: "/seller/articles", icon: Package },
-    { label: "Mes Retraits", href: "/seller/withdrawals", icon: Wallet },
-    { label: "Messages", href: "/messages", icon: MessageSquare },
     { label: t.settings, href: "/seller/settings", icon: Settings },
   ];
 

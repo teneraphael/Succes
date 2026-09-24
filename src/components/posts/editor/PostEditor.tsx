@@ -173,15 +173,14 @@ export default function PostEditor() {
   const [city, setCity] = useState("");
   const [neighborhood, setNeighborhood] = useState("");
   const [targetUserId, setTargetUserId] = useState("me");
+  const [descriptionDraft, setDescriptionDraft] = useState("");
+  const [draftReady, setDraftReady] = useState(false);
+  const [draftRestored, setDraftRestored] = useState(false);
   const [pioneers, setPioneers] = useState<{ id: string; displayName: string; username: string }[]>([]);
 
   const isAdmin = canPublishForSeller(user);
 
   const availableNeighborhoods = CITIES_WITH_QUARTERS[city as keyof typeof CITIES_WITH_QUARTERS] || [];
-
-  useEffect(() => {
-    setNeighborhood("");
-  }, [city]);
 
   useEffect(() => {
     if (isAdmin) {
@@ -204,6 +203,7 @@ export default function PostEditor() {
       Placeholder.configure({ placeholder: t.description_placeholder }),
     ],
     immediatelyRender: false,
+    onUpdate: ({ editor }) => setDescriptionDraft(editor.getText({ blockSeparator: "\n" })),
     editorProps: {
       handlePaste(view, event) {
         const text = event.clipboardData?.getData("text/plain");
@@ -230,6 +230,42 @@ export default function PostEditor() {
       },
     },
   });
+
+  const draftKey = `dealcity:post-draft:${user?.id ?? "anonymous"}`;
+  useEffect(() => {
+    if (!editor || draftReady || !user) return;
+    try {
+      const saved = sessionStorage.getItem(draftKey);
+      if (saved) {
+        const draft = JSON.parse(saved);
+        setProductName(draft.productName || "");
+        setCategory(draft.category || "");
+        setPrice(draft.price || "");
+        setPriceType(draft.priceType || "Prix taxer / Discutable");
+        setPhone(draft.phone || "");
+        setStock(draft.stock || "1");
+        setCity(draft.city || "");
+        setNeighborhood(draft.neighborhood || "");
+        setTargetUserId(draft.targetUserId || "me");
+        if (draft.description) editor.commands.setContent(draft.description);
+        setDraftRestored(true);
+      }
+    } catch {}
+    setDraftReady(true);
+  }, [editor, draftKey, draftReady, user]);
+
+  useEffect(() => {
+    if (!draftReady) return;
+    const save = () => {
+      try {
+        sessionStorage.setItem(draftKey, JSON.stringify({
+          productName, category, price, priceType, phone, stock, city, neighborhood,
+          targetUserId, description: descriptionDraft,
+        }));
+      } catch {}
+    };
+    save();
+  }, [draftReady, draftKey, productName, category, price, priceType, phone, stock, city, neighborhood, targetUserId, descriptionDraft]);
 
   const description = editor?.getText({ blockSeparator: "\n" }) || "";
 
@@ -267,6 +303,8 @@ export default function PostEditor() {
       } as any,
       {
         onSuccess: () => {
+          try { sessionStorage.removeItem(draftKey); } catch {}
+          setDraftRestored(false);
           editor?.commands.clearContent();
           setProductName("");
           setCategory("");
@@ -322,6 +360,11 @@ export default function PostEditor() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+        {draftRestored && (
+          <p className="col-span-full rounded-xl bg-[#4a90e2]/10 px-3 py-2 text-xs text-foreground" role="status">
+            Brouillon récupéré. Vérifiez les informations et ajoutez à nouveau vos photos ou vidéos si nécessaire.
+          </p>
+        )}
         <Select value={category} onValueChange={setCategory}>
           <SelectTrigger className="h-12 rounded-2xl border border-[#4a90e2]/10 px-4 text-xs font-black uppercase">
             <SelectValue placeholder="Catégorie du produit" />
@@ -389,7 +432,7 @@ export default function PostEditor() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <Select value={city} onValueChange={setCity}>
+        <Select value={city} onValueChange={(value) => { setCity(value); setNeighborhood(""); }}>
           <SelectTrigger className="w-full h-12 rounded-2xl bg-[#f8faff] dark:bg-zinc-800/50 border border-[#4a90e2]/10 px-4 text-sm font-black uppercase">
             <div className="flex items-center gap-2 truncate">
               <Building2 className="size-4 text-muted-foreground shrink-0" />

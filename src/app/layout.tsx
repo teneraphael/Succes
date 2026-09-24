@@ -14,6 +14,7 @@ import SessionProvider from "./(main)/SessionProvider";
 import { validateRequest } from "@/auth"; 
 import { LanguageProvider } from "@/components/LanguageProvider";
 import LanguageSync from "@/components/LanguageSync";
+import NavigationTracker from "@/components/NavigationTracker";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -59,6 +60,7 @@ export default async function RootLayout({
             <ReactQueryProvider>
               <SessionProvider value={sessionValues}>
                 <LanguageSync>
+                  <NavigationTracker />
                   <NextSSRPlugin routerConfig={extractRouterConfig(fileRouter)} />
                   
                   {sessionValues.user && <NotificationHandler />}
