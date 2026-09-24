@@ -8,7 +8,7 @@ const ROUTES_WITH_OWN_BACK = ["/settings/security", "/settings/notifications", "
 export default function ContextBackNavigation() {
   const pathname = usePathname();
   if (pathname === "/" || pathname === "/video" ||
-      pathname.endsWith("/photos") || ROUTES_WITH_OWN_BACK.includes(pathname)) return null;
+      pathname.endsWith("/photos") || pathname.startsWith("/users/") || ROUTES_WITH_OWN_BACK.includes(pathname)) return null;
 
   const fallback = pathname.startsWith("/settings") ? "/" :
     pathname.startsWith("/seller") ? "/seller/dashboard" : "/";
