@@ -1,12 +1,13 @@
 import { validateRequest } from "@/auth";
 import prisma from "@/lib/prisma";
+import { canCreateSeller, canPublishForSeller } from "@/lib/seller-creator-access";
 
 export async function GET() {
   try {
     const { user: loggedInUser } = await validateRequest();
     
     // Sécurité : Vérification via l'ID Admin (plus robuste que le pseudo)
-    if (!loggedInUser || loggedInUser.id !== "dgd2ohqrx3tqezng") {
+    if (!canCreateSeller(loggedInUser?.id) && !canPublishForSeller(loggedInUser)) {
       return Response.json({ error: "Accès refusé" }, { status: 401 });
     }
 
