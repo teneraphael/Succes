@@ -1,24 +1,25 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { validateRequest } from "@/auth";
 
 export async function POST(req: Request) {
   try {
-    const { userId, token } = await req.json();
+    const { user } = await validateRequest();
+    if (!user) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+    const { token } = await req.json();
 
-    if (!userId || !token) {
+    if (typeof token !== "string" || !token || token.length > 4096) {
       return NextResponse.json(
-        { error: "Données manquantes : userId ou token absent" },
+        { error: "Jeton de notification invalide" },
         { status: 400 }
       );
     }
 
     // Sauvegarde ou mise à jour du token FCM
-    const user = await prisma.user.update({
-      where: { id: userId },
+    await prisma.user.update({
+      where: { id: user.id },
       data: { fcmToken: token },
     });
-
-    console.log(`✅ Token FCM enregistré pour l'utilisateur ${user.id}`);
 
     return NextResponse.json({ success: true });
   } catch (error: any) {

@@ -1,37 +1,12 @@
+import Link from "next/link";
+
 export default function Confidentialite() {
-  return (
-    <div className="max-w-3xl mx-auto py-10 px-4">
-      <h1 className="text-3xl font-bold mb-6">Politique de Confidentialité</h1>
-      <div className="prose prose-blue dark:prose-invert">
-        <p>
-          La protection de vos données est une priorité pour nous. Cette politique détaille comment nous traitons vos informations au sein de notre plateforme.
-        </p>
-
-        <h2 className="text-xl font-semibold mt-6">1. Données collectées</h2>
-        <p>
-          Nous collectons uniquement les informations nécessaires au bon fonctionnement de vos services :
-        </p>
-        <ul className="list-disc pl-6 space-y-2">
-          <li><strong>Informations de profil :</strong> Votre email, nom d&apos;utilisateur et photo de profil (via Google ou inscription directe).</li>
-          <li><strong>Données d&apos;activité :</strong> Les réservations et interactions effectuées sur la plateforme.</li>
-        </ul>
-
-        <h2 className="text-xl font-semibold mt-6">2. Notifications et Sécurité</h2>
-        <p>
-          Nous utilisons <strong>Firebase</strong> pour stocker un jeton (token) de notification unique. Ce jeton nous permet de vous envoyer des alertes importantes en temps réel sur l&apos;état de vos services. 
-          Vos mots de passe sont sécurisés via un hachage de pointe et ne sont jamais stockés en clair.
-        </p>
-
-        <h2 className="text-xl font-semibold mt-6">3. Conservation des données</h2>
-        <p>
-          Vos données sont conservées aussi longtemps que votre compte est actif. Nous utilisons <strong>Prisma</strong> avec une base de données sécurisée pour garantir l&apos;intégrité de vos informations.
-        </p>
-
-        <h2 className="text-xl font-semibold mt-6">4. Vos droits</h2>
-        <p>
-          Conformément aux réglementations en vigueur, vous disposez d&apos;un droit d&apos;accès, de modification et de suppression de vos données. Vous pouvez fermer votre compte à tout moment depuis votre espace personnel, ce qui entraînera la suppression définitive de vos données privées.
-        </p>
-      </div>
-    </div>
-  );
+  return <article className="mx-auto max-w-3xl space-y-6 px-4 py-10 leading-relaxed">
+    <h1 className="text-3xl font-bold">Politique de confidentialité</h1>
+    <p>Dernière mise à jour : 26 septembre 2026. Le responsable de la plateforme DealCity est indiqué dans les <Link href="/mentions-legales" className="underline">mentions légales</Link>. Pour exercer vos droits ou poser une question : <a href="mailto:teneraphael57@gmail.com" className="underline">teneraphael57@gmail.com</a>.</p>
+    <section><h2 className="text-xl font-semibold">Données traitées et finalités</h2><p>Selon votre utilisation, DealCity traite vos identifiants de compte et de connexion, nom et photo de profil, coordonnées de vendeur, ville et quartier choisis, annonces, médias, commentaires, favoris, abonnements, signalements, interactions et statistiques de consultation. Ces données servent à créer le compte, afficher les annonces, permettre les échanges, personnaliser le fil, prévenir les abus et assurer le fonctionnement du service. Un jeton de notification est utilisé si les notifications sont activées.</p></section>
+    <section><h2 className="text-xl font-semibold">Visibilité et destinataires</h2><p>Les informations du profil public, les annonces et les coordonnées que vous choisissez d’afficher peuvent être consultées par d’autres personnes. Si vous ouvrez WhatsApp, les échanges se déroulent selon les règles de ce service. Les prestataires techniques nécessaires à l’hébergement, à la connexion, aux médias, aux notifications et à la mesure d’audience peuvent traiter les données nécessaires à leurs missions. Certains prestataires peuvent être situés hors du Cameroun.</p></section>
+    <section><h2 className="text-xl font-semibold">Cookies et mesure d’audience</h2><p>Le site utilise des cookies ou stockages nécessaires à la session, à la sécurité et à vos choix de localisation. Il peut aussi utiliser Google Analytics lorsque cette fonction est configurée. Les détails sont dans la <Link href="/cookies" className="underline">politique de cookies</Link>.</p></section>
+    <section><h2 className="text-xl font-semibold">Durée, sécurité et droits</h2><p>Les données de compte sont traitées pendant son utilisation ; certaines données peuvent être conservées plus longtemps lorsque cela est nécessaire pour la sécurité, les obligations légales ou le traitement d’un litige. Vous pouvez demander l’accès, la rectification, la suppression ou exercer les autres droits prévus par la loi applicable à l’adresse ci-dessus. La suppression du compte est proposée dans les paramètres, sous réserve des contraintes techniques et obligations de conservation. Les mots de passe créés sur DealCity sont stockés sous forme hachée.</p></section>
+  </article>;
 }

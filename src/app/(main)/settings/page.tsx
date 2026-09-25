@@ -134,6 +134,8 @@ export default function SettingsPage() {
             </div>
             <ChevronRight className="size-4 text-muted-foreground group-hover:text-[#4a90e2] transition-colors" />
           </Link>
+          <Link href="/conditions-utilisation" className="flex items-center justify-between p-4 border-t border-border/40 hover:bg-muted/40"><span className="font-bold text-sm">Conditions d’utilisation</span><ChevronRight className="size-4" /></Link>
+          <Link href="/cookies" className="flex items-center justify-between p-4 border-t border-border/40 hover:bg-muted/40"><span className="font-bold text-sm">Cookies et stockage local</span><ChevronRight className="size-4" /></Link>
         </div>
       </div>
 
