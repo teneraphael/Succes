@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "dealcity-mobile",
+    "name": "DealCity",
     "slug": "dealcity-mobile",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -21,7 +21,7 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.anonymous.dealcitymobile"
+      "package": "app.dealcity.mobile"
     },
     "web": {
       "bundler": "metro",

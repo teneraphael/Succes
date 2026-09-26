@@ -1,4 +1,4 @@
-import { WebView, type DomWebViewRef } from '@expo/dom-webview';
+import WebView, { type WebView as WebViewRef } from 'react-native-webview';
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, BackHandler, Linking, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SITE_URL } from '@/services/api';
@@ -28,7 +28,7 @@ const navigationBridge = `
 `;
 
 export default function DealCityApp() {
-  const webview = useRef<DomWebViewRef>(null);
+  const webview = useRef<WebViewRef>(null);
   const [error, setError] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -54,7 +54,11 @@ export default function DealCityApp() {
         style={styles.webview}
         source={{ uri: siteOrigin }}
         injectedJavaScript={navigationBridge}
-        useExpoModulesBridge={false}
+        javaScriptEnabled
+        domStorageEnabled
+        sharedCookiesEnabled
+        thirdPartyCookiesEnabled
+        onError={() => { setLoading(false); setError(true); }}
         onMessage={({ nativeEvent }) => {
           try {
             const message = JSON.parse(nativeEvent.data);
