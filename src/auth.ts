@@ -1,7 +1,7 @@
 import { PrismaAdapter } from "@lucia-auth/adapter-prisma";
 import { Google } from "arctic";
 import { Lucia, Session, User } from "lucia";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { cache } from "react";
 import prisma from "./lib/prisma";
 
@@ -73,8 +73,18 @@ export const google = new Google(
 
 export const validateRequest = cache(
   async (): Promise<{ user: User; session: Session } | { user: null; session: null }> => {
-    const cookieStore = await cookies();
-    const sessionId = cookieStore.get(lucia.sessionCookieName)?.value ?? null;
+    const [cookieStore, requestHeaders] = await Promise.all([cookies(), headers()]);
+
+    const authorization = requestHeaders.get("authorization");
+    const bearerSessionId =
+      authorization?.startsWith("Bearer ")
+        ? authorization.slice("Bearer ".length).trim()
+        : null;
+
+    const cookieSessionId =
+      cookieStore.get(lucia.sessionCookieName)?.value ?? null;
+
+    const sessionId = bearerSessionId || cookieSessionId;
 
     if (!sessionId) {
       return { user: null, session: null };
@@ -82,27 +92,32 @@ export const validateRequest = cache(
 
     const result = await lucia.validateSession(sessionId);
 
-    try {
-      if (result.session && result.session.fresh) {
-        const sessionCookie = lucia.createSessionCookie(result.session.id);
-        cookieStore.set(
-          sessionCookie.name,
-          sessionCookie.value,
-          sessionCookie.attributes
-        );
+    // Les cookies sont uniquement rafraîchis pour les sessions web.
+    // L'application mobile conserve son identifiant de session dans SecureStore.
+    if (!bearerSessionId) {
+      try {
+        if (result.session && result.session.fresh) {
+          const sessionCookie = lucia.createSessionCookie(result.session.id);
+          cookieStore.set(
+            sessionCookie.name,
+            sessionCookie.value,
+            sessionCookie.attributes,
+          );
+        }
+
+        if (!result.session) {
+          const sessionCookie = lucia.createBlankSessionCookie();
+          cookieStore.set(
+            sessionCookie.name,
+            sessionCookie.value,
+            sessionCookie.attributes,
+          );
+        }
+      } catch {
+        console.warn("Info: Session cookie refresh skipped (Readonly context)");
       }
-      if (!result.session) {
-        const sessionCookie = lucia.createBlankSessionCookie();
-        cookieStore.set(
-          sessionCookie.name,
-          sessionCookie.value,
-          sessionCookie.attributes
-        );
-      }
-    } catch (error) {
-      console.warn("Info: Session cookie refresh skipped (Readonly context)");
     }
 
     return result;
-  }
+  },
 );

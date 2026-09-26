@@ -1,232 +1,219 @@
-import React, { useState } from 'react';
-import { StyleSheet, View, Text, TextInput, TouchableOpacity, ScrollView, SafeAreaView, FlatList } from 'react-native';
-import { Search, MapPin, Tag, MessageCircle } from 'lucide-react-native';
-
-const CATEGORIES = ['Tous', 'High-Tech', 'Mode & Vêtements', 'Maison', 'Auto & Moto'];
-
-const ALL_ITEMS = [
-  { id: '1', title: 'Nike Air Max Original', category: 'Mode & Vêtements', location: 'Akwa, Douala', price: '25 000 FCFA', username: 'Brice_Douala' },
-  { id: '2', title: 'iPhone 13 Pro Max', category: 'High-Tech', location: 'Bastos, Yaoundé', price: '350 000 FCFA', username: 'Fatima_Yaounde' },
-  { id: '3', title: 'Générateur Électrique 3KVA', category: 'Maison', location: 'Bonabéri, Douala', price: '120 000 FCFA', username: 'Junior_Bona' },
-];
+import React, { useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  FlatList,
+  Image,
+  SafeAreaView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { ArrowLeft, BadgeCheck, MapPin, Search } from "lucide-react-native";
+import { useRouter } from "expo-router";
+import PostCard from "@/components/PostCard";
+import { api, DealCityPost, DealCityUser } from "@/services/api";
 
 export default function ExploreScreen() {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('Tous');
+  const router = useRouter();
+  const [query, setQuery] = useState("");
+  const [posts, setPosts] = useState<DealCityPost[]>([]);
+  const [users, setUsers] = useState<DealCityUser[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // Filtrer les annonces selon la recherche et la catégorie
-  const filteredItems = ALL_ITEMS.filter(item => {
-    const matchesSearch = item.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          item.location.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = selectedCategory === 'Tous' || item.category === selectedCategory;
-    return matchesSearch && matchesCategory;
-  });
+  useEffect(() => {
+    const trimmed = query.trim();
+
+    if (trimmed.length < 2) {
+      setPosts([]);
+      setUsers([]);
+      setError(null);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const data = await api.search.query(trimmed);
+        setPosts(data.posts || []);
+        setUsers(data.users || []);
+      } catch {
+        setPosts([]);
+        setUsers([]);
+        setError("La recherche est momentanément indisponible.");
+      } finally {
+        setLoading(false);
+      }
+    }, 350);
+
+    return () => clearTimeout(timer);
+  }, [query]);
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Barre de recherche supérieure */}
-      <View style={styles.searchHeader}>
-        <View style={styles.searchBar}>
-          <Search size={18} color="#9ca3af" />
+      <View style={styles.header}>
+        <TouchableOpacity style={styles.back} onPress={() => router.back()}>
+          <ArrowLeft size={22} color="#111827" />
+        </TouchableOpacity>
+        <View style={styles.searchBox}>
+          <Search size={19} color="#9ca3af" />
           <TextInput
-            style={styles.searchInput}
-            placeholder="Rechercher un produit, un quartier..."
+            autoFocus
+            value={query}
+            onChangeText={setQuery}
+            placeholder="Produit, boutique, ville, quartier..."
             placeholderTextColor="#9ca3af"
-            value={searchQuery}
-            onChangeText={setSearchQuery}
+            style={styles.input}
+            returnKeyType="search"
           />
         </View>
       </View>
 
-      {/* Filtres par catégories */}
-      <View style={styles.categoriesContainer}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoriesScroll}>
-          {CATEGORIES.map((cat) => (
-            <TouchableOpacity
-              key={cat}
-              style={[styles.categoryChip, selectedCategory === cat && styles.categoryChipActive]}
-              onPress={() => setSelectedCategory(cat)}
-            >
-              <Text style={[styles.categoryText, selectedCategory === cat && styles.categoryTextActive]}>{cat}</Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      </View>
+      {loading ? (
+        <View style={styles.center}>
+          <ActivityIndicator size="large" color="#2563eb" />
+        </View>
+      ) : (
+        <FlatList
+          data={posts}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.list}
+          keyboardShouldPersistTaps="handled"
+          ListHeaderComponent={
+            <>
+              {users.length > 0 ? (
+                <View style={styles.shopsSection}>
+                  <Text style={styles.sectionTitle}>BOUTIQUES</Text>
+                  {users.map((user) => (
+                    <View key={user.id} style={styles.shopRow}>
+                      {user.avatarUrl ? (
+                        <Image source={{ uri: user.avatarUrl }} style={styles.avatar} />
+                      ) : (
+                        <View style={styles.avatarFallback}>
+                          <Text style={styles.avatarText}>
+                            {(user.businessName || user.displayName || user.username)
+                              .slice(0, 1)
+                              .toUpperCase()}
+                          </Text>
+                        </View>
+                      )}
+                      <View style={styles.shopInfo}>
+                        <View style={styles.shopNameRow}>
+                          <Text style={styles.shopName}>
+                            {user.businessName || user.displayName || user.username}
+                          </Text>
+                          {user.isVerified ? (
+                            <BadgeCheck size={15} color="#2563eb" />
+                          ) : null}
+                        </View>
+                        {(user.city || user.neighborhood) && (
+                          <View style={styles.locationRow}>
+                            <MapPin size={12} color="#9ca3af" />
+                            <Text style={styles.shopLocation}>
+                              {[user.neighborhood, user.city].filter(Boolean).join(", ")}
+                            </Text>
+                          </View>
+                        )}
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              ) : null}
 
-      {/* Liste des résultats */}
-      <FlatList
-        data={filteredItems}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContainer}
-        renderItem={({ item }) => (
-          <View style={styles.card}>
-            <View style={styles.cardHeader}>
-              <Text style={styles.categoryBadge}>{item.category}</Text>
-              <View style={styles.locationRow}>
-                <MapPin size={12} color="#6b7280" />
-                <Text style={styles.locationText}>{item.location}</Text>
-              </View>
+              {query.trim().length >= 2 && posts.length > 0 ? (
+                <Text style={styles.sectionTitle}>ANNONCES</Text>
+              ) : null}
+            </>
+          }
+          renderItem={({ item }) => <PostCard post={item} />}
+          ListEmptyComponent={
+            <View style={styles.empty}>
+              <Text style={styles.emptyText}>
+                {error ||
+                  (query.trim().length < 2
+                    ? "Commence à saisir au moins 2 caractères."
+                    : users.length
+                      ? "Aucune annonce correspondante."
+                      : "Aucun résultat trouvé.")}
+              </Text>
             </View>
-
-            <Text style={styles.title}>{item.title}</Text>
-            <Text style={styles.username}>Vendeur : @{item.username}</Text>
-
-            <View style={styles.cardFooter}>
-              <Text style={styles.price}>{item.price}</Text>
-              <TouchableOpacity style={styles.whatsappButton}>
-                <MessageCircle size={16} color="#ffffff" />
-                <Text style={styles.whatsappText}>Discuter</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        )}
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>Aucune affaire trouvée pour cette recherche.</Text>
-          </View>
-        }
-      />
+          }
+        />
+      )}
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f9fafb',
-  },
-  searchHeader: {
-    padding: 16,
-    backgroundColor: '#ffffff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
-  },
-  searchBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f3f4f6',
-    borderRadius: 12,
+  container: { flex: 1, backgroundColor: "#f3f4f6" },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
     paddingHorizontal: 12,
-    height: 44,
-  },
-  searchInput: {
-    flex: 1,
-    marginLeft: 8,
-    fontSize: 14,
-    color: '#111827',
-  },
-  categoriesContainer: {
-    backgroundColor: '#ffffff',
     paddingVertical: 10,
+    backgroundColor: "#ffffff",
     borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
+    borderBottomColor: "#e5e7eb",
   },
-  categoriesScroll: {
-    paddingHorizontal: 16,
-    gap: 8,
-  },
-  categoryChip: {
-    paddingHorizontal: 14,
-    paddingVertical: 6,
+  back: {
+    width: 40,
+    height: 40,
     borderRadius: 20,
-    backgroundColor: '#f3f4f6',
-    marginRight: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#f9fafb",
   },
-  categoryChipActive: {
-    backgroundColor: '#4a90e2',
-  },
-  categoryText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#4b5563',
-  },
-  categoryTextActive: {
-    color: '#ffffff',
-  },
-  listContainer: {
-    padding: 16,
-  },
-  card: {
-    backgroundColor: '#ffffff',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#f3f4f6',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  categoryBadge: {
-    fontSize: 11,
-    fontWeight: 'bold',
-    color: '#4a90e2',
-    backgroundColor: '#eff6ff',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 6,
-  },
-  locationRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  locationText: {
-    fontSize: 12,
-    color: '#6b7280',
-  },
-  title: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#111827',
-    marginBottom: 4,
-  },
-  username: {
-    fontSize: 12,
-    color: '#6b7280',
-    marginBottom: 12,
-  },
-  cardFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#f9fafb',
-  },
-  price: {
-    fontWeight: 'bold',
-    fontSize: 16,
-    color: '#111827',
-  },
-  whatsappButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#25D366',
+  searchBox: {
+    flex: 1,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: "#f3f4f6",
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-    gap: 6,
   },
-  whatsappText: {
-    color: '#ffffff',
-    fontWeight: 'bold',
-    fontSize: 12,
+  input: { flex: 1, marginLeft: 8, color: "#111827", fontSize: 14 },
+  center: { flex: 1, alignItems: "center", justifyContent: "center" },
+  list: { padding: 12, paddingBottom: 30 },
+  shopsSection: {
+    backgroundColor: "#ffffff",
+    borderRadius: 16,
+    padding: 12,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
   },
-  emptyContainer: {
-    alignItems: 'center',
-    marginTop: 40,
+  sectionTitle: {
+    fontSize: 11,
+    letterSpacing: 1,
+    fontWeight: "900",
+    color: "#6b7280",
+    marginBottom: 10,
   },
-  emptyText: {
-    color: '#6b7280',
-    fontSize: 14,
+  shopRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 8,
   },
+  avatar: { width: 44, height: 44, borderRadius: 22 },
+  avatarFallback: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "#dbeafe",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  avatarText: { color: "#2563eb", fontWeight: "900", fontSize: 17 },
+  shopInfo: { flex: 1, marginLeft: 10 },
+  shopNameRow: { flexDirection: "row", alignItems: "center", gap: 4 },
+  shopName: { color: "#111827", fontWeight: "900", fontSize: 14 },
+  locationRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 3 },
+  shopLocation: { color: "#9ca3af", fontSize: 11, fontWeight: "600" },
+  empty: { paddingVertical: 40, paddingHorizontal: 24, alignItems: "center" },
+  emptyText: { color: "#6b7280", fontSize: 14, textAlign: "center" },
 });

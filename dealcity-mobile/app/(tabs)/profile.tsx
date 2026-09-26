@@ -1,177 +1,299 @@
-import React, { useEffect, useState } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, ScrollView, SafeAreaView, ActivityIndicator } from 'react-native';
-import { User, Phone, MapPin, ShieldCheck, Package, LogOut } from 'lucide-react-native';
-import { supabase } from '@/services/supabase';
-import { useRouter } from 'expo-router';
+import React, { useCallback, useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  Image,
+  RefreshControl,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import {
+  BadgeCheck,
+  LogIn,
+  LogOut,
+  MapPin,
+  Package,
+  Store,
+  User,
+  Users,
+} from "lucide-react-native";
+import { useRouter } from "expo-router";
+import { api, ApiError, DealCityUser } from "@/services/api";
+import { clearSessionToken } from "@/services/session";
+
+type ProfileUser = DealCityUser & {
+  email?: string | null;
+  businessName?: string | null;
+  _count?: {
+    posts?: number;
+    followers?: number;
+    sales?: number;
+  };
+};
 
 export default function ProfileScreen() {
-  const [user, setUser] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
   const router = useRouter();
+  const [user, setUser] = useState<ProfileUser | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    checkUser();
-  }, []);
-
-  const checkUser = async () => {
+  const loadProfile = useCallback(async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        // Rediriger vers l'écran de connexion si non connecté
-        router.replace('/auth');
-      } else {
-        setUser(session.user);
-      }
+      const data = await api.auth.me();
+      setUser(data.user);
     } catch (error) {
-      console.error(error);
+      if (error instanceof ApiError && error.status === 401) {
+        await clearSessionToken();
+        setUser(null);
+      }
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
-  };
+  }, []);
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    router.replace('/auth');
+  useEffect(() => {
+    loadProfile();
+  }, [loadProfile]);
+
+  const logout = async () => {
+    try {
+      await api.auth.logout();
+    } catch {
+      // On efface tout de même la session locale.
+    } finally {
+      await clearSessionToken();
+      setUser(null);
+      Alert.alert("Déconnexion", "Tu es maintenant déconnecté de DealCity.");
+    }
   };
 
   if (loading) {
     return (
-      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-        <ActivityIndicator size="large" color="#4a90e2" />
-      </View>
+      <SafeAreaView style={styles.container}>
+        <View style={styles.center}>
+          <ActivityIndicator size="large" color="#2563eb" />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (!user) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.guest}>
+          <View style={styles.guestIcon}>
+            <User size={38} color="#2563eb" />
+          </View>
+          <Text style={styles.guestTitle}>TON PROFIL DEALCITY</Text>
+          <Text style={styles.guestText}>
+            Connecte-toi pour publier, suivre des boutiques, enregistrer des annonces
+            et retrouver ton compte DealCity.
+          </Text>
+          <TouchableOpacity
+            style={styles.loginButton}
+            onPress={() => router.push("/auth")}
+          >
+            <LogIn size={18} color="#ffffff" />
+            <Text style={styles.loginText}>SE CONNECTER / S'INSCRIRE</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
     );
   }
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        
-        {/* En-tête Profil */}
-        <View style={styles.profileHeader}>
-          <View style={styles.avatarContainer}>
-            <User size={40} color="#4a90e2" />
+      <ScrollView
+        contentContainerStyle={styles.content}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => {
+              setRefreshing(true);
+              loadProfile();
+            }}
+            tintColor="#2563eb"
+          />
+        }
+      >
+        {user.coverUrl ? (
+          <Image source={{ uri: user.coverUrl }} style={styles.cover} />
+        ) : (
+          <View style={styles.coverFallback} />
+        )}
+
+        <View style={styles.profileCard}>
+          {user.avatarUrl ? (
+            <Image source={{ uri: user.avatarUrl }} style={styles.avatar} />
+          ) : (
+            <View style={styles.avatarFallback}>
+              <User size={35} color="#2563eb" />
+            </View>
+          )}
+
+          <View style={styles.nameRow}>
+            <Text style={styles.name}>
+              {user.businessName || user.displayName || user.username}
+            </Text>
+            {user.isVerified ? <BadgeCheck size={18} color="#2563eb" /> : null}
           </View>
-          <Text style={styles.username}>{user?.email || 'Vendeur DealCity'}</Text>
-          <View style={styles.badgeTrust}>
-            <ShieldCheck size={14} color="#10b981" />
-            <Text style={styles.badgeTrustText}>Vendeur Vérifié 🇨🇲</Text>
+
+          <Text style={styles.username}>@{user.username}</Text>
+
+          {(user.city || user.neighborhood) && (
+            <View style={styles.locationRow}>
+              <MapPin size={13} color="#6b7280" />
+              <Text style={styles.location}>
+                {[user.neighborhood, user.city].filter(Boolean).join(", ")}
+              </Text>
+            </View>
+          )}
+
+          {user.isSeller ? (
+            <View style={styles.sellerBadge}>
+              <Store size={13} color="#059669" />
+              <Text style={styles.sellerBadgeText}>VENDEUR DEALCITY</Text>
+            </View>
+          ) : null}
+        </View>
+
+        <View style={styles.stats}>
+          <View style={styles.stat}>
+            <Package size={20} color="#2563eb" />
+            <Text style={styles.statValue}>{user._count?.posts || 0}</Text>
+            <Text style={styles.statLabel}>ANNONCES</Text>
+          </View>
+          <View style={styles.stat}>
+            <Users size={20} color="#2563eb" />
+            <Text style={styles.statValue}>{user._count?.followers || 0}</Text>
+            <Text style={styles.statLabel}>ABONNÉS</Text>
+          </View>
+          <View style={styles.stat}>
+            <Store size={20} color="#2563eb" />
+            <Text style={styles.statValue}>{user._count?.sales || 0}</Text>
+            <Text style={styles.statLabel}>VENTES</Text>
           </View>
         </View>
 
-        {/* Infos de contact */}
-        <View style={styles.infoCard}>
-          <View style={styles.infoRow}>
-            <Phone size={18} color="#6b7280" />
-            <Text style={styles.infoText}>+237 699 00 00 00</Text>
-          </View>
-          <View style={[styles.infoRow, { borderTopWidth: 1, borderTopColor: '#f3f4f6', marginTop: 10, paddingTop: 10 }]}>
-            <MapPin size={18} color="#6b7280" />
-            <Text style={styles.infoText}>Douala / Yaoundé, Cameroun</Text>
-          </View>
-        </View>
-
-        {/* Bouton de déconnexion */}
-        <View style={styles.actionsContainer}>
-          <TouchableOpacity style={[styles.actionButton, styles.logoutButton]} onPress={handleLogout}>
-            <LogOut size={18} color="#ef4444" />
-            <Text style={[styles.actionButtonText, { color: '#ef4444' }]}>Se déconnecter</Text>
-          </TouchableOpacity>
-        </View>
-
+        <TouchableOpacity style={styles.logout} onPress={logout}>
+          <LogOut size={18} color="#dc2626" />
+          <Text style={styles.logoutText}>SE DÉCONNECTER</Text>
+        </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  container: { flex: 1, backgroundColor: "#f3f4f6" },
+  center: { flex: 1, alignItems: "center", justifyContent: "center" },
+  guest: {
     flex: 1,
-    backgroundColor: '#f9fafb',
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 30,
   },
-  scrollContent: {
-    padding: 16,
+  guestIcon: {
+    width: 86,
+    height: 86,
+    borderRadius: 43,
+    backgroundColor: "#dbeafe",
+    alignItems: "center",
+    justifyContent: "center",
   },
-  profileHeader: {
-    alignItems: 'center',
-    marginBottom: 20,
-    backgroundColor: 'transparent',
+  guestTitle: { marginTop: 18, color: "#111827", fontSize: 19, fontWeight: "900" },
+  guestText: {
+    marginTop: 9,
+    color: "#6b7280",
+    fontSize: 13,
+    lineHeight: 19,
+    textAlign: "center",
   },
-  avatarContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#e0f2fe',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 10,
-    borderWidth: 2,
-    borderColor: '#4a90e2',
+  loginButton: {
+    marginTop: 22,
+    height: 50,
+    borderRadius: 14,
+    paddingHorizontal: 18,
+    backgroundColor: "#2563eb",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
   },
-  username: {
-    fontSize: 18,
-    fontWeight: '900',
-    color: '#111827',
-  },
-  badgeTrust: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#ecfdf5',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-    marginTop: 6,
-    gap: 4,
-  },
-  badgeTrustText: {
-    color: '#059669',
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-  infoCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 20,
+  loginText: { color: "#ffffff", fontWeight: "900", fontSize: 11 },
+  content: { paddingBottom: 30 },
+  cover: { width: "100%", height: 150 },
+  coverFallback: { width: "100%", height: 110, backgroundColor: "#dbeafe" },
+  profileCard: {
+    alignItems: "center",
+    marginTop: -35,
+    marginHorizontal: 14,
+    backgroundColor: "#ffffff",
+    borderRadius: 20,
+    padding: 17,
     borderWidth: 1,
-    borderColor: '#f3f4f6',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
+    borderColor: "#e5e7eb",
   },
-  infoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    backgroundColor: 'transparent',
+  avatar: {
+    width: 78,
+    height: 78,
+    borderRadius: 39,
+    borderWidth: 4,
+    borderColor: "#ffffff",
   },
-  infoText: {
-    fontSize: 14,
-    color: '#374151',
-    fontWeight: '500',
+  avatarFallback: {
+    width: 78,
+    height: 78,
+    borderRadius: 39,
+    backgroundColor: "#eff6ff",
+    borderWidth: 4,
+    borderColor: "#ffffff",
+    alignItems: "center",
+    justifyContent: "center",
   },
-  actionsContainer: {
-    marginTop: 20,
-    gap: 10,
+  nameRow: { flexDirection: "row", alignItems: "center", gap: 5, marginTop: 8 },
+  name: { color: "#111827", fontSize: 18, fontWeight: "900" },
+  username: { color: "#6b7280", fontSize: 12, marginTop: 2 },
+  locationRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 8 },
+  location: { color: "#6b7280", fontSize: 11 },
+  sellerBadge: {
+    marginTop: 10,
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+    backgroundColor: "#ecfdf5",
+    borderRadius: 9,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
   },
-  actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#ffffff',
-    padding: 14,
-    borderRadius: 12,
+  sellerBadgeText: { color: "#059669", fontSize: 9, fontWeight: "900" },
+  stats: {
+    margin: 14,
+    paddingVertical: 17,
+    backgroundColor: "#ffffff",
+    borderRadius: 18,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
-    gap: 10,
+    borderColor: "#e5e7eb",
+    flexDirection: "row",
   },
-  actionButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#374151',
+  stat: { flex: 1, alignItems: "center" },
+  statValue: { color: "#111827", fontSize: 17, fontWeight: "900", marginTop: 5 },
+  statLabel: { color: "#9ca3af", fontSize: 8, fontWeight: "900", marginTop: 2 },
+  logout: {
+    marginHorizontal: 14,
+    minHeight: 50,
+    backgroundColor: "#fff1f2",
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#fecdd3",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
   },
-  logoutButton: {
-    borderColor: '#fee2e2',
-    backgroundColor: '#fff5f5',
-  },
+  logoutText: { color: "#dc2626", fontSize: 11, fontWeight: "900" },
 });

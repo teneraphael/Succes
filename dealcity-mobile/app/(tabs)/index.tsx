@@ -1,248 +1,212 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { StyleSheet, FlatList, TouchableOpacity, SafeAreaView, Linking, ActivityIndicator, RefreshControl, Image, Dimensions } from 'react-native';
-import { Text, View } from '@/components/Themed';
-import { MessageCircle, Bell, Search, Heart, MessageSquare, Bookmark, MoreHorizontal, UserPlus, Check } from 'lucide-react-native';
-import { supabase } from '@/services/supabase';
+import React, { useCallback, useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  FlatList,
+  RefreshControl,
+  SafeAreaView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { Bell, Search, ShoppingBag, TrendingUp, Zap } from "lucide-react-native";
+import { useRouter } from "expo-router";
+import PostCard from "@/components/PostCard";
+import { api, DealCityPost } from "@/services/api";
 
-const { width } = Dimensions.get('window');
+type FeedMode = "for-you" | "following";
 
-export default function TabOneScreen() {
-  const [posts, setPosts] = useState<any[]>([]);
+export default function HomeScreen() {
+  const router = useRouter();
+  const [mode, setMode] = useState<FeedMode>("for-you");
+  const [posts, setPosts] = useState<DealCityPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [followingState, setFollowingState] = useState<Record<string, boolean>>({});
+  const [error, setError] = useState<string | null>(null);
 
-  const fetchPostsFromSupabase = async () => {
+  const loadFeed = useCallback(async () => {
     try {
-      const { data, error } = await supabase
-        .from('posts')
-        .select(`
-          *,
-          post_media (*),
-          user:users (*)
-        `)
-        .order('createdAt', { ascending: false });
-
-      if (error) throw error;
-      if (data) {
-        setPosts(data);
-      }
-    } catch (error) {
-      console.error('Erreur chargement posts :', error);
+      setError(null);
+      const data =
+        mode === "for-you"
+          ? await api.posts.getForYou()
+          : await api.posts.getFollowing();
+      setPosts(data.posts || []);
+    } catch (err: any) {
+      console.error("Erreur feed DealCity:", err);
+      setError(
+        err?.status === 401
+          ? "Connecte-toi pour voir les vendeurs que tu suis."
+          : err?.message
+            ? "Impossible de charger les annonces : " + err.message
+            : "Impossible de charger DealCity pour le moment.",
+      );
+      setPosts([]);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [mode]);
 
   useEffect(() => {
-    fetchPostsFromSupabase();
-  }, []);
+    setLoading(true);
+    loadFeed();
+  }, [loadFeed]);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
-    fetchPostsFromSupabase();
-  }, []);
-
-  const openWhatsApp = (phone: string, username: string, title: string, price: any) => {
-    if (!phone) {
-      alert("Numéro WhatsApp indisponible pour ce vendeur.");
-      return;
-    }
-    const cleanNumber = phone.replace(/\D/g, "");
-    const message = encodeURIComponent(`Bonjour ! 👋\nJe suis intéressé(e) par votre produit sur *DealCity* :\n\n*${title}*\nPrix : *${price ? price + ' FCFA' : 'Sur devis'}*\n\nEst-ce que ce produit est toujours disponible ? Merci !`);
-    const url = `https://wa.me/${cleanNumber}?text=${message}`;
-    
-    Linking.openURL(url).catch(() => {
-      alert("Impossible d'ouvrir WhatsApp sur cet appareil.");
-    });
-  };
-
-  const toggleFollow = (userId: string) => {
-    setFollowingState(prev => ({ ...prev, [userId]: !prev[userId] }));
-  };
+    loadFeed();
+  }, [loadFeed]);
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* En-tête DealCity */}
       <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <Text style={styles.logo}>DEALCITY</Text>
+        <View style={styles.brand}>
+          <View style={styles.brandBars}>
+            <View style={[styles.brandBar, { height: 16 }]} />
+            <View style={[styles.brandBar, { height: 24 }]} />
+            <View style={[styles.brandBar, { height: 32 }]} />
+            <View style={[styles.brandBar, { height: 20 }]} />
+          </View>
+          <Text style={styles.logo}>DealCity</Text>
         </View>
-        <View style={styles.headerRight}>
-          <TouchableOpacity style={styles.iconButton}>
-            <Search size={22} color="#1f2937" />
+        <View style={styles.headerActions}>
+          <TouchableOpacity
+            style={styles.iconButton}
+            onPress={() => router.push("/(tabs)/explore")}
+          >
+            <Search size={22} color="#111827" />
           </TouchableOpacity>
           <TouchableOpacity style={styles.iconButton}>
-            <Bell size={22} color="#1f2937" />
-            <View style={styles.notificationDot} />
+            <Bell size={22} color="#111827" />
           </TouchableOpacity>
         </View>
       </View>
 
-      {/* Onglets : POUR VOUS / ABONNEMENTS */}
-      <View style={styles.tabsContainer}>
-        <View style={styles.activeTabButton}>
-          <Text style={styles.activeTabText}>POUR VOUS</Text>
+      <View style={styles.hero}>
+        <View style={styles.heroBrandLine}>
+          <View style={styles.heroBars}>
+            <View style={[styles.heroBar, { height: 14 }]} />
+            <View style={[styles.heroBar, { height: 21 }]} />
+            <View style={[styles.heroBar, { height: 28 }]} />
+            <View style={[styles.heroBar, { height: 18 }]} />
+          </View>
+          <Text style={styles.heroBrand}>DealCity</Text>
+          <View style={styles.countryBadge}>
+            <Text style={styles.countryBadgeText}>CAMEROUN</Text>
+          </View>
         </View>
-        <TouchableOpacity style={styles.inactiveTabButton}>
-          <Text style={styles.inactiveTabText}>ABONNEMENTS</Text>
+
+        <Text style={styles.heroTitle}>
+          La marketplace qui{"\n"}connecte vendeurs{"\n"}et acheteurs
+        </Text>
+        <Text style={styles.heroSubtitle}>
+          Découvrez des milliers de produits · Discutez via WhatsApp · 100% Camerounais
+        </Text>
+
+        <View style={styles.heroStats}>
+          <View style={styles.statChipBlue}>
+            <ShoppingBag size={14} color="#3a81f3" />
+            <Text style={styles.statChipBlueText}>Produits</Text>
+          </View>
+          <View style={styles.statChipGreen}>
+            <TrendingUp size={14} color="#1aa04b" />
+            <Text style={styles.statChipGreenText}>Vendeurs</Text>
+          </View>
+          <View style={styles.statChipGray}>
+            <Zap size={14} color="#4b5563" />
+            <Text style={styles.statChipGrayText}>Via WhatsApp</Text>
+          </View>
+        </View>
+
+        <View style={styles.heroButtons}>
+          <TouchableOpacity
+            style={styles.heroLogin}
+            onPress={() => router.push("/auth")}
+          >
+            <Text style={styles.heroLoginText}>SE CONNECTER</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.heroSignup}
+            onPress={() => router.push("/auth")}
+          >
+            <Text style={styles.heroSignupText}>S'INSCRIRE</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      <View style={styles.searchStrip}>
+        <TouchableOpacity
+          style={styles.searchPill}
+          onPress={() => router.push("/(tabs)/explore")}
+        >
+          <Search size={18} color="#9ca3af" />
+          <Text style={styles.searchPlaceholder}>
+            Rechercher un produit, une boutique...
+          </Text>
         </TouchableOpacity>
       </View>
 
-      {/* Chargement initial */}
-      {loading && !refreshing ? (
-        <View style={styles.loaderContainer}>
-          <ActivityIndicator size="large" color="#10b981" />
+      <View style={styles.feedTabs}>
+        <TouchableOpacity
+          style={[styles.feedTab, mode === "for-you" && styles.feedTabActive]}
+          onPress={() => setMode("for-you")}
+        >
+          <Text
+            style={[
+              styles.feedTabText,
+              mode === "for-you" && styles.feedTabTextActive,
+            ]}
+          >
+            POUR VOUS
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.feedTab, mode === "following" && styles.feedTabActive]}
+          onPress={() => setMode("following")}
+        >
+          <Text
+            style={[
+              styles.feedTabText,
+              mode === "following" && styles.feedTabTextActive,
+            ]}
+          >
+            ABONNEMENTS
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {loading ? (
+        <View style={styles.center}>
+          <ActivityIndicator size="large" color="#2563eb" />
         </View>
       ) : (
         <FlatList
           data={posts}
-          keyExtractor={(item: any) => item.id.toString()}
-          contentContainerStyle={styles.listContainer}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.list}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#10b981" />
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor="#2563eb"
+            />
           }
-          renderItem={({ item }: { item: any }) => {
-            const mediaList = item.post_media || [];
-            const vendorUsername = item.user?.username || item.username || 'Presy Services';
-            const vendorPhone = item.user?.phone || item.user?.phoneNumber || item.phone || '';
-            const isFollowed = followingState[item.user_id || '1'] || false;
-            
-            // Formatage de la date (ex: 29 JUIL.)
-            const postDate = item.createdAt 
-              ? new Date(item.createdAt).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' }).toUpperCase() 
-              : '29 JUIL.';
-
-            return (
-              <View style={styles.card}>
-                
-                {/* 1. EN-TÊTE DU POST (Vendeur, Suivre, Options) */}
-                <View style={styles.postHeader}>
-                  <View style={styles.vendorInfoRow}>
-                    {item.user?.avatarUrl ? (
-                      <Image source={{ uri: item.user.avatarUrl }} style={styles.avatarImage} />
-                    ) : (
-                      <View style={styles.avatarPlaceholder}>
-                        <Text style={styles.avatarText}>{vendorUsername[0].toUpperCase()}</Text>
-                      </View>
-                    )}
-                    <View>
-                      <View style={styles.usernameRow}>
-                        <Text style={styles.vendorName}>{vendorUsername}</Text>
-                        <Text style={styles.ratingStars}> ★★★★★</Text>
-                      </View>
-                      <View style={styles.subVendorRow}>
-                        <TouchableOpacity 
-                          style={[styles.followButton, isFollowed && styles.followingButton]}
-                          onPress={() => toggleFollow(item.user_id || '1')}
-                        >
-                          {isFollowed ? (
-                            <>
-                              <Check size={12} color="#059669" />
-                              <Text style={styles.followingText}>SUIVI !</Text>
-                            </>
-                          ) : (
-                            <>
-                              <UserPlus size={12} color="#2563eb" />
-                              <Text style={styles.followText}>SUIVRE</Text>
-                            </>
-                          )}
-                        </TouchableOpacity>
-                        <Text style={styles.postDate}>{postDate}.</Text>
-                      </View>
-                    </View>
-                  </View>
-                  <TouchableOpacity style={styles.moreButton}>
-                    <MoreHorizontal size={20} color="#9ca3af" />
-                  </TouchableOpacity>
-                </View>
-
-                {/* 2. TITRE, STOCK ET PRIX */}
-                <View style={styles.productDetailsContainer}>
-                  <View style={styles.titlePriceRow}>
-                    <View style={{ flex: 1, marginRight: 8 }}>
-                      <Text style={styles.productTitle} numberOfLines={2}>
-                        {item.title || item.content || 'SAVONS LONGRICH'}
-                      </Text>
-                      <View style={styles.stockBadge}>
-                        <Text style={styles.stockText}>DISPONIBLE EN STOCK ({item.stock || 150})</Text>
-                      </View>
-                    </View>
-
-                    {/* Badge de prix style pilule */}
-                    <View style={styles.pricePill}>
-                      <Text style={styles.priceNumber}>{item.price ? item.price : '2000'}</Text>
-                      <Text style={styles.priceCurrency}> FCFA</Text>
-                    </View>
-                  </View>
-
-                  {/* Description textuelle */}
-                  {item.title && item.content && (
-                    <Text style={styles.description} numberOfLines={3}>{item.content}</Text>
-                  )}
-                </View>
-
-                {/* 3. SECTION MÉDIAS (Grille / Image unique avec badges) */}
-                {mediaList.length > 0 && (
-                  <View style={styles.mediaContainer}>
-                    {mediaList.length === 1 ? (
-                      <Image source={{ uri: mediaList[0].url || mediaList[0].image_url }} style={styles.singleImage} resizeMode="cover" />
-                    ) : (
-                      <View style={styles.gridContainer}>
-                        {mediaList.slice(0, 4).map((media: any, index: number) => {
-                          const isLastAndMore = index === 3 && mediaList.length > 4;
-                          return (
-                            <View key={index} style={styles.gridItem}>
-                              <Image 
-                                source={{ uri: media.url || media.image_url }} 
-                                style={[styles.gridImage, isLastAndMore && { opacity: 0.4 }]} 
-                                resizeMode="cover" 
-                              />
-                              {isLastAndMore && (
-                                <View style={styles.moreMediaOverlay}>
-                                  <Text style={styles.moreMediaText}>+{mediaList.length - 3}</Text>
-                                </View>
-                              )}
-                            </View>
-                          );
-                        })}
-                      </View>
-                    )}
-                  </View>
-                )}
-
-                {/* 4. PIED DE CARTE (Likes, Commentaires, Favoris, Bouton WhatsApp) */}
-                <View style={styles.cardFooterActions}>
-                  <View style={styles.socialMetrics}>
-                    <TouchableOpacity style={styles.metricItem}>
-                      <Heart size={20} color="#4b5563" />
-                      <Text style={styles.metricText}>{item.likes_count || 2}</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.metricItem}>
-                      <MessageSquare size={20} color="#4b5563" />
-                      <Text style={styles.metricText}>{item.comments_count || 0}</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.metricItem}>
-                      <Bookmark size={20} color="#4b5563" />
-                    </TouchableOpacity>
-                  </View>
-
-                  <TouchableOpacity 
-                    style={styles.whatsappButton} 
-                    onPress={() => openWhatsApp(vendorPhone, vendorUsername, item.title || item.content || 'Article', item.price)}
-                  >
-                    <MessageCircle size={16} color="#ffffff" fill="#ffffff" />
-                    <Text style={styles.whatsappText}>DISCUTER VIA WHATSAPP</Text>
-                  </TouchableOpacity>
-                </View>
-
-              </View>
-            );
-          }}
+          renderItem={({ item }) => <PostCard post={item} />}
           ListEmptyComponent={
-            <View style={styles.loaderContainer}>
-              <Text style={{ color: '#6b7280' }}>Aucune annonce pour le moment.</Text>
+            <View style={styles.empty}>
+              <Text style={styles.emptyTitle}>
+                {error || "Aucune annonce pour le moment."}
+              </Text>
+              {mode === "following" && error ? (
+                <TouchableOpacity
+                  style={styles.loginButton}
+                  onPress={() => router.push("/auth")}
+                >
+                  <Text style={styles.loginButtonText}>SE CONNECTER</Text>
+                </TouchableOpacity>
+              ) : null}
             </View>
           }
         />
@@ -254,323 +218,278 @@ export default function TabOneScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f3f4f6',
+    backgroundColor: "#f3f4f6",
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    height: 58,
     paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#ffffff',
+    backgroundColor: "#ffffff",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
   },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  brand: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    gap: 8,
+  },
+  brandBars: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    gap: 3,
+    height: 32,
+  },
+  brandBar: {
+    width: 5,
+    borderRadius: 3,
+    backgroundColor: "#4a90e2",
   },
   logo: {
-    fontSize: 24,
-    fontWeight: '900',
-    color: '#2563eb',
-    letterSpacing: 1,
+    color: "#6ab344",
+    fontSize: 22,
+    fontWeight: "900",
+    letterSpacing: -0.4,
+    paddingBottom: 1,
   },
-  headerRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 16,
-    backgroundColor: 'transparent',
+  headerActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
   },
   iconButton: {
-    padding: 4,
-    position: 'relative',
-    backgroundColor: 'transparent',
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: "#f9fafb",
+    alignItems: "center",
+    justifyContent: "center",
   },
-  notificationDot: {
-    position: 'absolute',
-    top: 4,
-    right: 4,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#ef4444',
-  },
-  tabsContainer: {
-    flexDirection: 'row',
-    backgroundColor: '#ffffff',
-    paddingHorizontal: 16,
-    paddingBottom: 12,
-    justifyContent: 'center',
-    gap: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
-  },
-  activeTabButton: {
-    backgroundColor: '#10b981',
-    paddingHorizontal: 20,
-    paddingVertical: 8,
-    borderRadius: 20,
-  },
-  activeTabText: {
-    color: '#ffffff',
-    fontWeight: '800',
-    fontSize: 12,
-    letterSpacing: 0.5,
-  },
-  inactiveTabButton: {
-    backgroundColor: '#f3f4f6',
-    paddingHorizontal: 20,
-    paddingVertical: 8,
-    borderRadius: 20,
-  },
-  inactiveTabText: {
-    color: '#4b5563',
-    fontWeight: '800',
-    fontSize: 12,
-    letterSpacing: 0.5,
-  },
-  loaderContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 40,
-    backgroundColor: 'transparent',
-  },
-  listContainer: {
-    padding: 12,
-  },
-  card: {
-    backgroundColor: '#ffffff',
-    borderRadius: 16,
-    marginBottom: 16,
-    overflow: 'hidden',
+  hero: {
+    backgroundColor: "#ffffff",
+    marginHorizontal: 12,
+    marginTop: 12,
+    borderRadius: 22,
+    paddingHorizontal: 18,
+    paddingVertical: 20,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
+    borderColor: "#eef2f7",
   },
-  postHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 12,
-    backgroundColor: 'transparent',
+  heroBrandLine: {
+    flexDirection: "row",
+    alignItems: "center",
   },
-  vendorInfoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    backgroundColor: 'transparent',
-  },
-  avatarImage: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-  },
-  avatarPlaceholder: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#e0e7ff',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  avatarText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#3730a3',
-  },
-  usernameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'transparent',
-  },
-  vendorName: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: '#111827',
-  },
-  ratingStars: {
-    fontSize: 10,
-    color: '#e5e7eb',
-  },
-  subVendorRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginTop: 2,
-    backgroundColor: 'transparent',
-  },
-  followButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#eff6ff',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#bfdbfe',
+  heroBars: {
+    height: 28,
+    flexDirection: "row",
+    alignItems: "flex-end",
     gap: 3,
   },
-  followingButton: {
-    backgroundColor: '#ecfdf5',
-    borderColor: '#a7f3d0',
+  heroBar: {
+    width: 4,
+    backgroundColor: "#3a81f3",
+    borderRadius: 3,
   },
-  followText: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: '#2563eb',
-  },
-  followingText: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: '#059669',
-  },
-  postDate: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#9ca3af',
-  },
-  moreButton: {
-    padding: 4,
-    backgroundColor: 'transparent',
-  },
-  productDetailsContainer: {
-    paddingHorizontal: 12,
-    paddingBottom: 8,
-    backgroundColor: 'transparent',
-  },
-  titlePriceRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 4,
-    backgroundColor: 'transparent',
-  },
-  productTitle: {
-    fontSize: 16,
-    fontWeight: '900',
-    color: '#111827',
-    textTransform: 'uppercase',
-  },
-  stockBadge: {
-    alignSelf: 'flex-start',
-    backgroundColor: '#ecfdf5',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 6,
-    marginTop: 4,
-    borderWidth: 1,
-    borderColor: '#a7f3d0',
-  },
-  stockText: {
-    fontSize: 9,
-    fontWeight: '800',
-    color: '#059669',
-  },
-  pricePill: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    backgroundColor: '#ffffff',
-    borderWidth: 1,
-    borderColor: '#a7f3d0',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 14,
-  },
-  priceNumber: {
+  heroBrand: {
+    marginLeft: 8,
+    color: "#1aa04b",
     fontSize: 18,
-    fontWeight: '900',
-    color: '#059669',
+    fontWeight: "900",
   },
-  priceCurrency: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: '#059669',
+  countryBadge: {
+    marginLeft: 8,
+    backgroundColor: "#eff6ff",
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: "#dbeafe",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
   },
-  description: {
+  countryBadgeText: {
+    color: "#3a81f3",
+    fontSize: 8,
+    fontWeight: "900",
+    letterSpacing: 0.8,
+  },
+  heroTitle: {
+    marginTop: 18,
+    color: "#111827",
+    fontSize: 27,
+    lineHeight: 31,
+    fontWeight: "900",
+    letterSpacing: -0.7,
+  },
+  heroSubtitle: {
+    marginTop: 9,
+    color: "#6b7280",
     fontSize: 12,
-    color: '#4b5563',
-    marginTop: 4,
-    lineHeight: 16,
+    lineHeight: 18,
+    fontWeight: "600",
   },
-  mediaContainer: {
-    width: '100%',
-    height: 320,
-    backgroundColor: '#000000',
-    marginTop: 6,
+  heroStats: {
+    marginTop: 15,
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 7,
   },
-  singleImage: {
-    width: '100%',
-    height: '100%',
+  statChipBlue: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    backgroundColor: "#eff6ff",
+    borderWidth: 1,
+    borderColor: "#dbeafe",
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
   },
-  gridContainer: {
+  statChipBlueText: {
+    color: "#3a81f3",
+    fontSize: 9,
+    fontWeight: "800",
+  },
+  statChipGreen: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    backgroundColor: "#ecfdf5",
+    borderWidth: 1,
+    borderColor: "#d1fae5",
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  statChipGreenText: {
+    color: "#1aa04b",
+    fontSize: 9,
+    fontWeight: "800",
+  },
+  statChipGray: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    backgroundColor: "#f9fafb",
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  statChipGrayText: {
+    color: "#4b5563",
+    fontSize: 9,
+    fontWeight: "800",
+  },
+  heroButtons: {
+    marginTop: 16,
+    flexDirection: "row",
+    gap: 10,
+  },
+  heroLogin: {
     flex: 1,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    height: 42,
+    borderRadius: 999,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#3a81f3",
   },
-  gridItem: {
-    width: '50%',
-    height: '50%',
-    position: 'relative',
-    borderWidth: 0.5,
-    borderColor: '#ffffff',
+  heroLoginText: {
+    color: "#ffffff",
+    fontSize: 10,
+    fontWeight: "900",
+    letterSpacing: 0.7,
   },
-  gridImage: {
-    width: '100%',
-    height: '100%',
+  heroSignup: {
+    flex: 1,
+    height: 42,
+    borderRadius: 999,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#1aa04b",
   },
-  moreMediaOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
+  heroSignupText: {
+    color: "#ffffff",
+    fontSize: 10,
+    fontWeight: "900",
+    letterSpacing: 0.7,
   },
-  moreMediaText: {
-    color: '#ffffff',
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-  cardFooterActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+  searchStrip: {
     paddingHorizontal: 12,
-    paddingVertical: 10,
-    backgroundColor: 'transparent',
+    paddingTop: 10,
+    backgroundColor: "#f3f4f6",
   },
-  socialMetrics: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-    backgroundColor: 'transparent',
+  searchPill: {
+    height: 44,
+    borderRadius: 999,
+    backgroundColor: "#ffffff",
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    paddingHorizontal: 14,
+    flexDirection: "row",
+    alignItems: "center",
   },
-  metricItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: 'transparent',
+  searchPlaceholder: {
+    marginLeft: 8,
+    color: "#9ca3af",
+    fontSize: 12,
+    fontWeight: "600",
   },
-  metricText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#4b5563',
+  feedTabs: {
+    marginTop: 10,
+    backgroundColor: "#ffffff",
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: 10,
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#e5e7eb",
   },
-  whatsappButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#22c55e',
-    paddingHorizontal: 12,
+  feedTab: {
+    paddingHorizontal: 18,
     paddingVertical: 8,
-    borderRadius: 10,
-    gap: 6,
+    borderRadius: 20,
+    backgroundColor: "#f3f4f6",
   },
-  whatsappText: {
-    color: '#ffffff',
-    fontWeight: '900',
+  feedTabActive: {
+    backgroundColor: "#10b981",
+  },
+  feedTabText: {
+    color: "#4b5563",
     fontSize: 11,
-    letterSpacing: 0.5,
+    fontWeight: "900",
+  },
+  feedTabTextActive: {
+    color: "#ffffff",
+  },
+  list: {
+    paddingTop: 12,
+    paddingBottom: 30,
+  },
+  center: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  empty: {
+    padding: 30,
+    alignItems: "center",
+  },
+  emptyTitle: {
+    color: "#6b7280",
+    fontSize: 14,
+    textAlign: "center",
+    lineHeight: 20,
+  },
+  loginButton: {
+    marginTop: 14,
+    backgroundColor: "#2563eb",
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 10,
+  },
+  loginButtonText: {
+    color: "#ffffff",
+    fontWeight: "900",
+    fontSize: 11,
   },
 });

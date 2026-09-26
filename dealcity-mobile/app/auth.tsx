@@ -1,37 +1,61 @@
-import React, { useState } from 'react';
-import { StyleSheet, TextInput, TouchableOpacity, SafeAreaView, Alert, ActivityIndicator } from 'react-native';
-import { Text, View } from '@/components/Themed';
-import { supabase } from '@/services/supabase';
-import { useRouter } from 'expo-router';
-import { Lock, Mail } from 'lucide-react-native';
+import React, { useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { Eye, EyeOff, Lock, Mail, User } from "lucide-react-native";
+import { useRouter } from "expo-router";
+import { api } from "@/services/api";
+import { saveSessionToken } from "@/services/session";
 
 export default function AuthScreen() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [isSignUp, setIsSignUp] = useState(false);
   const router = useRouter();
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [identifier, setIdentifier] = useState("");
+  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [visible, setVisible] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const handleAuth = async () => {
-    if (!email || !password) {
-      Alert.alert('Erreur', 'Veuillez remplir tous les champs.');
+  const submit = async () => {
+    if (isSignUp) {
+      if (!username.trim() || !email.trim() || !password) {
+        Alert.alert("Champs requis", "Renseigne ton nom d'utilisateur, ton email et ton mot de passe.");
+        return;
+      }
+
+      if (password.length < 8) {
+        Alert.alert("Mot de passe", "Le mot de passe doit contenir au moins 8 caractères.");
+        return;
+      }
+    } else if (!identifier.trim() || !password) {
+      Alert.alert("Champs requis", "Renseigne ton identifiant et ton mot de passe.");
       return;
     }
 
     try {
       setLoading(true);
-      if (isSignUp) {
-        const { error } = await supabase.auth.signUp({ email, password });
-        if (error) throw error;
-        Alert.alert('Succès', 'Compte créé ! Tu peux maintenant te connecter.');
-        setIsSignUp(false);
-      } else {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
-        router.replace('/(tabs)');
-      }
+
+      const result = isSignUp
+        ? await api.auth.signup(username.trim(), email.trim(), password)
+        : await api.auth.login(identifier.trim(), password);
+
+      await saveSessionToken(result.token);
+
+      router.replace("/(tabs)");
     } catch (error: any) {
-      Alert.alert('Erreur', error.message || 'Une erreur est survenue.');
+      Alert.alert(
+        "Connexion impossible",
+        error?.message || "Une erreur est survenue. Réessaie.",
+      );
     } finally {
       setLoading(false);
     }
@@ -39,146 +63,238 @@ export default function AuthScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.logo}>DEALCITY</Text>
-        <Text style={styles.subtitle}>{isSignUp ? 'Crée ton compte vendeur' : 'Connecte-toi à ton compte'}</Text>
-      </View>
-
-      <View style={styles.formContainer}>
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Email</Text>
-          <View style={styles.inputWrapper}>
-            <Mail size={18} color="#9ca3af" />
-            <TextInput
-              style={styles.input}
-              placeholder="ex: brice@dealcity.cm"
-              placeholderTextColor="#9ca3af"
-              autoCapitalize="none"
-              value={email}
-              onChangeText={setEmail}
-            />
-          </View>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+      >
+        <View style={styles.brandBlock}>
+          <Text style={styles.logo}>DEALCITY</Text>
+          <Text style={styles.tagline}>
+            {isSignUp
+              ? "Crée ton compte et rejoins le commerce local."
+              : "Retrouve ton compte DealCity."}
+          </Text>
         </View>
 
-        <View style={styles.inputGroup}>
+        <View style={styles.card}>
+          <View style={styles.modeRow}>
+            <TouchableOpacity
+              style={[styles.modeButton, !isSignUp && styles.modeButtonActive]}
+              onPress={() => setIsSignUp(false)}
+            >
+              <Text style={[styles.modeText, !isSignUp && styles.modeTextActive]}>
+                CONNEXION
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.modeButton, isSignUp && styles.modeButtonActive]}
+              onPress={() => setIsSignUp(true)}
+            >
+              <Text style={[styles.modeText, isSignUp && styles.modeTextActive]}>
+                INSCRIPTION
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {isSignUp ? (
+            <>
+              <Text style={styles.label}>Nom d'utilisateur</Text>
+              <View style={styles.inputRow}>
+                <User size={18} color="#9ca3af" />
+                <TextInput
+                  style={styles.input}
+                  value={username}
+                  onChangeText={setUsername}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  placeholder="ex: vendeur237"
+                  placeholderTextColor="#9ca3af"
+                />
+              </View>
+
+              <Text style={styles.label}>Adresse email</Text>
+              <View style={styles.inputRow}>
+                <Mail size={18} color="#9ca3af" />
+                <TextInput
+                  style={styles.input}
+                  value={email}
+                  onChangeText={setEmail}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  placeholder="email@exemple.com"
+                  placeholderTextColor="#9ca3af"
+                />
+              </View>
+            </>
+          ) : (
+            <>
+              <Text style={styles.label}>Email ou nom d'utilisateur</Text>
+              <View style={styles.inputRow}>
+                <User size={18} color="#9ca3af" />
+                <TextInput
+                  style={styles.input}
+                  value={identifier}
+                  onChangeText={setIdentifier}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  placeholder="Ton identifiant DealCity"
+                  placeholderTextColor="#9ca3af"
+                />
+              </View>
+            </>
+          )}
+
           <Text style={styles.label}>Mot de passe</Text>
-          <View style={styles.inputWrapper}>
+          <View style={styles.inputRow}>
             <Lock size={18} color="#9ca3af" />
             <TextInput
               style={styles.input}
-              placeholder="••••••••"
-              placeholderTextColor="#9ca3af"
-              secureTextEntry
               value={password}
               onChangeText={setPassword}
+              secureTextEntry={!visible}
+              autoCapitalize="none"
+              placeholder="••••••••"
+              placeholderTextColor="#9ca3af"
             />
+            <TouchableOpacity onPress={() => setVisible((value) => !value)}>
+              {visible ? (
+                <EyeOff size={19} color="#9ca3af" />
+              ) : (
+                <Eye size={19} color="#9ca3af" />
+              )}
+            </TouchableOpacity>
           </View>
+
+          <TouchableOpacity
+            style={[styles.submit, loading && styles.submitDisabled]}
+            onPress={submit}
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator color="#ffffff" />
+            ) : (
+              <Text style={styles.submitText}>
+                {isSignUp ? "CRÉER MON COMPTE" : "SE CONNECTER"}
+              </Text>
+            )}
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.switchLink}
+            onPress={() => setIsSignUp((value) => !value)}
+          >
+            <Text style={styles.switchText}>
+              {isSignUp
+                ? "Tu as déjà un compte ? Se connecter"
+                : "Pas encore de compte ? S'inscrire"}
+            </Text>
+          </TouchableOpacity>
         </View>
 
-        <TouchableOpacity style={styles.button} onPress={handleAuth} disabled={loading}>
-          {loading ? (
-            <ActivityIndicator color="#ffffff" />
-          ) : (
-            <Text style={styles.buttonText}>{isSignUp ? "S'inscrire" : 'Se connecter'}</Text>
-          )}
-        </TouchableOpacity>
-
-        <TouchableOpacity onPress={() => setIsSignUp(!isSignUp)} style={styles.switchButton}>
-          <Text style={styles.switchText}>
-            {isSignUp ? 'Déjà un compte ? Connecte-toi' : "Pas de compte ? Inscris-toi ici"}
-          </Text>
-        </TouchableOpacity>
-      </View>
+        <Text style={styles.note}>
+          Le même compte fonctionne sur dealcity.app et dans l'application mobile.
+        </Text>
+      </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f9fafb',
-    justifyContent: 'center',
-    padding: 20,
+  container: { flex: 1, backgroundColor: "#f3f4f6" },
+  content: {
+    flexGrow: 1,
+    justifyContent: "center",
+    paddingHorizontal: 18,
+    paddingVertical: 30,
   },
-  header: {
-    alignItems: 'center',
-    marginBottom: 30,
-    backgroundColor: 'transparent',
-  },
+  brandBlock: { alignItems: "center", marginBottom: 24 },
   logo: {
-    fontSize: 28,
-    fontWeight: '900',
-    color: '#4a90e2',
-    letterSpacing: 1,
+    color: "#2563eb",
+    fontSize: 31,
+    fontWeight: "900",
+    letterSpacing: 1.3,
   },
-  subtitle: {
-    fontSize: 14,
-    color: '#6b7280',
-    marginTop: 4,
+  tagline: {
+    color: "#6b7280",
+    fontSize: 13,
+    textAlign: "center",
+    marginTop: 6,
   },
-  formContainer: {
-    backgroundColor: '#ffffff',
-    padding: 20,
-    borderRadius: 16,
+  card: {
+    backgroundColor: "#ffffff",
+    borderRadius: 22,
+    padding: 18,
     borderWidth: 1,
-    borderColor: '#f3f4f6',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
+    borderColor: "#e5e7eb",
   },
-  inputGroup: {
-    marginBottom: 16,
-    backgroundColor: 'transparent',
+  modeRow: {
+    flexDirection: "row",
+    backgroundColor: "#f3f4f6",
+    padding: 4,
+    borderRadius: 14,
+    marginBottom: 20,
+  },
+  modeButton: {
+    flex: 1,
+    height: 40,
+    borderRadius: 11,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  modeButtonActive: {
+    backgroundColor: "#2563eb",
+  },
+  modeText: {
+    color: "#6b7280",
+    fontSize: 10,
+    fontWeight: "900",
+  },
+  modeTextActive: {
+    color: "#ffffff",
   },
   label: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#374151',
+    color: "#374151",
+    fontWeight: "800",
+    fontSize: 12,
     marginBottom: 6,
+    marginTop: 8,
   },
-  inputWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f9fafb',
+  inputRow: {
+    height: 52,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    height: 50,
+    borderColor: "#e5e7eb",
+    borderRadius: 14,
+    backgroundColor: "#f9fafb",
+    paddingHorizontal: 13,
+    flexDirection: "row",
+    alignItems: "center",
   },
   input: {
     flex: 1,
+    height: "100%",
+    color: "#111827",
     fontSize: 14,
-    color: '#111827',
-    marginLeft: 8,
+    marginLeft: 9,
   },
-  button: {
-    backgroundColor: '#4a90e2',
-    height: 50,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 10,
-    shadowColor: '#4a90e2',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
+  submit: {
+    height: 53,
+    borderRadius: 14,
+    backgroundColor: "#2563eb",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 22,
   },
-  buttonText: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  switchButton: {
-    alignItems: 'center',
+  submitDisabled: { opacity: 0.65 },
+  submitText: { color: "#ffffff", fontSize: 12, fontWeight: "900" },
+  switchLink: { alignItems: "center", paddingTop: 17, paddingBottom: 3 },
+  switchText: { color: "#2563eb", fontWeight: "700", fontSize: 12 },
+  note: {
+    color: "#9ca3af",
+    textAlign: "center",
+    fontSize: 10,
+    lineHeight: 15,
     marginTop: 16,
-  },
-  switchText: {
-    color: '#4a90e2',
-    fontSize: 13,
-    fontWeight: '600',
+    paddingHorizontal: 20,
   },
 });

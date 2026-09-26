@@ -1,111 +1,288 @@
-import { Platform } from "react-native";
+import { getSessionToken } from "@/services/session";
 
-// Remplace cette URL par ton adresse IP locale en dev (ex: http://192.168.1.15:3000/api) ou ton URL de production
-const API_URL = 'https://api.dealcity.app/v1';
-
-// ================= 1. CLIENT GÉNÉRIQUE =================
-async function fetchApi(endpoint: string, options?: RequestInit) {
-  try {
-    const response = await fetch(`${API_URL}${endpoint}`, {
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        ...options?.headers,
-      },
-    });
-
-    const data = await response.json();
-    if (!response.ok) {
-      throw new Error(data.error || "Une erreur est survenue lors de la requête");
-    }
-    return data;
-  } catch (error) {
-    console.error(`Erreur API [${endpoint}] :`, error);
-    throw error;
-  }
+function isCodespacesWebPreview() {
+  const location = (globalThis as any)?.location;
+  const hostname = location?.hostname as string | undefined;
+  return Boolean(hostname?.endsWith(".app.github.dev"));
 }
 
-// ================= 2. FONCTIONS DE BASE (Rétrocompatibilité) =================
-export async function fetchPosts() {
-  try {
-    const response = await fetch(`${API_URL}/posts`);
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    console.error("Erreur lors de la récupération des posts :", error);
-    return [];
+function resolveApiUrl() {
+  const configured = process.env.EXPO_PUBLIC_API_URL?.replace(/\/$/, "");
+  if (configured) return configured;
+
+  const location = (globalThis as any)?.location;
+  const hostname = location?.hostname as string | undefined;
+  const protocol = location?.protocol as string | undefined;
+
+  // GitHub Codespaces: Expo Web est généralement sur le port 8081 et
+  // le backend Next.js sur le port 3000. On retrouve automatiquement
+  // l'URL du backend à partir de l'URL de prévisualisation.
+  if (hostname?.endsWith(".app.github.dev") && protocol) {
+    const backendHost = hostname.replace(
+      /-\d+\.app\.github\.dev$/,
+      "-3000.app.github.dev",
+    );
+    return `${protocol}//${backendHost}/api`;
   }
+
+  return "https://dealcity.app/api";
 }
 
-export async function createPost(postData: { title: string; price: string; location: string; description: string }) {
-  try {
-    const response = await fetch(`${API_URL}/posts`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(postData),
-    });
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.error || "Erreur de création");
-    return data;
-  } catch (error) {
-    console.error("Erreur lors de la création du post :", error);
-    throw error;
-  }
+const API_URL = resolveApiUrl();
+const IS_CODESPACES_PREVIEW = isCodespacesWebPreview();
+
+function publicEndpoint(endpoint: string) {
+  if (!IS_CODESPACES_PREVIEW) return endpoint;
+  return `/mobile-preview${endpoint}`;
 }
 
-// ================= 3. STRUCTURE GLOBALE DE TOUTES LES TABLES =================
-export const api = {
-  // --- Posts & Interactions ---
-  posts: {
-    getAll: fetchPosts,
-    create: createPost,
-    getForYou: () => fetchApi('/posts/for-you'),
-    getFollowing: () => fetchApi('/posts/following'),
-    getBookmarked: () => fetchApi('/posts/bookmarked'),
-    getVideos: () => fetchApi('/posts/videos'),
-    
-    toggleLike: (postId: string) => fetchApi(`/posts/${postId}/likes`, { method: 'POST' }),
-    toggleBookmark: (postId: string) => fetchApi(`/posts/${postId}/bookmark`, { method: 'POST' }),
-    report: (postId: string) => fetchApi(`/posts/${postId}/report`, { method: 'POST' }),
-    
-    getComments: (postId: string) => fetchApi(`/posts/${postId}/comments`),
-    addComment: (postId: string, content: string) => 
-      fetchApi(`/posts/${postId}/comments`, { method: 'POST', body: JSON.stringify({ content }) }),
-  },
+export type MediaType = "IMAGE" | "VIDEO" | "AUDIO";
 
-  // --- Utilisateurs & Profils ---
-  users: {
-    getProfile: (userId: string) => fetchApi(`/users/${userId}`),
-    updateUsername: (username: string) => fetchApi('/users/username', { method: 'PUT', body: JSON.stringify({ username }) }),
-    becomeSeller: (sellerData: any) => fetchApi('/users/become-seller', { method: 'POST', body: JSON.stringify(sellerData) }),
-    getFollowers: (userId: string) => fetchApi(`/users/${userId}/followers`),
-    getOrders: (userId: string) => fetchApi(`/users/${userId}/orders`),
-  },
-
-  // --- Deals & Recherche ---
-  deals: {
-    getRecommended: () => fetchApi('/deals/recommended'),
-  },
-  search: {
-    query: (keyword: string) => fetchApi(`/search?q=${encodeURIComponent(keyword)}`),
-    getSuggestions: () => fetchApi('/search/suggestions'),
-  },
-
-  // --- Notifications ---
-  notifications: {
-    getAll: () => fetchApi('/notifications'),
-    getUnreadCount: () => fetchApi('/notifications/unread-count'),
-    markAsRead: () => fetchApi('/notifications/mark-as-read', { method: 'POST' }),
-    saveToken: (token: string) => fetchApi('/notifications/save-token', { method: 'POST', body: JSON.stringify({ token }) }),
-  },
-
-  // --- Admin & Analytics ---
-  analytics: {
-    track: (eventData: any) => fetchApi('/analytics/track', { method: 'POST', body: JSON.stringify(eventData) }),
-  },
-  admin: {
-    getPioneers: () => fetchApi('/admin/pioneers'),
-  }
+export type DealCityMedia = {
+  id: string;
+  type: MediaType;
+  url: string;
+  settings?: unknown;
 };
+
+export type DealCityUser = {
+  id: string;
+  username: string;
+  displayName: string;
+  avatarUrl?: string | null;
+  coverUrl?: string | null;
+  bio?: string | null;
+  isSeller?: boolean;
+  isPioneer?: boolean;
+  isVerified?: boolean;
+  phoneNumber?: string | null;
+  city?: string | null;
+  neighborhood?: string | null;
+  businessName?: string | null;
+  businessDomain?: string | null;
+  followers?: unknown[];
+  _count?: {
+    posts?: number;
+    followers?: number;
+    sales?: number;
+  };
+};
+
+export type DealCityPost = {
+  id: string;
+  content: string;
+  userId: string;
+  user: DealCityUser;
+  attachments: DealCityMedia[];
+  category?: string;
+  views?: number;
+  thumbnailUrl?: string | null;
+  stock?: number;
+  price?: number;
+  city?: string | null;
+  neighborhood?: string | null;
+  createdAt: string;
+  likes?: unknown[];
+  bookmarks?: unknown[];
+  _count?: {
+    likes?: number;
+    comments?: number;
+    orders?: number;
+  };
+};
+
+export type PostsPage = {
+  posts: DealCityPost[];
+  nextCursor: string | null;
+};
+
+export type Shop = DealCityUser & {
+  posts?: Array<{
+    id: string;
+    content: string;
+    thumbnailUrl?: string | null;
+    attachments?: Array<Pick<DealCityMedia, "url" | "type">>;
+  }>;
+};
+
+export type SearchResult = {
+  posts: DealCityPost[];
+  users: DealCityUser[];
+  nextCursor: string | null;
+};
+
+export class ApiError extends Error {
+  status: number;
+
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+  }
+}
+
+function withQuery(
+  endpoint: string,
+  params?: Record<string, string | number | null | undefined>,
+) {
+  if (!params) return endpoint;
+
+  const query = Object.entries(params)
+    .filter(([, value]) => value !== undefined && value !== null && value !== "")
+    .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`)
+    .join("&");
+
+  return query ? `${endpoint}?${query}` : endpoint;
+}
+
+async function fetchApi<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+  const token = await getSessionToken();
+
+  const response = await fetch(`${API_URL}${endpoint}`, {
+    ...options,
+    ...(IS_CODESPACES_PREVIEW ? { credentials: "include" as RequestCredentials } : {}),
+    headers: {
+      Accept: "application/json",
+      ...(options.body ? { "Content-Type": "application/json" } : {}),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...options.headers,
+    },
+  });
+
+  const raw = await response.text();
+  let data: any = null;
+
+  if (raw) {
+    try {
+      data = JSON.parse(raw);
+    } catch {
+      data = raw;
+    }
+  }
+
+  if (!response.ok) {
+    const message =
+      (data && typeof data === "object" && (data.error || data.message)) ||
+      `Erreur DealCity (${response.status})`;
+    throw new ApiError(String(message), response.status);
+  }
+
+  return data as T;
+}
+
+export const api = {
+  auth: {
+    login: (identifier: string, password: string) =>
+      fetchApi<{
+        token: string;
+        needsOnboarding: boolean;
+        user: DealCityUser & { email?: string | null };
+      }>("/mobile/auth/login", {
+        method: "POST",
+        body: JSON.stringify({ identifier, password }),
+      }),
+
+    signup: (username: string, email: string, password: string) =>
+      fetchApi<{
+        token: string;
+        needsOnboarding: boolean;
+        user: DealCityUser & { email?: string | null };
+      }>("/mobile/auth/signup", {
+        method: "POST",
+        body: JSON.stringify({ username, email, password }),
+      }),
+
+    me: () =>
+      fetchApi<{ user: DealCityUser & { email?: string | null } }>(
+        "/mobile/auth/me",
+      ),
+
+    logout: () =>
+      fetchApi<{ success: boolean }>("/mobile/auth/logout", {
+        method: "POST",
+      }),
+  },
+
+  posts: {
+    getForYou: (params?: { cursor?: string | null; city?: string; neighborhood?: string }) =>
+      fetchApi<PostsPage>(withQuery(publicEndpoint("/posts/for-you"), params)),
+
+    getFollowing: (cursor?: string | null) =>
+      fetchApi<PostsPage>(withQuery("/posts/following", { cursor })),
+
+    getBookmarked: (cursor?: string | null) =>
+      fetchApi<PostsPage>(withQuery("/posts/bookmarked", { cursor })),
+
+    getVideos: (cursor?: string | null) =>
+      fetchApi<PostsPage>(withQuery(publicEndpoint("/posts/videos"), { cursor })),
+
+    create: (payload: {
+      content: string;
+      city?: string;
+      neighborhood?: string;
+      mediaIds?: string[];
+      stock?: number;
+      targetUserId?: string;
+    }) =>
+      fetchApi<DealCityPost>("/posts", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      }),
+
+    toggleLike: (postId: string) =>
+      fetchApi(`/posts/${postId}/likes`, { method: "POST" }),
+
+    toggleBookmark: (postId: string) =>
+      fetchApi(`/posts/${postId}/bookmark`, { method: "POST" }),
+
+    report: (postId: string) =>
+      fetchApi(`/posts/${postId}/report`, { method: "POST" }),
+
+    getComments: (postId: string) =>
+      fetchApi(`/posts/${postId}/comments`),
+
+    addComment: (postId: string, content: string) =>
+      fetchApi(`/posts/${postId}/comments`, {
+        method: "POST",
+        body: JSON.stringify({ content }),
+      }),
+  },
+
+  shops: {
+    getAll: () => fetchApi<Shop[]>(publicEndpoint("/shops")),
+  },
+
+  search: {
+    query: (keyword: string, cursor?: string | null) =>
+      fetchApi<SearchResult>(
+        withQuery("/search", {
+          q: keyword.trim(),
+          cursor,
+        }),
+      ),
+  },
+
+  notifications: {
+    getAll: () => fetchApi("/notifications"),
+    getUnreadCount: () => fetchApi<{ unreadCount: number }>("/notifications/unread-count"),
+    markAsRead: () =>
+      fetchApi("/notifications/mark-as-read", { method: "POST" }),
+  },
+
+  users: {
+    getFollowers: (userId: string) =>
+      fetchApi(`/users/${userId}/followers`),
+    getOrders: (userId: string) =>
+      fetchApi(`/users/${userId}/orders`),
+  },
+
+  analytics: {
+    track: (eventData: unknown) =>
+      fetchApi("/analytics/track", {
+        method: "POST",
+        body: JSON.stringify(eventData),
+      }),
+  },
+};
+
+export { API_URL };
