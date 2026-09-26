@@ -14,8 +14,8 @@ export default function ConditionsUtilisation() {
         <p>DealCity affiche les annonces et facilite la prise de contact, notamment par WhatsApp. Le prix des produits, leur paiement et leur remise sont convenus directement entre acheteur et vendeur : DealCity ne collecte pas le paiement de ces achats sur la plateforme. Avant une transaction, vérifiez le produit, le prix, l’identité de votre interlocuteur et les modalités de remise. Les droits que la loi reconnaît aux consommateurs face aux vendeurs professionnels restent applicables.</p>
       </section>
       <section>
-        <h2 className="text-xl font-semibold">3. Activation vendeur</h2>
-        <p>Une page distincte propose l’activation d’un compte vendeur pour 5 000 XAF, avec un paiement traité par Monetbil. Le montant affiché avant validation fait foi pour cette prestation. Le paiement de l’activation vendeur est distinct des ventes de produits entre utilisateurs. Pour une question sur un paiement, un échec d’activation ou une demande de remboursement, contactez l’éditeur avec la référence de transaction ; chaque demande sera examinée selon la prestation effectivement fournie et les règles applicables.</p>
+        <h2 className="text-xl font-semibold">3. Profil vendeur</h2>
+        <p>La création d’un profil vendeur se fait au moyen du formulaire « Créez votre boutique ». DealCity ne demande actuellement aucun paiement pour créer ce profil. Si cette situation change, les conditions et les informations affichées avant toute démarche seront mises à jour.</p>
       </section>
       <section>
         <h2 className="text-xl font-semibold">4. Modération et signalements</h2>

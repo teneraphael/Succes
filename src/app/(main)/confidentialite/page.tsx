@@ -11,17 +11,17 @@ export default function Confidentialite() {
           <li><strong>Compte :</strong> nom d’utilisateur, nom affiché, adresse e-mail, identifiants de connexion et, si vous la choisissez, connexion par Google. Ils servent à ouvrir et sécuriser le compte.</li>
           <li><strong>Profil et annonces :</strong> photo, présentation, ville, quartier, coordonnées que vous ajoutez, annonces, images, vidéos et prix. Ils servent à présenter vos offres et à permettre la mise en relation.</li>
           <li><strong>Activité :</strong> vues, favoris, abonnements, réactions, commentaires et signalements. Ils servent au fonctionnement, au classement des annonces, à la modération et à la sécurité.</li>
-          <li><strong>Activation vendeur :</strong> nom de boutique, numéro de téléphone, référence et état du paiement lorsque cette option est utilisée. Le paiement est traité par Monetbil et sert à gérer l’activation ou une demande d’assistance.</li>
+          <li><strong>Profil vendeur :</strong> nom de boutique, domaine d’activité, coordonnées et localisation saisis dans le formulaire. Ces informations servent à créer et afficher le profil vendeur.</li>
           <li><strong>Notifications :</strong> un jeton d’appareil est enregistré si vous acceptez les notifications, afin d’envoyer des alertes liées au service.</li>
         </ul>
       </section>
       <section>
         <h2 className="text-xl font-semibold">2. Qui peut voir ou traiter ces données ?</h2>
-        <p>Votre profil public, vos annonces et les coordonnées que vous y affichez sont accessibles aux visiteurs. Les échanges ouverts dans WhatsApp sont ensuite soumis au fonctionnement de WhatsApp. Pour faire fonctionner DealCity, certaines données sont traitées par des prestataires : Vercel pour l’hébergement, UploadThing pour les médias, Google pour la connexion si vous la choisissez, Firebase pour les notifications, Monetbil pour l’activation vendeur et un service d’envoi d’e-mails pour les messages techniques. Ces prestataires peuvent traiter les données hors du Cameroun. N’affichez pas dans une annonce des informations personnelles que vous souhaitez garder privées.</p>
+        <p>Votre profil public, vos annonces et les coordonnées que vous y affichez sont accessibles aux visiteurs. Les échanges ouverts dans WhatsApp sont ensuite soumis au fonctionnement de WhatsApp. Pour faire fonctionner DealCity, certaines données sont traitées par des prestataires : Vercel pour l’hébergement, UploadThing pour les médias, Google pour la connexion si vous la choisissez, Firebase pour les notifications et un service d’envoi d’e-mails pour les messages techniques. Ces prestataires peuvent traiter les données hors du Cameroun. N’affichez pas dans une annonce des informations personnelles que vous souhaitez garder privées.</p>
       </section>
       <section>
         <h2 className="text-xl font-semibold">3. Conservation et sécurité</h2>
-        <p>Les données nécessaires au compte sont conservées pendant son utilisation. Des informations liées à la sécurité, à un signalement, à une transaction vendeur ou à une obligation légale peuvent devoir être conservées plus longtemps. Les mots de passe définis sur DealCity sont stockés sous forme hachée. L’accès aux données est limité aux fonctions du service et aux prestataires nécessaires ; aucune sécurité technique n’est absolue.</p>
+        <p>Les données nécessaires au compte sont conservées pendant son utilisation. Des informations liées à la sécurité, à un signalement ou à une obligation légale peuvent devoir être conservées plus longtemps. Les mots de passe définis sur DealCity sont stockés sous forme hachée. L’accès aux données est limité aux fonctions du service et aux prestataires nécessaires ; aucune sécurité technique n’est absolue.</p>
       </section>
       <section>
         <h2 className="text-xl font-semibold">4. Vos choix et vos droits</h2>
