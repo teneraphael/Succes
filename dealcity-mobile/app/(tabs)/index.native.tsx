@@ -1,6 +1,6 @@
 import WebView, { type WebView as WebViewRef } from 'react-native-webview';
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, BackHandler, Linking, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Animated, BackHandler, Easing, Linking, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SITE_URL } from '@/services/api';
 
 const siteOrigin = new URL(SITE_URL).origin;
@@ -30,6 +30,29 @@ const navigationBridge = `
   })();
   true;
 `;
+
+function BrandLoading() {
+  const bars = useRef([0, 1, 2, 3].map(() => new Animated.Value(0))).current;
+
+  useEffect(() => {
+    const animations = bars.map((bar, index) => Animated.loop(Animated.sequence([
+      Animated.delay(index * 100),
+      Animated.timing(bar, { toValue: 1, duration: 350, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+      Animated.timing(bar, { toValue: 0, duration: 350, easing: Easing.in(Easing.cubic), useNativeDriver: true }),
+      Animated.delay((3 - index) * 100 + 200),
+    ])));
+    animations.forEach(animation => animation.start());
+    return () => animations.forEach(animation => animation.stop());
+  }, [bars]);
+
+  return <View style={styles.overlay} accessibilityLabel="Chargement de DealCity">
+    <View style={styles.brand}>
+      <View style={styles.bars}>{bars.map((bar, index) => <Animated.View key={index} style={[styles.bar, { height: [32, 48, 64, 40][index], transform: [{ translateY: bar.interpolate({ inputRange: [0, 1], outputRange: [0, -10] }) }] }]} />)}</View>
+      <Text style={styles.brandName}>DealCity</Text>
+    </View>
+    <Text style={styles.detail}>Chargement…</Text>
+  </View>;
+}
 
 export default function DealCityApp() {
   const webview = useRef<WebViewRef>(null);
@@ -92,7 +115,7 @@ export default function DealCityApp() {
         onRenderProcessGone={() => { setLoading(false); setErrorDetail('Le navigateur intégré s’est arrêté.'); setError(true); }}
         onContentProcessDidTerminate={() => webview.current?.reload()}
       />
-      {loading && !error && <View style={styles.overlay}><ActivityIndicator size="large" color="#4a90e2" /><Text style={styles.text}>Chargement de DealCity…</Text></View>}
+      {loading && !error && <BrandLoading />}
       {error && <View style={styles.overlay}><Text style={styles.text}>Impossible d’afficher DealCity.</Text><Text style={styles.detail}>{errorDetail}</Text><TouchableOpacity onPress={() => { setError(false); setErrorDetail(''); setLoading(true); webview.current?.reload(); }}><Text style={styles.action}>Réessayer</Text></TouchableOpacity></View>}
     </View>
   );
@@ -102,6 +125,10 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
   webview: { flex: 1 },
   overlay: { position: 'absolute', inset: 0, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff', gap: 14 },
+  brand: { flexDirection: 'row', alignItems: 'center', gap: 13 },
+  bars: { height: 74, flexDirection: 'row', alignItems: 'flex-end', gap: 5 },
+  bar: { width: 10, borderRadius: 5, backgroundColor: '#4a90e2' },
+  brandName: { color: '#6ab344', fontSize: 34, fontWeight: '700' },
   text: { color: '#374151', fontSize: 16 },
   detail: { color: '#6b7280', textAlign: 'center', marginHorizontal: 24 },
   action: { color: '#2563eb', fontWeight: '700', padding: 12 },
