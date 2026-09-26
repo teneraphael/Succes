@@ -1,12 +1,36 @@
 import Link from "next/link";
 
 export default function Confidentialite() {
-  return <article className="mx-auto max-w-3xl space-y-6 px-4 py-10 leading-relaxed">
-    <h1 className="text-3xl font-bold">Politique de confidentialité</h1>
-    <p>Dernière mise à jour : 26 septembre 2026. Le responsable de la plateforme DealCity est indiqué dans les <Link href="/mentions-legales" className="underline">mentions légales</Link>. Pour exercer vos droits ou poser une question : <a href="mailto:teneraphael57@gmail.com" className="underline">teneraphael57@gmail.com</a>.</p>
-    <section><h2 className="text-xl font-semibold">Données traitées et finalités</h2><p>Selon votre utilisation, DealCity traite vos identifiants de compte et de connexion, nom et photo de profil, coordonnées de vendeur, ville et quartier choisis, annonces, médias, commentaires, favoris, abonnements, signalements, interactions et statistiques de consultation. Ces données servent à créer le compte, afficher les annonces, permettre les échanges, personnaliser le fil, prévenir les abus et assurer le fonctionnement du service. Un jeton de notification est utilisé si les notifications sont activées.</p></section>
-    <section><h2 className="text-xl font-semibold">Visibilité et destinataires</h2><p>Les informations du profil public, les annonces et les coordonnées que vous choisissez d’afficher peuvent être consultées par d’autres personnes. Si vous ouvrez WhatsApp, les échanges se déroulent selon les règles de ce service. Les prestataires techniques nécessaires à l’hébergement, à la connexion, aux médias, aux notifications et à la mesure d’audience peuvent traiter les données nécessaires à leurs missions. Certains prestataires peuvent être situés hors du Cameroun.</p></section>
-    <section><h2 className="text-xl font-semibold">Cookies et mesure d’audience</h2><p>Le site utilise des cookies ou stockages nécessaires à la session, à la sécurité et à vos choix de localisation. Il peut aussi utiliser Google Analytics lorsque cette fonction est configurée. Les détails sont dans la <Link href="/cookies" className="underline">politique de cookies</Link>.</p></section>
-    <section><h2 className="text-xl font-semibold">Durée, sécurité et droits</h2><p>Les données de compte sont traitées pendant son utilisation ; certaines données peuvent être conservées plus longtemps lorsque cela est nécessaire pour la sécurité, les obligations légales ou le traitement d’un litige. Vous pouvez demander l’accès, la rectification, la suppression ou exercer les autres droits prévus par la loi applicable à l’adresse ci-dessus. La suppression du compte est proposée dans les paramètres, sous réserve des contraintes techniques et obligations de conservation. Les mots de passe créés sur DealCity sont stockés sous forme hachée.</p></section>
-  </article>;
+  return (
+    <article className="mx-auto max-w-3xl space-y-6 px-4 py-10 leading-relaxed">
+      <h1 className="text-3xl font-bold">Politique de confidentialité</h1>
+      <p>Dernière mise à jour : 26 septembre 2026. TENE KENGNE RAPHAEL, éditeur de DealCity à Bonabéri, Douala, est le contact pour les données traitées par la plateforme : <a className="underline" href="mailto:teneraphael57@gmail.com">teneraphael57@gmail.com</a>. Les <Link className="underline" href="/mentions-legales">mentions légales</Link> donnent les autres coordonnées disponibles.</p>
+      <section>
+        <h2 className="text-xl font-semibold">1. Quelles données et pourquoi ?</h2>
+        <ul className="list-disc space-y-2 pl-6">
+          <li><strong>Compte :</strong> nom d’utilisateur, nom affiché, adresse e-mail, identifiants de connexion et, si vous la choisissez, connexion par Google. Ils servent à ouvrir et sécuriser le compte.</li>
+          <li><strong>Profil et annonces :</strong> photo, présentation, ville, quartier, coordonnées que vous ajoutez, annonces, images, vidéos et prix. Ils servent à présenter vos offres et à permettre la mise en relation.</li>
+          <li><strong>Activité :</strong> vues, favoris, abonnements, réactions, commentaires et signalements. Ils servent au fonctionnement, au classement des annonces, à la modération et à la sécurité.</li>
+          <li><strong>Activation vendeur :</strong> nom de boutique, numéro de téléphone, référence et état du paiement lorsque cette option est utilisée. Le paiement est traité par Monetbil et sert à gérer l’activation ou une demande d’assistance.</li>
+          <li><strong>Notifications :</strong> un jeton d’appareil est enregistré si vous acceptez les notifications, afin d’envoyer des alertes liées au service.</li>
+        </ul>
+      </section>
+      <section>
+        <h2 className="text-xl font-semibold">2. Qui peut voir ou traiter ces données ?</h2>
+        <p>Votre profil public, vos annonces et les coordonnées que vous y affichez sont accessibles aux visiteurs. Les échanges ouverts dans WhatsApp sont ensuite soumis au fonctionnement de WhatsApp. Pour faire fonctionner DealCity, certaines données sont traitées par des prestataires : Vercel pour l’hébergement, UploadThing pour les médias, Google pour la connexion si vous la choisissez, Firebase pour les notifications, Monetbil pour l’activation vendeur et un service d’envoi d’e-mails pour les messages techniques. Ces prestataires peuvent traiter les données hors du Cameroun. N’affichez pas dans une annonce des informations personnelles que vous souhaitez garder privées.</p>
+      </section>
+      <section>
+        <h2 className="text-xl font-semibold">3. Conservation et sécurité</h2>
+        <p>Les données nécessaires au compte sont conservées pendant son utilisation. Des informations liées à la sécurité, à un signalement, à une transaction vendeur ou à une obligation légale peuvent devoir être conservées plus longtemps. Les mots de passe définis sur DealCity sont stockés sous forme hachée. L’accès aux données est limité aux fonctions du service et aux prestataires nécessaires ; aucune sécurité technique n’est absolue.</p>
+      </section>
+      <section>
+        <h2 className="text-xl font-semibold">4. Vos choix et vos droits</h2>
+        <p>Vous pouvez modifier certaines informations depuis votre profil et demander l’accès, la rectification ou la suppression de données vous concernant en écrivant à <a className="underline" href="mailto:teneraphael57@gmail.com">teneraphael57@gmail.com</a>. Vous pouvez aussi demander des précisions sur l’utilisation de vos données ou exercer les autres droits prévus par les règles applicables. La suppression du compte est proposée dans les paramètres ; contactez-nous si elle échoue ou si vous souhaitez connaître les données éventuellement conservées pour une obligation légale. Les notifications peuvent être refusées dans votre navigateur ou appareil.</p>
+      </section>
+      <section>
+        <h2 className="text-xl font-semibold">5. Cookies</h2>
+        <p>Des cookies et stockages locaux sont utilisés pour la session, la sécurité et les préférences. Les détails se trouvent sur la <Link className="underline" href="/cookies">page Cookies</Link>. Si une mesure d’audience facultative est activée ultérieurement, cette page et les choix proposés aux visiteurs devront être mis à jour.</p>
+      </section>
+    </article>
+  );
 }
