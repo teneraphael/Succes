@@ -1,34 +1,14 @@
-import { validateRequest } from "@/auth";
 import MenuBar from "./MenuBar";
 import Navbar from "./Navbar";
-import CookieBanner from "@/components/CookieBanner";
-import { Analytics } from "@vercel/analytics/react";
-import { GoogleAnalytics } from "@next/third-parties/google";
-import NotificationHandler from "@/components/NotificationHandler";
-import SessionProvider from "./SessionProvider";
 import LayoutClientWrapper from "@/components/LayoutClientWrapper";
-import { LanguageProvider } from "@/components/LanguageProvider";
 
 export default async function Layout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const session = await validateRequest();
-
   return (
-    <LanguageProvider>
-      <SessionProvider value={session}>
-        {/* NETTOYAGE : Le ChatInitializer a été supprimé pour stopper 
-          les erreurs de timeout et permettre aux posts de charger.
-        */}
-        
-        {session.user && (
-          <>
-            <NotificationHandler />
-          </>
-        )}
-        
+    <>
         <LayoutClientWrapper
           navbar={<Navbar />}
           menuBar={
@@ -52,11 +32,13 @@ export default async function Layout({
             {children}
           </main>
         </LayoutClientWrapper>
+        <footer className="mx-auto flex max-w-5xl flex-wrap justify-center gap-x-5 gap-y-2 px-4 py-6 text-xs text-muted-foreground">
+          <a href="/conditions-utilisation" className="hover:underline">Conditions d’utilisation</a>
+          <a href="/confidentialite" className="hover:underline">Confidentialité</a>
+          <a href="/cookies" className="hover:underline">Cookies</a>
+          <a href="/mentions-legales" className="hover:underline">Mentions légales</a>
+        </footer>
 
-        <CookieBanner />
-        <Analytics />
-        <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_ID || ""} />
-      </SessionProvider>
-    </LanguageProvider>
+    </>
   );
 }

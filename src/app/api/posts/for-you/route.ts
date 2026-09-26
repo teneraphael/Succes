@@ -745,9 +745,9 @@ export async function GET(
       error
     );
 
-    return Response.json({
-      posts: [],
-      nextCursor: null,
-    } satisfies PostsPage);
+    return Response.json(
+      { error: "Impossible de charger le fil. Veuillez réessayer." },
+      { status: 500 },
+    );
   }
 }

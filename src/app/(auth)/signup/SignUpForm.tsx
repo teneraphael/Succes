@@ -12,6 +12,7 @@ import { User, Mail, Lock, Rocket, CheckCircle2, X } from "lucide-react";
 import { useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { signUp } from "./actions";
+import Link from "next/link";
 
 function TermsModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   if (!isOpen) return null;
@@ -30,18 +31,10 @@ function TermsModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void 
           </button>
         </div>
         <div className="p-6 overflow-y-auto max-h-[55vh] space-y-4 text-sm text-muted-foreground leading-relaxed">
-          <p className="font-black text-foreground text-xs uppercase tracking-widest">
-            1. Collecte des données
-          </p>
-          <p>Nous stockons votre email et nom d&apos;utilisateur pour créer votre profil unique et sécurisé.</p>
-          <p className="font-black text-foreground text-xs uppercase tracking-widest">
-            2. Notifications & Alertes
-          </p>
-          <p>En vous inscrivant, vous acceptez l&apos;utilisation de Firebase pour recevoir des notifications en temps réel.</p>
-          <p className="font-black text-foreground text-xs uppercase tracking-widest">
-            3. Sécurité
-          </p>
-          <p>Vos mots de passe sont protégés par un algorithme de hachage de niveau professionnel.</p>
+          <p>DealCity met en relation acheteurs et vendeurs. Consultez les textes complets avant de créer votre compte :</p>
+          <p><Link href="/conditions-utilisation" target="_blank" className="text-blue-600 underline">Conditions d’utilisation</Link></p>
+          <p><Link href="/confidentialite" target="_blank" className="text-blue-600 underline">Politique de confidentialité</Link></p>
+          <p><Link href="/cookies" target="_blank" className="text-blue-600 underline">Cookies et stockage local</Link></p>
         </div>
         <div className="p-5 border-t border-border flex justify-center">
           <button
