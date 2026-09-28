@@ -56,10 +56,14 @@ export default function BoutiquesPage() {
 
   const [shops, setShops] = useState<Shop[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const [loadAttempt, setLoadAttempt] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     async function fetchShops() {
+      setLoading(true);
+      setLoadError(false);
       try {
         const res = await fetch("/api/shops");
 
@@ -69,21 +73,17 @@ export default function BoutiquesPage() {
 
         const data = await res.json();
 
-        if (Array.isArray(data)) {
-          setShops(data);
-        }
-      } catch (error) {
-        console.error(
-          "Erreur lors du chargement des boutiques:",
-          error
-        );
+        if (!Array.isArray(data)) throw new Error("Invalid shops response");
+        setShops(data);
+      } catch {
+        setLoadError(true);
       } finally {
         setLoading(false);
       }
     }
 
     fetchShops();
-  }, []);
+  }, [loadAttempt]);
 
   const filteredShops = useMemo(() => {
     const term = searchQuery.trim().toLowerCase();
@@ -297,6 +297,12 @@ export default function BoutiquesPage() {
                 <div className="h-9 sm:h-10 bg-muted rounded-xl mt-4" />
               </div>
             ))}
+          </div>
+        ) : loadError ? (
+          <div role="alert" className="rounded-3xl border border-border bg-card px-6 py-12 text-center space-y-4">
+            <h2 className="text-base font-bold">Impossible de charger les boutiques pour le moment.</h2>
+            <p className="text-sm text-muted-foreground">Vérifiez votre connexion Internet, puis réessayez.</p>
+            <button type="button" onClick={() => setLoadAttempt((attempt) => attempt + 1)} className="rounded-xl bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground">Réessayer</button>
           </div>
         ) : filteredShops.length === 0 ? (
           /* EMPTY STATE */
