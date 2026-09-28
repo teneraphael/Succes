@@ -17,12 +17,9 @@ export default async function Layout({
             </aside>
           }
           mobileMenu={
-            /* OPTIMISATION MOBILE : Le menu est fixé en bas avec un flou 
-               pour un rendu fluide sans bloquer le contenu principal (posts).
-            */
-            <div className="sticky bottom-0 z-50 flex w-full justify-center border-t bg-card/80 backdrop-blur-md p-3 pb-safe sm:hidden">
+            <nav aria-label="Navigation principale" className="fixed inset-x-0 bottom-0 z-50 flex w-full justify-center border-t bg-card/95 backdrop-blur-md p-2 pb-safe shadow-[0_-4px_20px_rgba(0,0,0,0.08)] sm:hidden">
                <MenuBar className="flex flex-row gap-8 items-center" />
-            </div>
+            </nav>
           }
         >
           {/* min-w-0 est crucial pour empêcher que les éléments larges 

@@ -14,7 +14,7 @@ export default function LayoutClientWrapper({ children, navbar, menuBar, mobileM
   return (
     <div className={cn(
       "flex w-full flex-col",
-      isChatPage ? "h-[100dvh] overflow-hidden" : "min-h-screen"
+      isChatPage ? "h-[100dvh] overflow-hidden" : "min-h-screen pb-24 sm:pb-0"
     )}>
       
       {!isChatPage && navbar}
