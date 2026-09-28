@@ -10,6 +10,7 @@ import {
   Trash2,
   LockKeyhole,
   Settings,
+  LifeBuoy,
 } from "lucide-react";
 import { deleteAccount } from "./actions";
 import { logout } from "@/app/(auth)/actions";
@@ -101,6 +102,19 @@ export default function SettingsPage() {
               <span className="font-bold text-sm text-foreground group-hover:text-[#4a90e2] transition-colors">
                 Notifications Push
               </span>
+            </div>
+            <ChevronRight className="size-4 text-muted-foreground group-hover:text-[#4a90e2] transition-colors" />
+          </Link>
+
+          <Link
+            href="/settings/support"
+            className="flex items-center justify-between p-4 hover:bg-[#4a90e2]/[0.03] transition-all border-b border-border/40 group"
+          >
+            <div className="flex items-center gap-3">
+              <div className="size-9 bg-[#4a90e2]/10 rounded-xl flex items-center justify-center border border-[#4a90e2]/15">
+                <LifeBuoy className="size-4 text-[#4a90e2]" />
+              </div>
+              <span className="font-bold text-sm text-foreground group-hover:text-[#4a90e2] transition-colors">Support et assistance</span>
             </div>
             <ChevronRight className="size-4 text-muted-foreground group-hover:text-[#4a90e2] transition-colors" />
           </Link>

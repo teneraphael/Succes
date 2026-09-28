@@ -191,7 +191,7 @@ export default function PostEditor() {
     }
   }, [isAdmin]);
 
-  const { startUpload, attachments, isUploading, removeAttachment, reset: resetMediaUploads } = useMediaUpload();
+  const { startUpload, attachments, isUploading, uploadProgress, removeAttachment, reset: resetMediaUploads } = useMediaUpload();
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop: startUpload,
     disabled: isUploading,
@@ -499,9 +499,21 @@ export default function PostEditor() {
             <AttachmentStudio
               key={attachment.file.name}
               attachment={attachment}
-              onRemove={() => removeAttachment(attachment.file.name)}
+              onRemove={() => removeAttachment(attachment.customId)}
             />
           ))}
+        </div>
+      )}
+
+      {isUploading && (
+        <div className="space-y-2 rounded-2xl border border-[#4a90e2]/20 bg-[#4a90e2]/5 p-4" role="status" aria-live="polite">
+          <div className="flex items-center justify-between gap-3 text-xs font-bold text-foreground">
+            <span>{uploadProgress === 100 ? "Traitement des médias…" : "Téléversement des médias…"}</span>
+            <span>{Math.round(uploadProgress ?? 0)} %</span>
+          </div>
+          <div className="h-2.5 w-full overflow-hidden rounded-full bg-[#4a90e2]/15" role="progressbar" aria-label="Téléversement des médias" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(uploadProgress ?? 0)}>
+            <div className="h-full rounded-full bg-[#4a90e2] transition-[width] duration-300" style={{ width: `${Math.round(uploadProgress ?? 0)}%` }} />
+          </div>
         </div>
       )}
 

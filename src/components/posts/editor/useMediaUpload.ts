@@ -60,6 +60,7 @@ export default function useMediaUpload() {
     },
     onUploadProgress: setUploadProgress,
     onClientUploadComplete(res) {
+      setUploadProgress(undefined);
       // On extrait le customId depuis le nom du fichier renvoyé par le serveur
       const getCustomIdFromName = (name: string) => {
         const match = name.match(/_(.*?)\./);
@@ -92,6 +93,7 @@ export default function useMediaUpload() {
       });
     },
     onUploadError(e) {
+      setUploadProgress(undefined);
       setAttachments((prev) => prev.filter((a) => !a.isUploading));
       setAudioAttachment(null);
       toast({
@@ -129,7 +131,8 @@ export default function useMediaUpload() {
       return;
     }
 
-    startUpload(files);
+    setUploadProgress(0);
+    void startUpload(files);
   }
 
   function removeAttachment(customId: string) {

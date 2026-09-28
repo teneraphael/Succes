@@ -333,7 +333,7 @@ export default function BoutiquesPage() {
                 "Boutique DealCity";
 
               return (
-                <article
+                <div
                   key={shop.id}
                   className="group relative overflow-hidden rounded-[1.5rem] sm:rounded-[1.75rem] bg-card border border-border/70 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
                 >
@@ -362,7 +362,7 @@ export default function BoutiquesPage() {
 
                     {/* AVATAR + FOLLOWERS */}
                     <div className="relative -mt-6 sm:-mt-7 mb-2 sm:mb-3 flex items-end justify-between">
-                      <div className="relative w-12 h-12 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl overflow-hidden bg-background border-3 sm:border-4 border-card shadow-md">
+                      <div className="relative w-12 h-12 sm:w-14 sm:h-14 rounded-full overflow-hidden bg-background border-3 sm:border-4 border-card shadow-md">
                         {shop.avatarUrl ? (
                           <Image
                             src={shop.avatarUrl}
@@ -513,7 +513,7 @@ export default function BoutiquesPage() {
                       <ArrowUpRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     </Link>
                   </div>
-                </article>
+                </div>
               );
             })}
           </div>
