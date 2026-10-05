@@ -3,6 +3,7 @@
 import { logout } from "@/app/(auth)/actions";
 import { useSession } from "@/app/(main)/SessionProvider";
 import { cn } from "@/lib/utils";
+import { canCreateSeller } from "@/lib/seller-creator-access";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   Check, LogOutIcon, Monitor, Moon, Sun, Store,
@@ -63,8 +64,10 @@ export default function UserButton({ className, user: propUser }: UserButtonProp
         <DropdownMenuSeparator className="mx-2 bg-border/40" />
 
         {/* ✅ Section admin */}
-        {isAdmin && (
+        {(isAdmin || canCreateSeller(user.id)) && (
           <div>
+            {isAdmin && (
+              <>
             <DropdownMenuItem asChild className="rounded-xl py-2.5 cursor-pointer bg-[#4a90e2]/5 text-[#4a90e2] focus:bg-[#4a90e2]/10 focus:text-[#4a90e2]">
               <Link href="/admin/pioneers" className="flex items-center gap-2.5 w-full px-3">
                 <ShieldCheck className="size-4 shrink-0" />
@@ -79,7 +82,10 @@ export default function UserButton({ className, user: propUser }: UserButtonProp
               </Link>
             </DropdownMenuItem>
 
-            {/* 🚀 Pointe maintenant vers /admin/create-seller */}
+              )}
+
+            {canCreateSeller(user.id) && (
+            {/* Accès conciergerie pour les comptes autorisés. */}
             <DropdownMenuItem asChild className="rounded-xl py-2.5 mt-1 cursor-pointer bg-amber-500/10 text-amber-600 dark:text-amber-400 focus:bg-amber-500/20 focus:text-amber-600">
               <Link href="/admin/create-seller" className="flex items-center gap-2.5 w-full px-3">
                 <Sparkles className="size-4 shrink-0" />
@@ -87,6 +93,7 @@ export default function UserButton({ className, user: propUser }: UserButtonProp
               </Link>
             </DropdownMenuItem>
 
+            )}
             <DropdownMenuSeparator className="mx-2 mt-1 bg-border/40" />
           </div>
         )}
