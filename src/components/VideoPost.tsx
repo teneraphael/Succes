@@ -1,13 +1,22 @@
 "use client";
 
-import React, { useRef, useState, useEffect, useCallback } from 'react';
-import useAutoplayOnVisible from '../hooks/useAutoplayOnVisible';
+import { useCallback, useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
-import { Volume2, VolumeX, Loader2, Play } from "lucide-react";
+import {
+  AlertCircle,
+  Loader2,
+  Maximize,
+  Pause,
+  Play,
+  RotateCcw,
+  Volume2,
+  VolumeX,
+} from "lucide-react";
 import { useLanguage } from "@/components/LanguageProvider";
 
 interface VideoPostProps {
   src: string;
+  poster?: string;
   className?: string;
   style?: React.CSSProperties;
   setIsGlobalPlaying?: (playing: boolean) => void;
@@ -15,186 +24,321 @@ interface VideoPostProps {
 }
 
 const MUTE_EVENT = "video-global-mute-change";
+const PLAY_EVENT = "dealcity-video-playing";
+const formatTime = (seconds: number) => {
+  const value = Number.isFinite(seconds) ? Math.max(0, Math.floor(seconds)) : 0;
+  return `${Math.floor(value / 60)}:${String(value % 60).padStart(2, "0")}`;
+};
 
-const VideoPost = ({ src, className, style, setIsGlobalPlaying, muted: forcedMuted }: VideoPostProps) => {
+export default function VideoPost({
+  src,
+  poster,
+  className,
+  style,
+  setIsGlobalPlaying,
+  muted: forcedMuted,
+}: VideoPostProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const { t } = useLanguage();
-
+  const playerRef = useRef<HTMLDivElement>(null);
+  const visible = useRef(false);
+  const manuallyPaused = useRef(false);
+  const { lang } = useLanguage();
+  const en = lang === "en";
   const [isMuted, setIsMuted] = useState(true);
+  const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [isPaused, setIsPaused] = useState(false);
-  const [progress, setProgress] = useState(0);
+  const [hasError, setHasError] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [ratio, setRatio] = useState(16 / 9);
+  const effectiveMuted = forcedMuted ?? isMuted;
 
-  // ✅ Gestion événements globaux + nettoyage sécurisé
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.hidden && videoRef.current) {
-        videoRef.current.pause();
-      }
-    };
-
-    const handleGlobalMuteChange = (e: any) => {
-      setIsMuted(e.detail.muted);
-    };
-
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    window.addEventListener(MUTE_EVENT, handleGlobalMuteChange);
-
-    return () => {
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-      window.removeEventListener(MUTE_EVENT, handleGlobalMuteChange);
-      
-      if (videoRef.current) {
-        // ✅ CORRECTION : On met en pause proprement sans vider brutalement le 'src' 
-        // pour ne pas faire planter l'Intersection Observer asynchrone pendant le scroll
-        videoRef.current.pause();
-      }
-    };
+  const tryAutoplay = useCallback(() => {
+    const video = videoRef.current;
+    if (
+      !video ||
+      !visible.current ||
+      manuallyPaused.current ||
+      document.hidden ||
+      video.readyState < 1
+    )
+      return;
+    void video.play().catch(() => {
+      // Sound preferences must reflect the browser's actual autoplay fallback.
+      video.muted = true;
+      setIsMuted(true);
+      if (visible.current && !document.hidden && !manuallyPaused.current)
+        void video.play().catch(() => {});
+    });
   }, []);
 
-  // ✅ Charger la source de manière contrôlée
   useEffect(() => {
-    const video = videoRef.current;
-    if (!video || !src) return;
-
-    // Assigner la source et charger la métadonnée
-    video.src = src;
-    video.load();
-
-    return () => {
-      // Nettoyage au démontage ou changement de source
-      video.pause();
-      video.removeAttribute('src');
-      try {
-        video.load();
-      } catch (_) {}
-    };
+    manuallyPaused.current = false;
+    setHasError(false);
+    setIsLoading(true);
+    setIsPlaying(false);
+    setCurrentTime(0);
+    setDuration(0);
+    setRatio(16 / 9);
   }, [src]);
 
-  useAutoplayOnVisible(videoRef, 0.5);
-
-  // ✅ Synchronisation volume
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
-    if (forcedMuted) {
-      video.muted = false;
-      video.volume = 0.25;
-    } else {
-      video.muted = isMuted;
-      video.volume = 1.0;
-    }
-  }, [forcedMuted, isMuted]);
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        visible.current =
+          entry.isIntersecting && entry.intersectionRatio >= 0.5;
+        if (visible.current) tryAutoplay();
+        else video.pause();
+      },
+      { threshold: [0, 0.5] },
+    );
+    observer.observe(video);
+    const onVisibility = () => {
+      if (document.hidden) video.pause();
+      else tryAutoplay();
+    };
+    const onMute = (event: Event) =>
+      setIsMuted((event as CustomEvent<{ muted: boolean }>).detail.muted);
+    const onOtherPlay = (event: Event) => {
+      if ((event as CustomEvent<HTMLVideoElement>).detail !== video)
+        video.pause();
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    window.addEventListener(MUTE_EVENT, onMute);
+    window.addEventListener(PLAY_EVENT, onOtherPlay);
+    return () => {
+      observer.disconnect();
+      document.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener(MUTE_EVENT, onMute);
+      window.removeEventListener(PLAY_EVENT, onOtherPlay);
+      video.pause();
+    };
+  }, [src, tryAutoplay]);
 
-  const handleTimeUpdate = () => {
-    if (videoRef.current) {
-      const currentProgress = (videoRef.current.currentTime / videoRef.current.duration) * 100;
-      setProgress(isNaN(currentProgress) ? 0 : currentProgress);
-    }
-  };
-
-  const toggleMute = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    const newMutedState = !isMuted;
-    setIsMuted(newMutedState);
-    window.dispatchEvent(new CustomEvent(MUTE_EVENT, { detail: { muted: newMutedState } }));
-  };
-
-  const handleVideoClick = useCallback(async (e: React.MouseEvent) => {
-    e.stopPropagation();
+  const togglePlayback = async () => {
     const video = videoRef.current;
-    if (!video || !video.src || video.readyState === 0) return;
-    try {
-      if (video.paused) { 
-        await video.play(); 
-      } else { 
-        video.pause(); 
+    if (!video || hasError) return;
+    manuallyPaused.current = !video.paused;
+    if (video.paused) {
+      try {
+        await video.play();
+      } catch {
+        setIsPlaying(false);
       }
-    } catch (err) {
-      console.warn("Interaction video bloquee par le navigateur:", err);
+    } else video.pause();
+  };
+
+  const fullscreen = async () => {
+    const video = videoRef.current as
+      | (HTMLVideoElement & { webkitEnterFullscreen?: () => void })
+      | null;
+    try {
+      if (document.fullscreenElement) await document.exitFullscreen();
+      else if (playerRef.current?.requestFullscreen)
+        await playerRef.current.requestFullscreen();
+      else video?.webkitEnterFullscreen?.();
+    } catch {
+      video?.webkitEnterFullscreen?.();
     }
-  }, []);
+  };
+
+  const controlClass =
+    "inline-flex size-10 shrink-0 items-center justify-center rounded-full text-white transition hover:bg-white/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white";
 
   return (
-    <div className={cn("relative group overflow-hidden bg-zinc-950 flex items-center justify-center w-full h-full shadow-md border border-slate-200/5 dark:border-zinc-800/40 select-none", className)}>
-
-      {/* Lecteur vidéo */}
+    <div
+      ref={playerRef}
+      className={cn(
+        "group/video relative isolate max-h-[75svh] min-h-[220px] w-full overflow-hidden bg-zinc-950 text-white",
+        className,
+      )}
+      style={{ aspectRatio: ratio, ...style }}
+      onClick={(event) => event.stopPropagation()}
+    >
       <video
         ref={videoRef}
-        className="absolute inset-0 w-full h-full object-cover block cursor-pointer transition-transform duration-500"
-        style={{ ...style, objectFit: 'cover' }}
+        src={src}
+        poster={poster}
+        className="absolute inset-0 size-full object-contain"
         loop
-        muted={isMuted && !forcedMuted}
+        muted={effectiveMuted}
         playsInline
-        onClick={handleVideoClick}
-        onTimeUpdate={handleTimeUpdate}
         preload="metadata"
-        crossOrigin="anonymous"
-        onWaiting={() => setIsLoading(true)}
-        onCanPlay={() => setIsLoading(false)}
-        onPlaying={() => {
+        onLoadedMetadata={(event) => {
+          const video = event.currentTarget;
+          setDuration(Number.isFinite(video.duration) ? video.duration : 0);
+          if (video.videoWidth && video.videoHeight)
+            setRatio(video.videoWidth / video.videoHeight);
+        }}
+        onLoadedData={() => {
           setIsLoading(false);
-          setIsPaused(false);
-          if (setIsGlobalPlaying) setIsGlobalPlaying(true);
+          tryAutoplay();
+        }}
+        onCanPlay={() => setIsLoading(false)}
+        onWaiting={() => setIsLoading(true)}
+        onTimeUpdate={(event) =>
+          setCurrentTime(event.currentTarget.currentTime)
+        }
+        onVolumeChange={(event) => setIsMuted(event.currentTarget.muted)}
+        onPlaying={() => {
+          if (!visible.current || document.hidden) {
+            videoRef.current?.pause();
+            return;
+          }
+          setIsLoading(false);
+          setIsPlaying(true);
+          setIsGlobalPlaying?.(true);
+          window.dispatchEvent(
+            new CustomEvent(PLAY_EVENT, { detail: videoRef.current }),
+          );
         }}
         onPause={() => {
-          setIsPaused(true);
-          if (setIsGlobalPlaying) setIsGlobalPlaying(false);
+          setIsPlaying(false);
+          setIsGlobalPlaying?.(false);
         }}
+        onError={() => {
+          setHasError(true);
+          setIsLoading(false);
+          setIsPlaying(false);
+        }}
+      />
+      <button
+        type="button"
+        onClick={togglePlayback}
+        disabled={hasError}
+        aria-label={
+          isPlaying
+            ? en
+              ? "Pause video"
+              : "Mettre en pause"
+            : en
+              ? "Play video"
+              : "Lire la vidéo"
+        }
+        className="absolute inset-0 z-10 flex items-center justify-center focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-white"
       >
-        {t.error_loading}
-      </video>
-
-      {/* Gradient ombrage */}
-      <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-black/60 via-black/10 to-transparent pointer-events-none z-10" />
-
-      {/* Loader */}
-      {isLoading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/30 backdrop-blur-xs z-20 pointer-events-none">
-          <div className="p-3 rounded-2xl bg-black/40 border border-white/10 backdrop-blur-md shadow-xl">
-            <Loader2 className="size-8 animate-spin text-[#4a90e2]" />
-          </div>
-        </div>
-      )}
-
-      {/* Bouton play en pause */}
-      {isPaused && !isLoading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/10 pointer-events-none z-20">
-          <div className="bg-white/15 p-4 rounded-full backdrop-blur-xl border border-white/20 shadow-2xl animate-in fade-in zoom-in-75 duration-200">
-            <Play className="size-10 text-white fill-white ml-0.5" />
-          </div>
-        </div>
-      )}
-
-      {/* Bouton son */}
-      {!forcedMuted && (
-        <button
-          onClick={toggleMute}
-          type="button"
-          aria-label={isMuted ? t.notifications_enabled : t.notifications_disabled}
-          className="absolute top-4 right-4 z-30 rounded-xl bg-black/50 p-2.5 text-white backdrop-blur-lg transition-all hover:bg-black/70 border border-white/10 shadow-lg active:scale-95"
-        >
-          {isMuted
-            ? <VolumeX size={16} className="text-zinc-300" />
-            : <Volume2 size={16} className="text-[#4a90e2]" />
-          }
-        </button>
-      )}
-
-      {/* Badge type média */}
-      <div className="absolute bottom-4 left-4 z-20 rounded-lg bg-black/40 px-2.5 py-1 text-[9px] font-black uppercase text-zinc-100 tracking-widest backdrop-blur-md pointer-events-none border border-white/5 shadow-sm">
-        {t.videos}
-      </div>
-
-      {/* Barre de progression */}
-      <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/10 z-30 pointer-events-none">
+        {!isPlaying && !isLoading && !hasError && (
+          <span className="flex size-16 items-center justify-center rounded-full border border-white/30 bg-black/35 shadow-xl backdrop-blur-md">
+            <Play className="size-7 translate-x-0.5 fill-white" />
+          </span>
+        )}
+      </button>
+      <div className="pointer-events-none absolute inset-x-0 top-0 z-20 h-20 bg-gradient-to-b from-black/50 to-transparent" />
+      <span className="pointer-events-none absolute left-4 top-4 z-20 rounded-full border border-white/15 bg-black/30 px-3 py-1 text-[10px] font-semibold tracking-widest backdrop-blur-md">
+        DEALCITY VIDÉO
+      </span>
+      {isLoading && !hasError && (
         <div
-          className="h-full bg-gradient-to-r from-[#4a90e2] to-[#6ab344] transition-all duration-100 ease-linear"
-          style={{ width: `${progress}%` }}
+          role="status"
+          aria-label={en ? "Loading video" : "Chargement de la vidéo"}
+          className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center"
+        >
+          <Loader2 className="size-9 animate-spin text-white" />
+        </div>
+      )}
+      {hasError && (
+        <div
+          role="alert"
+          className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-3 bg-zinc-950/90 px-6 text-center"
+        >
+          <AlertCircle className="size-8 text-white/70" />
+          <p className="text-sm">
+            {en
+              ? "Unable to load this video."
+              : "Impossible de charger cette vidéo."}
+          </p>
+          <button
+            type="button"
+            className="flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-semibold text-black"
+            onClick={() => {
+              setHasError(false);
+              setIsLoading(true);
+              videoRef.current?.load();
+            }}
+          >
+            <RotateCcw className="size-4" />
+            {en ? "Retry" : "Réessayer"}
+          </button>
+        </div>
+      )}
+      <div className="absolute inset-x-0 bottom-0 z-30 bg-gradient-to-t from-black/90 via-black/50 to-transparent px-3 pb-3 pt-10 sm:px-4">
+        <input
+          type="range"
+          min={0}
+          max={duration || 1}
+          step={0.1}
+          value={Math.min(currentTime, duration || 0)}
+          disabled={!duration || hasError}
+          aria-label={en ? "Video position" : "Position dans la vidéo"}
+          aria-valuetext={`${formatTime(currentTime)} / ${formatTime(duration)}`}
+          className="block h-4 w-full cursor-pointer accent-[#4a90e2] disabled:cursor-default"
+          onChange={(event) => {
+            const time = Number(event.target.value);
+            if (videoRef.current) videoRef.current.currentTime = time;
+            setCurrentTime(time);
+          }}
         />
+        <div className="mt-1 flex items-center gap-1">
+          <button
+            type="button"
+            onClick={togglePlayback}
+            disabled={hasError}
+            aria-label={
+              isPlaying ? (en ? "Pause" : "Pause") : en ? "Play" : "Lecture"
+            }
+            className={controlClass}
+          >
+            {isPlaying ? (
+              <Pause className="size-5 fill-white" />
+            ) : (
+              <Play className="size-5 fill-white" />
+            )}
+          </button>
+          <span className="flex-1 text-xs tabular-nums text-white/85">
+            {formatTime(currentTime)}{" "}
+            <span className="text-white/45">/ {formatTime(duration)}</span>
+          </span>
+          {forcedMuted === undefined && (
+            <button
+              type="button"
+              aria-label={
+                isMuted
+                  ? en
+                    ? "Enable sound"
+                    : "Activer le son"
+                  : en
+                    ? "Mute"
+                    : "Couper le son"
+              }
+              aria-pressed={!isMuted}
+              className={controlClass}
+              onClick={() => {
+                const muted = !isMuted;
+                setIsMuted(muted);
+                window.dispatchEvent(
+                  new CustomEvent(MUTE_EVENT, { detail: { muted } }),
+                );
+              }}
+            >
+              {isMuted ? (
+                <VolumeX className="size-5" />
+              ) : (
+                <Volume2 className="size-5" />
+              )}
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={fullscreen}
+            aria-label={en ? "Fullscreen" : "Plein écran"}
+            className={controlClass}
+          >
+            <Maximize className="size-5" />
+          </button>
+        </div>
       </div>
     </div>
   );
-};
-
-export default VideoPost;
+}

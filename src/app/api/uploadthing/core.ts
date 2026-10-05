@@ -5,19 +5,12 @@ import { UploadThingError, UTApi } from "uploadthing/server";
 import { MediaType } from "@prisma/client";
 import sharp from "sharp";
 import ffmpeg from "fluent-ffmpeg";
+import ffmpegInstaller from "@ffmpeg-installer/ffmpeg";
+import { videoPreview } from "@/lib/video-preview";
 import path from "path";
 import fs from "fs/promises";
 
-
-const ffmpegPath = path.join(
-  process.cwd(), 
-  "node_modules", 
-  "@ffmpeg-installer", 
-  "win32-x64", 
-  "ffmpeg.exe"
-);
-
-ffmpeg.setFfmpegPath(ffmpegPath);
+ffmpeg.setFfmpegPath(ffmpegInstaller.path);
 const f = createUploadthing();
 const utapi = new UTApi();
 
@@ -27,13 +20,19 @@ const TEMP_DIR = path.join(process.cwd(), "public/uploads/temp");
 const LOGO_PATH = path.join(process.cwd(), "public", "logo.png");
 
 // 🪄 PROCESSOR DE FILIGRANE AVEC TON LOGO INTERNE
-async function processMediaWithLogoWatermark(fileUrl: string, fileType: string, fileName: string): Promise<{ buffer: Buffer; cleanUp?: () => Promise<void> }> {
+async function processMediaWithLogoWatermark(
+  fileUrl: string,
+  fileType: string,
+  fileName: string,
+): Promise<{ buffer: Buffer; cleanUp?: () => Promise<void> }> {
   // Petite pause de sécurité de 300ms pour s'assurer que le fichier initial est totalement accessible sur le cloud
   await new Promise((resolve) => setTimeout(resolve, 500));
 
   const response = await fetch(fileUrl);
   if (!response.ok) {
-    throw new Error(`Impossible de récupérer le fichier sur UploadThing: ${response.statusText}`);
+    throw new Error(
+      `Impossible de récupérer le fichier sur UploadThing: ${response.statusText}`,
+    );
   }
 
   const arrayBuffer = await response.arrayBuffer();
@@ -46,7 +45,9 @@ async function processMediaWithLogoWatermark(fileUrl: string, fileType: string, 
   try {
     await fs.access(LOGO_PATH);
   } catch {
-    console.error(`⚠️ Logo introuvable à l'emplacement réglementaire : ${LOGO_PATH}. Sauvegarde du fichier brut sans filigrane.`);
+    console.error(
+      `⚠️ Logo introuvable à l'emplacement réglementaire : ${LOGO_PATH}. Sauvegarde du fichier brut sans filigrane.`,
+    );
     return { buffer };
   }
 
@@ -59,10 +60,12 @@ async function processMediaWithLogoWatermark(fileUrl: string, fileType: string, 
       .toBuffer();
 
     const processedBuffer = await sharp(buffer)
-      .composite([{ 
-        input: resizedLogoBuffer, 
-        gravity: "southeast" // Position : En bas à droite de la photo du produit
-      }])
+      .composite([
+        {
+          input: resizedLogoBuffer,
+          gravity: "southeast", // Position : En bas à droite de la photo du produit
+        },
+      ])
       .toBuffer();
 
     return { buffer: processedBuffer };
@@ -81,14 +84,14 @@ async function processMediaWithLogoWatermark(fileUrl: string, fileType: string, 
         .input(LOGO_PATH)
         .complexFilter([
           // Redimensionne le logo à 150px de large à la volée et le cale en bas à droite à 20px des bords
-          "[1:v]scale=150:-1[wm];[0:v][wm]overlay=W-w-20:H-h-20"
+          "[1:v]scale=150:-1[wm];[0:v][wm]overlay=W-w-20:H-h-20",
         ])
         .output(tempOutputPath)
         .outputOptions("-preset ultrafast")
         .on("end", async () => {
           try {
             const processedBuffer = await fs.readFile(tempOutputPath);
-            
+
             const cleanUp = async () => {
               await fs.unlink(tempInputPath).catch(() => {});
               await fs.unlink(tempOutputPath).catch(() => {});
@@ -151,13 +154,13 @@ export const fileRouter = {
     .middleware(async () => {
       const { user } = await validateRequest();
       if (!user) throw new UploadThingError("Unauthorized");
-      
+
       // On récupère l'utilisateur actuel en BDD pour obtenir l'ancienne coverUrl au besoin
       const dbUser = await prisma.user.findUnique({
         where: { id: user.id },
-        select: { id: true, coverUrl: true }
+        select: { id: true, coverUrl: true },
       });
-      
+
       if (!dbUser) throw new UploadThingError("User not found");
       return { user: dbUser };
     })
@@ -170,7 +173,12 @@ export const fileRouter = {
         const key = oldCoverUrl.split(
           `/a/${process.env.NEXT_PUBLIC_UPLOADTHING_APP_ID}/`,
         )[1];
-        if (key) await utapi.deleteFiles(key).catch((e) => console.error("Erreur suppression ancienne cover:", e));
+        if (key)
+          await utapi
+            .deleteFiles(key)
+            .catch((e) =>
+              console.error("Erreur suppression ancienne cover:", e),
+            );
       }
 
       // Formatage de la nouvelle URL personnalisée sécurisée
@@ -192,7 +200,7 @@ export const fileRouter = {
   attachment: f({
     image: { maxFileSize: "16MB", maxFileCount: 10 },
     video: { maxFileSize: "512MB", maxFileCount: 5 },
-    audio: { maxFileSize: "32MB", maxFileCount: 1 }
+    audio: { maxFileSize: "32MB", maxFileCount: 1 },
   })
     .middleware(async () => {
       const { user } = await validateRequest();
@@ -201,7 +209,10 @@ export const fileRouter = {
     })
     .onUploadComplete(async ({ file }) => {
       let detectedType: MediaType;
-      let finalUrl = file.ufsUrl.replace(`/b/`, `/a/${process.env.NEXT_PUBLIC_UPLOADTHING_APP_ID}/`);
+      let finalUrl = file.ufsUrl.replace(
+        `/b/`,
+        `/a/${process.env.NEXT_PUBLIC_UPLOADTHING_APP_ID}/`,
+      );
 
       if (file.type.startsWith("video")) {
         detectedType = "VIDEO" as MediaType;
@@ -215,11 +226,20 @@ export const fileRouter = {
       if (detectedType === "IMAGE" || detectedType === "VIDEO") {
         try {
           // 1. Appliquer le filigrane image/vidéo à partir de ton logo.png
-          const { buffer: processedBuffer, cleanUp } = await processMediaWithLogoWatermark(file.ufsUrl, file.type, file.name);
+          const { buffer: processedBuffer, cleanUp } =
+            await processMediaWithLogoWatermark(
+              file.ufsUrl,
+              file.type,
+              file.name,
+            );
 
           // 2. Transformer le buffer traité en Uint8Array pour satisfaire le type BlobPart du constructeur File Web
-          const uploadFile = new File([new Uint8Array(processedBuffer)], file.name, { type: file.type });
-          
+          const uploadFile = new File(
+            [new Uint8Array(processedBuffer)],
+            file.name,
+            { type: file.type },
+          );
+
           // 3. Envoyer la version modifiée finale vers les serveurs cloud d'UploadThing
           const uploadResponse = await utapi.uploadFiles(uploadFile);
 
@@ -227,7 +247,11 @@ export const fileRouter = {
             // 4. Supprimer le fichier d'origine brut pour éviter de saturer ton espace de stockage
             const originalKey = file.ufsUrl.split("/b/")[1];
             if (originalKey) {
-              await utapi.deleteFiles(originalKey).catch((e) => console.error("Erreur suppression du doublon brut :", e));
+              await utapi
+                .deleteFiles(originalKey)
+                .catch((e) =>
+                  console.error("Erreur suppression du doublon brut :", e),
+                );
             }
 
             // 5. Récupérer l'URL finale optimisée et marquée
@@ -239,9 +263,30 @@ export const fileRouter = {
 
           // Nettoyage complet des résidus vidéo sur le serveur local
           if (cleanUp) await cleanUp();
-
         } catch (error) {
-          console.error("Échec du traitement du filigrane, sauvegarde sécurisée du fichier d'origine :", error);
+          console.error(
+            "Échec du traitement du filigrane, sauvegarde sécurisée du fichier d'origine :",
+            error,
+          );
+        }
+      }
+
+      // Generate a real frame before publication, so sharing does not need
+      // to decode the video again. Legacy posts use the preview route fallback.
+      let thumbnailUrl: string | undefined;
+      if (detectedType === "VIDEO") {
+        try {
+          const thumbnail = await videoPreview(finalUrl, null, true);
+          const result = await utapi.uploadFiles(
+            new File([new Uint8Array(thumbnail)], `${file.key}-preview.jpg`, {
+              type: "image/jpeg",
+            }),
+          );
+          thumbnailUrl = result.data?.ufsUrl;
+        } catch {
+          console.warn(
+            "Video thumbnail unavailable; it will be retried when shared.",
+          );
         }
       }
 
@@ -250,6 +295,7 @@ export const fileRouter = {
         data: {
           url: finalUrl,
           type: detectedType,
+          ...(thumbnailUrl && { settings: { thumbnailUrl } }),
         },
       });
 

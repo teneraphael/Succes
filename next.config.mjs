@@ -184,7 +184,11 @@ const nextConfig = {
       dynamic: 30,
     },
   },
-  serverExternalPackages: ["@node-rs/argon2"],
+  serverExternalPackages: ["@node-rs/argon2", "@ffmpeg-installer/ffmpeg"],
+  outputFileTracingIncludes: {
+    "/api/posts/*/video-preview": ["./node_modules/@ffmpeg-installer/**/*"],
+    "/api/uploadthing": ["./node_modules/@ffmpeg-installer/**/*"],
+  },
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "utfs.io" },
