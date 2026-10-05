@@ -392,3 +392,12 @@ model Payment {
 
   @@map("payments")
 }
+
+// Persistent attempt budgets shared by every application instance.
+model AuthRateLimit {
+  key       String   @id
+  attempts  Int
+  expiresAt DateTime
+
+  @@index([expiresAt])
+}
