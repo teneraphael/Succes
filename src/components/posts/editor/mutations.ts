@@ -12,6 +12,7 @@ import { submitPost } from "./actions";
 
 // 🌟 Typage mis à jour pour inclure city, neighborhood et les attributs dynamiques
 interface SubmitPostArgs {
+  category?: string;
   content: string;
   mediaIds: string[];
   stock: number; 
@@ -27,8 +28,8 @@ export function useSubmitPostMutation() {
 
   const mutation = useMutation({
     // mutationFn transmet maintenant proprement le payload complet avec city et neighborhood
-    mutationFn: ({ content, mediaIds, stock, city, neighborhood, targetUserId, attributes }: SubmitPostArgs) =>
-      submitPost({ content, mediaIds, stock, city, neighborhood, targetUserId, attributes }),
+    mutationFn: ({ content, category, mediaIds, stock, city, neighborhood, targetUserId, attributes }: SubmitPostArgs) =>
+      submitPost({ content, category, mediaIds, stock, city, neighborhood, targetUserId, attributes }),
 
     onSuccess: async (newPost) => {
       // 🌟 SÉCURITÉ TS : Empêche l'insertion d'une valeur nulle dans le cache si le serveur échoue à renvoyer le post

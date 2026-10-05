@@ -14,6 +14,7 @@ import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import { createSellerDirectly } from "../actions"; // 👈 Votre Server Action Admin
+import { canCreateSeller } from "@/lib/seller-creator-access";
 
 const slides = [
   {
@@ -41,6 +42,7 @@ export default function BecomeSellerPage() {
   const [isPending, startTransition] = useTransition();
   const [currentSlide, setCurrentSlide] = useState(0);
   const [formProgress, setFormProgress] = useState(0);
+  const [draftReady, setDraftReady] = useState(false);
   const [copied, setCopied] = useState(false);
   const [createdSellerInfo, setCreatedSellerInfo] = useState<{ username: string; tempPass: string } | null>(null);
 
@@ -53,6 +55,21 @@ export default function BecomeSellerPage() {
     neighborhood: "",
   });
 
+  const draftKey = `dealcity:seller-draft:${user?.id ?? "anonymous"}`;
+  useEffect(() => {
+    if (!user || draftReady) return;
+    try {
+      const saved = sessionStorage.getItem(draftKey);
+      if (saved) setFormDataValues((current) => ({ ...current, ...JSON.parse(saved) }));
+    } catch {}
+    setDraftReady(true);
+  }, [user, draftKey, draftReady]);
+
+  useEffect(() => {
+    if (!draftReady) return;
+    try { sessionStorage.setItem(draftKey, JSON.stringify(formDataValues)); } catch {}
+  }, [draftReady, draftKey, formDataValues]);
+
   // Rotation des diapositives d'illustration
   useEffect(() => {
     const timer = setInterval(() => {
@@ -61,11 +78,11 @@ export default function BecomeSellerPage() {
     return () => clearInterval(timer);
   }, []);
 
-  // Sécurité : Réservé exclusivement à l'admin (dgd2ohqrx3tqezng)
+  // Autoriser les comptes de conciergerie désignés.
   useEffect(() => {
     if (!user) {
-      router.push("/login?callbackUrl=/become-seller");
-    } else if (user.id !== "dgd2ohqrx3tqezng") {
+      router.push("/login?callbackUrl=/admin/create-seller");
+    } else if (!canCreateSeller(user.id)) {
       router.push("/");
       toast({ variant: "destructive", description: "Accès refusé : Réservé à l'administrateur." });
     }
@@ -97,7 +114,7 @@ export default function BecomeSellerPage() {
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    if (!user || user.id !== "dgd2ohqrx3tqezng") return;
+    if (!canCreateSeller(user?.id)) return;
 
     const formElement = e.currentTarget;
     const data = new FormData(formElement);
@@ -118,6 +135,7 @@ export default function BecomeSellerPage() {
 };
 
 if (!result.success) throw new Error(result.error || "Erreur lors de la création");
+        try { sessionStorage.removeItem(draftKey); } catch {}
         setCreatedSellerInfo({
           username: result.seller.username,
           tempPass: result.tempPassword,
@@ -133,7 +151,7 @@ if (!result.success) throw new Error(result.error || "Erreur lors de la créatio
     });
   }
 
-  if (!user || user.id !== "dgd2ohqrx3tqezng") return null;
+  if (!canCreateSeller(user?.id)) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex w-screen h-dvh overflow-hidden bg-[#f8fbff] dark:bg-[#09090b]">

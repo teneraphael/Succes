@@ -10,12 +10,15 @@ import {
   Trash2,
   LockKeyhole,
   Settings,
+  LifeBuoy,
 } from "lucide-react";
 import { deleteAccount } from "./actions";
 import { logout } from "@/app/(auth)/actions";
 import Link from "next/link";
+import { useSession } from "@/app/(main)/SessionProvider";
 
 export default function SettingsPage() {
+  const { user } = useSession();
   const handleDeleteAction = async () => {
     if (confirm("Êtes-vous sûr de vouloir supprimer votre compte définitivement ? Cette action est irréversible.")) {
       try {
@@ -51,7 +54,7 @@ export default function SettingsPage() {
         </p>
         <div className="bg-card rounded-3xl border border-border/60 shadow-sm overflow-hidden">
           <Link
-            href="/user/profile"
+            href={user ? `/users/${user.username}` : "/login?callbackUrl=/settings"}
             className="flex items-center justify-between p-4 hover:bg-[#4a90e2]/[0.03] transition-all border-b border-border/40 group"
           >
             <div className="flex items-center gap-3">
@@ -104,6 +107,19 @@ export default function SettingsPage() {
           </Link>
 
           <Link
+            href="/settings/support"
+            className="flex items-center justify-between p-4 hover:bg-[#4a90e2]/[0.03] transition-all border-b border-border/40 group"
+          >
+            <div className="flex items-center gap-3">
+              <div className="size-9 bg-[#4a90e2]/10 rounded-xl flex items-center justify-center border border-[#4a90e2]/15">
+                <LifeBuoy className="size-4 text-[#4a90e2]" />
+              </div>
+              <span className="font-bold text-sm text-foreground group-hover:text-[#4a90e2] transition-colors">Support et assistance</span>
+            </div>
+            <ChevronRight className="size-4 text-muted-foreground group-hover:text-[#4a90e2] transition-colors" />
+          </Link>
+
+          <Link
             href="/confidentialite"
             className="flex items-center justify-between p-4 hover:bg-[#4a90e2]/[0.03] transition-all border-b border-border/40 group"
           >
@@ -132,6 +148,8 @@ export default function SettingsPage() {
             </div>
             <ChevronRight className="size-4 text-muted-foreground group-hover:text-[#4a90e2] transition-colors" />
           </Link>
+          <Link href="/conditions-utilisation" className="flex items-center justify-between p-4 border-t border-border/40 hover:bg-muted/40"><span className="font-bold text-sm">Conditions d’utilisation</span><ChevronRight className="size-4" /></Link>
+          <Link href="/cookies" className="flex items-center justify-between p-4 border-t border-border/40 hover:bg-muted/40"><span className="font-bold text-sm">Cookies et stockage local</span><ChevronRight className="size-4" /></Link>
         </div>
       </div>
 

@@ -2,6 +2,8 @@ import { validateRequest } from "@/auth";
 import prisma from "@/lib/prisma";
 import { moderatePostContent } from "@/lib/moderation";
 import { NextRequest } from "next/server";
+import { getPostCategory } from "@/lib/post-categories";
+import { canPublishForSeller } from "@/lib/seller-creator-access";
 
 export async function POST(req: NextRequest) {
   try {
@@ -11,7 +13,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { content, city, neighborhood, mediaIds, stock, targetUserId } = body;
+    const { content, category, city, neighborhood, mediaIds, stock, targetUserId } = body;
 
     // 1️⃣ Récupération des URLs et des types des médias depuis les IDs envoyés par le PostEditor
     let mediaUrls: { url: string; type: "IMAGE" | "VIDEO" }[] = [];
@@ -42,15 +44,23 @@ export async function POST(req: NextRequest) {
     }
 
     // 3️⃣ Gestion de la substitution admin (si l'admin publie pour un pionnier)
-    const authorId = 
-      (user.username === "dealcity" || user.id === "22lmc64bcqwsqybu") && targetUserId && targetUserId !== "me"
-        ? targetUserId
-        : user.id;
+    let authorId = user.id;
+    if (targetUserId && targetUserId !== "me") {
+      if (!canPublishForSeller(user)) {
+        return Response.json({ error: "Accès refusé" }, { status: 403 });
+      }
+      const seller = await prisma.user.findFirst({
+        where: { id: targetUserId, isPioneer: true }, select: { id: true },
+      });
+      if (!seller) return Response.json({ error: "Vendeur introuvable" }, { status: 400 });
+      authorId = seller.id;
+    }
 
     // 4️⃣ 📝 Création du post en base de données avec liaison des médias
     const newPost = await prisma.post.create({
       data: {
         content: content.trim(),
+        category: getPostCategory(category),
         city: city?.trim() || "",
         neighborhood: neighborhood?.trim() || "",
         stock: typeof stock === "number" ? stock : parseInt(stock) || 1,

@@ -9,6 +9,11 @@ const withPWA = withPWAInit({
     image: '/icons/icon-192.png',
   },
   runtimeCaching: [
+    // Never retain authentication pages or OAuth responses in offline caches.
+    {
+      urlPattern: /\/(?:login|signup|forgot-password|reset-password|api\/auth)(?:[/?]|$)/i,
+      handler: "NetworkOnly",
+    },
     // ✅ Images UploadThing ufs.sh
     {
       urlPattern: /^https:\/\/.*\.ufs\.sh\/.*/i,
@@ -184,7 +189,11 @@ const nextConfig = {
       dynamic: 30,
     },
   },
-  serverExternalPackages: ["@node-rs/argon2"],
+  serverExternalPackages: ["@node-rs/argon2", "@ffmpeg-installer/ffmpeg"],
+  outputFileTracingIncludes: {
+    "/api/posts/*/video-preview": ["./node_modules/@ffmpeg-installer/**/*"],
+    "/api/uploadthing": ["./node_modules/@ffmpeg-installer/**/*"],
+  },
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "utfs.io" },
@@ -202,6 +211,15 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  headers: async () => [{
+    source: "/:path(login|signup|forgot-password|reset-password)",
+    headers: [
+      { key: "Referrer-Policy", value: "no-referrer" },
+      { key: "X-Content-Type-Options", value: "nosniff" },
+      { key: "X-Frame-Options", value: "DENY" },
+      { key: "Cache-Control", value: "no-store" },
+    ],
+  }],
   rewrites: async () => {
     return [
       {

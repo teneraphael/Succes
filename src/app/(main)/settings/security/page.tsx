@@ -6,6 +6,7 @@ import { useState } from "react";
 import LoadingButton from "@/components/LoadingButton";
 import { PasswordInput } from "@/components/PasswordInput";
 import { toast } from "sonner";
+import { changePassword } from "./actions";
 
 export default function SecuritySettings() {
   const [isPending, setIsPending] = useState(false);
@@ -13,10 +14,19 @@ export default function SecuritySettings() {
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setIsPending(true);
-    setTimeout(() => {
+    const form = e.currentTarget;
+    try {
+      const result = await changePassword(new FormData(form));
+      if (result.error) toast.error(result.error);
+      else {
+        form.reset();
+        toast.success("Mot de passe mis à jour !");
+      }
+    } catch {
+      toast.error("Impossible de modifier le mot de passe. Réessayez.");
+    } finally {
       setIsPending(false);
-      toast.success("Mot de passe mis à jour !");
-    }, 1500);
+    }
   }
 
   return (
@@ -65,6 +75,7 @@ export default function SecuritySettings() {
               Mot de passe actuel
             </label>
             <PasswordInput
+              name="currentPassword"
               placeholder="••••••••"
               required
               className="h-14 rounded-2xl bg-[#f8faff] dark:bg-zinc-800/50 border border-[#4a90e2]/10 dark:border-white/5 focus-visible:border-[#4a90e2]/40 focus-visible:ring-2 focus-visible:ring-[#4a90e2]/10 text-sm font-semibold transition-all"
@@ -76,6 +87,8 @@ export default function SecuritySettings() {
               Nouveau mot de passe
             </label>
             <PasswordInput
+              name="newPassword"
+              minLength={10}
               placeholder="••••••••"
               required
               className="h-14 rounded-2xl bg-[#f8faff] dark:bg-zinc-800/50 border border-[#4a90e2]/10 dark:border-white/5 focus-visible:border-[#4a90e2]/40 focus-visible:ring-2 focus-visible:ring-[#4a90e2]/10 text-sm font-semibold transition-all"

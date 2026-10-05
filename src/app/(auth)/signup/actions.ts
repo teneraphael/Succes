@@ -1,11 +1,12 @@
 "use server";
 
 import { lucia } from "@/auth";
+import { consumeAuthAttempt } from "@/lib/auth-rate-limit";
 import prisma from "@/lib/prisma";
 import { signUpSchema, SignUpValues } from "@/lib/validation";
 import { hash } from "@node-rs/argon2";
 import { generateIdFromEntropySize } from "lucia";
-import { isRedirectError } from "next/dist/client/components/redirect";
+import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { sendWelcomeEmail } from "@/lib/mail"; 
@@ -16,12 +17,9 @@ export async function signUp(
   try {
     const { username, email, password } = signUpSchema.parse(credentials);
 
-    const passwordHash = await hash(password, {
-      memoryCost: 19456,
-      timeCost: 2,
-      outputLen: 32,
-      parallelism: 1,
-    });
+    if (!(await consumeAuthAttempt("signup", email, 5, 60 * 60 * 1000))) {
+      return { error: "Trop de tentatives. Veuillez réessayer plus tard." };
+    }
 
     const userId = generateIdFromEntropySize(10);
 
@@ -55,6 +53,7 @@ export async function signUp(
       };
     }
 
+    const passwordHash = await hash(password, { memoryCost: 19456, timeCost: 2, outputLen: 32, parallelism: 1 });
     await prisma.$transaction(async (tx) => {
       await tx.user.create({
         data: {
@@ -82,7 +81,7 @@ export async function signUp(
     return redirect("/onboarding");
   } catch (error) {
     if (isRedirectError(error)) throw error;
-    console.error(error);
+    console.warn("Signup failed");
     return {
       error: "Une erreur est survenue. Veuillez réessayer.",
     };

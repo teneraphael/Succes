@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Cookie, ShieldCheck } from "lucide-react";
+import { Cookie } from "lucide-react";
 import { useLanguage } from "@/components/LanguageProvider";
 
 export default function CookieBanner() {
@@ -15,8 +15,8 @@ export default function CookieBanner() {
     if (!consent) setShowBanner(true);
   }, []);
 
-  const acceptCookies = () => {
-    localStorage.setItem("dealcity_cookie_consent", "accepted");
+  const dismissNotice = () => {
+    localStorage.setItem("dealcity_cookie_consent", "notice-seen");
     setShowBanner(false);
   };
 
@@ -50,19 +50,18 @@ export default function CookieBanner() {
 
         {/* ✅ Texte traduit */}
         <p className="text-xs text-muted-foreground leading-relaxed font-medium">
-          DealCity utilise des cookies essentiels pour l&apos;authentification et le bon fonctionnement du site. En continuant, vous acceptez notre{" "}
+          DealCity utilise des cookies nécessaires à la connexion et aux préférences de localisation. Consultez notre{" "}
           <Link href="/confidentialite" className="text-[#4a90e2] hover:underline font-black">
             {t.legal}
-          </Link>.
+          </Link> et notre <Link href="/cookies" className="text-[#4a90e2] hover:underline font-black">page Cookies</Link>.
         </p>
 
         {/* ✅ Bouton traduit */}
         <button
-          onClick={acceptCookies}
+          onClick={dismissNotice}
           className="w-full h-11 bg-[#4a90e2] hover:bg-[#357abd] text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-lg shadow-[#4a90e2]/20 transition-all active:scale-[0.97] flex items-center justify-center gap-2"
         >
-          <ShieldCheck className="size-3.5" />
-          {t.enable_notifications}
+          J&apos;ai compris
         </button>
       </div>
     </div>

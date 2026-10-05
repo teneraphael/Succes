@@ -125,6 +125,8 @@ function ResetPasswordContent() {
                 disabled={isPending}
                 placeholder="000000"
                 maxLength={6}
+                inputMode="numeric"
+                autoComplete="one-time-code"
                 value={code}
                 onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
                 className="h-14 rounded-2xl pl-12 bg-[#f8faff] dark:bg-zinc-800/50 border border-[#4a90e2]/10 dark:border-white/5 focus-visible:border-[#4a90e2]/40 focus-visible:ring-2 focus-visible:ring-[#4a90e2]/10 text-center text-xl font-black tracking-[8px] transition-all"
@@ -144,6 +146,9 @@ function ResetPasswordContent() {
               <PasswordInput
                 required
                 disabled={isPending}
+                minLength={8}
+                maxLength={128}
+                autoComplete="new-password"
                 placeholder="Nouveau mot de passe"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}

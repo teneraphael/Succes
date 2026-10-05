@@ -23,6 +23,8 @@ import {
   SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { useLanguage } from "@/components/LanguageProvider";
+import { POST_CATEGORIES } from "@/lib/post-categories";
+import { canPublishForSeller } from "@/lib/seller-creator-access";
 
 // ✅ Liste officielle et complète des villes et quartiers du Cameroun
 const CITIES_WITH_QUARTERS: Record<string, string[]> = {
@@ -163,6 +165,7 @@ export default function PostEditor() {
   const { toast } = useToast();
 
   const [productName, setProductName] = useState("");
+  const [category, setCategory] = useState("");
   const [price, setPrice] = useState("");
   const [priceType, setPriceType] = useState("Prix taxer / Discutable");
   const [stock, setStock] = useState("1");
@@ -170,15 +173,14 @@ export default function PostEditor() {
   const [city, setCity] = useState("");
   const [neighborhood, setNeighborhood] = useState("");
   const [targetUserId, setTargetUserId] = useState("me");
+  const [descriptionDraft, setDescriptionDraft] = useState("");
+  const [draftReady, setDraftReady] = useState(false);
+  const [draftRestored, setDraftRestored] = useState(false);
   const [pioneers, setPioneers] = useState<{ id: string; displayName: string; username: string }[]>([]);
 
-  const isAdmin = !!user && (user.username === "dealcity" || user.id === "22lmc64bcqwsqybu");
+  const isAdmin = canPublishForSeller(user);
 
   const availableNeighborhoods = CITIES_WITH_QUARTERS[city as keyof typeof CITIES_WITH_QUARTERS] || [];
-
-  useEffect(() => {
-    setNeighborhood("");
-  }, [city]);
 
   useEffect(() => {
     if (isAdmin) {
@@ -189,7 +191,7 @@ export default function PostEditor() {
     }
   }, [isAdmin]);
 
-  const { startUpload, attachments, isUploading, removeAttachment, reset: resetMediaUploads } = useMediaUpload();
+  const { startUpload, attachments, isUploading, uploadProgress, removeAttachment, reset: resetMediaUploads } = useMediaUpload();
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop: startUpload,
     disabled: isUploading,
@@ -201,6 +203,7 @@ export default function PostEditor() {
       Placeholder.configure({ placeholder: t.description_placeholder }),
     ],
     immediatelyRender: false,
+    onUpdate: ({ editor }) => setDescriptionDraft(editor.getText({ blockSeparator: "\n" })),
     editorProps: {
       handlePaste(view, event) {
         const text = event.clipboardData?.getData("text/plain");
@@ -228,10 +231,47 @@ export default function PostEditor() {
     },
   });
 
+  const draftKey = `dealcity:post-draft:${user?.id ?? "anonymous"}`;
+  useEffect(() => {
+    if (!editor || draftReady || !user) return;
+    try {
+      const saved = sessionStorage.getItem(draftKey);
+      if (saved) {
+        const draft = JSON.parse(saved);
+        setProductName(draft.productName || "");
+        setCategory(draft.category || "");
+        setPrice(draft.price || "");
+        setPriceType(draft.priceType || "Prix taxer / Discutable");
+        setPhone(draft.phone || "");
+        setStock(draft.stock || "1");
+        setCity(draft.city || "");
+        setNeighborhood(draft.neighborhood || "");
+        setTargetUserId(draft.targetUserId || "me");
+        if (draft.description) editor.commands.setContent(draft.description);
+        setDraftRestored(true);
+      }
+    } catch {}
+    setDraftReady(true);
+  }, [editor, draftKey, draftReady, user]);
+
+  useEffect(() => {
+    if (!draftReady) return;
+    const save = () => {
+      try {
+        sessionStorage.setItem(draftKey, JSON.stringify({
+          productName, category, price, priceType, phone, stock, city, neighborhood,
+          targetUserId, description: descriptionDraft,
+        }));
+      } catch {}
+    };
+    save();
+  }, [draftReady, draftKey, productName, category, price, priceType, phone, stock, city, neighborhood, targetUserId, descriptionDraft]);
+
   const description = editor?.getText({ blockSeparator: "\n" }) || "";
 
   const isFormValid =
     productName.trim() !== "" &&
+    category !== "" &&
     price.trim() !== "" &&
     priceType.trim() !== "" &&
     stock.trim() !== "" &&
@@ -253,6 +293,7 @@ export default function PostEditor() {
     mutation.mutate(
       {
         content: ` PRODUIT : ${productName}\n PRIX : ${price} FCFA (${priceType})${stockInfo}${whatsappInfo}${locationInfo}\n\n DESCRIPTION :\n${description}`,
+        category,
         mediaIds: attachments.map((a: any) => a.mediaId).filter(Boolean) as string[],
         stock: parseInt(stock),
         city: formattedCity,
@@ -262,8 +303,11 @@ export default function PostEditor() {
       } as any,
       {
         onSuccess: () => {
+          try { sessionStorage.removeItem(draftKey); } catch {}
+          setDraftRestored(false);
           editor?.commands.clearContent();
           setProductName("");
+          setCategory("");
           setPrice("");
           setPriceType("Prix taxer / Discutable");
           setPhone("");
@@ -316,6 +360,21 @@ export default function PostEditor() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+        {draftRestored && (
+          <p className="col-span-full rounded-xl bg-[#4a90e2]/10 px-3 py-2 text-xs text-foreground" role="status">
+            Brouillon récupéré. Vérifiez les informations et ajoutez à nouveau vos photos ou vidéos si nécessaire.
+          </p>
+        )}
+        <Select value={category} onValueChange={setCategory}>
+          <SelectTrigger className="h-12 rounded-2xl border border-[#4a90e2]/10 px-4 text-xs font-black uppercase">
+            <SelectValue placeholder="Catégorie du produit" />
+          </SelectTrigger>
+          <SelectContent>
+            {POST_CATEGORIES.map((value) => (
+              <SelectItem key={value} value={value}>{value}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <div className="relative md:col-span-1">
           <Tag className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
           <input
@@ -373,7 +432,7 @@ export default function PostEditor() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <Select value={city} onValueChange={setCity}>
+        <Select value={city} onValueChange={(value) => { setCity(value); setNeighborhood(""); }}>
           <SelectTrigger className="w-full h-12 rounded-2xl bg-[#f8faff] dark:bg-zinc-800/50 border border-[#4a90e2]/10 px-4 text-sm font-black uppercase">
             <div className="flex items-center gap-2 truncate">
               <Building2 className="size-4 text-muted-foreground shrink-0" />
@@ -440,9 +499,21 @@ export default function PostEditor() {
             <AttachmentStudio
               key={attachment.file.name}
               attachment={attachment}
-              onRemove={() => removeAttachment(attachment.file.name)}
+              onRemove={() => removeAttachment(attachment.customId)}
             />
           ))}
+        </div>
+      )}
+
+      {isUploading && (
+        <div className="space-y-2 rounded-2xl border border-[#4a90e2]/20 bg-[#4a90e2]/5 p-4" role="status" aria-live="polite">
+          <div className="flex items-center justify-between gap-3 text-xs font-bold text-foreground">
+            <span>{uploadProgress === 100 ? "Traitement des médias…" : "Téléversement des médias…"}</span>
+            <span>{Math.round(uploadProgress ?? 0)} %</span>
+          </div>
+          <div className="h-2.5 w-full overflow-hidden rounded-full bg-[#4a90e2]/15" role="progressbar" aria-label="Téléversement des médias" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(uploadProgress ?? 0)}>
+            <div className="h-full rounded-full bg-[#4a90e2] transition-[width] duration-300" style={{ width: `${Math.round(uploadProgress ?? 0)}%` }} />
+          </div>
         </div>
       )}
 

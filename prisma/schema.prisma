@@ -112,6 +112,7 @@ model Order {
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
 
+  @@index([userId, createdAt])
   @@map("orders")
 }
 
@@ -205,6 +206,7 @@ model UserInteraction {
   @@index([postId])
   @@index([dealId])
   @@index([userId, type])
+  @@index([userId, createdAt])
 }
 
 model Conversation {
@@ -276,6 +278,8 @@ model Post {
   createdAt           DateTime          @default(now())
 
   @@index([category])
+  @@index([createdAt, id])
+  @@index([city, createdAt, id])
   @@map("posts")
 }
 
@@ -330,6 +334,7 @@ model Bookmark {
   createdAt DateTime @default(now())
 
   @@unique([userId, postId])
+  @@index([userId, createdAt])
   @@map("bookmarks")
 }
 
@@ -345,6 +350,7 @@ model Notification {
   read        Boolean          @default(false)
   createdAt   DateTime         @default(now())
 
+  @@index([recipientId, read])
   @@map("notifications")
 }
 

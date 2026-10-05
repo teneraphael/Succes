@@ -25,7 +25,9 @@ const getPost = cache(async (postId: string, loggedInUserId?: string) => {
   return post;
 });
 
-export async function generateMetadata({ params: { postId } }: PageProps): Promise<Metadata> {
+export async function generateMetadata({
+  params: { postId },
+}: PageProps): Promise<Metadata> {
   const post = await getPost(postId);
 
   const origin = process.env.NEXT_PUBLIC_BASE_URL || "https://dealcity.app";
@@ -33,37 +35,29 @@ export async function generateMetadata({ params: { postId } }: PageProps): Promi
   // ✅ Regex robustes — sans emojis obligatoires
   const productMatch = post.content.match(/PRODUIT\s*:\s*([^\n]+)/i);
   const priceMatch = post.content.match(/PRIX\s*:\s*([\d\s,._]+)\s*FCFA/i);
-  const descMatch = post.content.match(/DESCRIPTION\s*:\s*\n?([\s\S]*?)(?=\n\n|📞|🔗|$)/i);
+  const descMatch = post.content.match(
+    /DESCRIPTION\s*:\s*\n?([\s\S]*?)(?=\n\n|📞|🔗|$)/i,
+  );
 
-  const productName = productMatch ? productMatch[1].trim() : post.user.displayName;
-  const price = priceMatch ? `${priceMatch[1].trim().replace(/\s/g, "")} FCFA` : "";
+  const productName = productMatch
+    ? productMatch[1].trim()
+    : post.user.displayName;
+  const price = priceMatch
+    ? `${priceMatch[1].trim().replace(/\s/g, "")} FCFA`
+    : "";
   const shareTitle = price ? `${productName} — ${price}` : productName;
   const description = descMatch
     ? descMatch[1].trim().slice(0, 150)
     : post.content.slice(0, 150);
 
-  // ✅ Priorité og:image pour WhatsApp/Facebook :
-  // 1. Première image du post (idéal)
-  // 2. thumbnailUrl de la vidéo (champ Prisma existant dans Post)
-  // 3. thumbnailUrl sur l'objet Media vidéo
-  // 4. Avatar du vendeur (toujours disponible)
-  // 5. Logo DealCity (fallback absolu)
-  const firstImage = post.attachments.find((m) => m.type === "IMAGE")?.url;
-  const firstVideo = post.attachments.find((m) => m.type === "VIDEO");
-  const videoThumbnailOnMedia = (firstVideo as any)?.thumbnailUrl || null;
-  const videoThumbnailOnPost = post.thumbnailUrl || null;
-
-  const ogImageRaw =
-    firstImage ||
-    videoThumbnailOnPost ||
-    videoThumbnailOnMedia ||
-    post.user.avatarUrl ||
-    "/icons/icon-512.png";
-
-  // ✅ Forcer URL absolue — WhatsApp rejette les chemins relatifs
-  const ogImage = ogImageRaw.startsWith("/")
-    ? `${origin}${ogImageRaw}`
-    : ogImageRaw;
+  const firstImage = post.attachments.find(
+    (media) => media.type === "IMAGE",
+  )?.url;
+  const firstVideo = post.attachments.find((media) => media.type === "VIDEO");
+  const ogImageRaw = firstVideo
+    ? `/api/posts/${postId}/video-preview`
+    : firstImage || post.user.avatarUrl || "/icons/icon-512.png";
+  const ogImage = new URL(ogImageRaw, origin).toString();
 
   const isVideoOnly = !firstImage && !!firstVideo;
   const finalTitle = isVideoOnly ? `▶ ${shareTitle}` : shareTitle;
@@ -71,14 +65,26 @@ export async function generateMetadata({ params: { postId } }: PageProps): Promi
   return {
     title: finalTitle,
     description,
+    alternates: { canonical: `${origin}/posts/${postId}` },
     openGraph: {
       title: finalTitle,
       description,
       url: `${origin}/posts/${postId}`,
       siteName: "DealCity",
-      type: "article",
+      type: firstVideo ? "video.other" : "article",
+      ...(firstVideo && {
+        videos: [{ url: new URL(firstVideo.url, origin).toString() }],
+      }),
       locale: "fr_CM",
-      images: [{ url: ogImage, width: 1200, height: 630, alt: productName }],
+      images: [
+        {
+          url: ogImage,
+          ...(firstVideo && { width: 1200, height: 630, type: "image/jpeg" }),
+          alt: firstVideo
+            ? `Vidéo de ${productName} sur DealCity`
+            : productName,
+        },
+      ],
     },
     twitter: {
       card: "summary_large_image",
@@ -126,9 +132,9 @@ async function UserInfoSidebar({ user }: UserInfoSidebarProps) {
   if (!loggedInUser) return null;
 
   return (
-    <div className="space-y-5 rounded-2xl bg-card p-5 shadow-sm border border-border/60">
+    <div className="space-y-5 rounded-2xl border border-border/60 bg-card p-5 shadow-sm">
       <div className="flex items-center gap-2.5">
-        <div className="size-7 rounded-lg bg-[#4a90e2]/10 border border-[#4a90e2]/20 flex items-center justify-center">
+        <div className="flex size-7 items-center justify-center rounded-lg border border-[#4a90e2]/20 bg-[#4a90e2]/10">
           <UserAvatar avatarUrl={user.avatarUrl} size={28} />
         </div>
         <p className="text-xs font-black uppercase tracking-widest text-foreground">
@@ -137,10 +143,17 @@ async function UserInfoSidebar({ user }: UserInfoSidebarProps) {
       </div>
 
       <UserTooltip user={user}>
-        <Link href={`/users/${user.username}`} className="flex items-center gap-3 group">
-          <UserAvatar avatarUrl={user.avatarUrl} size={40} className="shrink-0" />
+        <Link
+          href={`/users/${user.username}`}
+          className="group flex items-center gap-3"
+        >
+          <UserAvatar
+            avatarUrl={user.avatarUrl}
+            size={40}
+            className="shrink-0"
+          />
           <div className="min-w-0">
-            <p className="line-clamp-1 break-all text-sm font-bold text-foreground group-hover:text-[#4a90e2] transition-colors">
+            <p className="line-clamp-1 break-all text-sm font-bold text-foreground transition-colors group-hover:text-[#4a90e2]">
               {user.displayName}
             </p>
             <p className="line-clamp-1 break-all text-xs text-muted-foreground">
@@ -151,7 +164,7 @@ async function UserInfoSidebar({ user }: UserInfoSidebarProps) {
       </UserTooltip>
 
       <Linkify>
-        <div className="line-clamp-6 whitespace-pre-line break-words text-xs text-muted-foreground leading-relaxed">
+        <div className="line-clamp-6 whitespace-pre-line break-words text-xs leading-relaxed text-muted-foreground">
           {user.bio}
         </div>
       </Linkify>

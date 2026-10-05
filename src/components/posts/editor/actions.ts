@@ -4,9 +4,8 @@ import { validateRequest } from "@/auth";
 import prisma from "@/lib/prisma";
 import { getPostDataInclude } from "@/lib/types";
 import { createPostSchema } from "@/lib/validation";
-
-const ADMIN_IDS = ["22lmc64bcqwsqybu"]; 
-const ADMIN_USERNAMES = ["dealcity"];
+import { getPostCategory } from "@/lib/post-categories";
+import { canPublishForSeller } from "@/lib/seller-creator-access";
 
 interface DynamicAttributeInput {
   name: string;
@@ -14,6 +13,7 @@ interface DynamicAttributeInput {
 }
 
 interface SubmitPostInput {
+  category?: string;
   content: string;
   mediaIds: string[];
   stock: number;
@@ -64,10 +64,17 @@ export async function submitPost(input: SubmitPostInput) {
     mediaIds: input.mediaIds,
   });
 
-  const isAdmin = ADMIN_IDS.includes(loggedInUser.id) || ADMIN_USERNAMES.includes(loggedInUser.username);
-  const finalAuthorId = (isAdmin && input.targetUserId && input.targetUserId !== "me")
-    ? input.targetUserId
-    : loggedInUser.id;
+  const publishingForSeller = !!input.targetUserId && input.targetUserId !== "me";
+  if (publishingForSeller && !canPublishForSeller(loggedInUser)) {
+    throw new Error("Vous n'êtes pas autorisé à publier pour un vendeur.");
+  }
+  if (publishingForSeller) {
+    const seller = await prisma.user.findFirst({
+      where: { id: input.targetUserId, isPioneer: true }, select: { id: true },
+    });
+    if (!seller) throw new Error("Vendeur introuvable.");
+  }
+  const finalAuthorId = publishingForSeller ? input.targetUserId! : loggedInUser.id;
 
   const rawStock = input.stock !== undefined ? input.stock : 1;
   const validatedStock = Math.max(0, Math.floor(rawStock));
@@ -78,6 +85,7 @@ export async function submitPost(input: SubmitPostInput) {
     const post = await tx.post.create({
       data: {
         content,
+        category: getPostCategory(input.category),
         userId: finalAuthorId,
         stock: validatedStock,
         city: input.city || null,                 // 👈 Enregistré en base

@@ -3,23 +3,28 @@
 import { lucia } from "@/auth";
 import prisma from "@/lib/prisma";
 import { loginSchema, LoginValues } from "@/lib/validation";
-import { verify } from "@node-rs/argon2";
-import { isRedirectError } from "next/dist/client/components/redirect";
+import { consumeAuthAttempt } from "@/lib/auth-rate-limit";
+import { verifyPassword } from "@/lib/verify-password";
+import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 export async function login(
   credentials: LoginValues,
+  returnTo?: string,
 ): Promise<{ error: string }> {
   try {
     const { username, password } = loginSchema.parse(credentials);
 
+    if (!(await consumeAuthAttempt("login", username, 10, 15 * 60 * 1000))) {
+      return { error: "Trop de tentatives. Veuillez réessayer dans 15 minutes." };
+    }
     const existingUser = await prisma.user.findFirst({
       where: {
-        username: {
-          equals: username,
-          mode: "insensitive",
-        },
+        OR: [
+          { username: { equals: username, mode: "insensitive" } },
+          { email: { equals: username, mode: "insensitive" } },
+        ],
       },
     });
 
@@ -29,12 +34,11 @@ export async function login(
       };
     }
 
-    const validPassword = await verify(existingUser.passwordHash, password, {
-      memoryCost: 19456,
-      timeCost: 2,
-      outputLen: 32,
-      parallelism: 1,
-    });
+    // Share the same account budget for email and username aliases.
+    if (!(await consumeAuthAttempt("login-account", existingUser.id, 10, 15 * 60 * 1000))) {
+      return { error: "Trop de tentatives. Veuillez réessayer dans 15 minutes." };
+    }
+    const validPassword = await verifyPassword(existingUser.passwordHash, password);
 
     if (!validPassword) {
       return {
@@ -55,10 +59,10 @@ export async function login(
       return redirect("/onboarding");
     }
 
-    return redirect("/");
+    return redirect(returnTo?.startsWith("/") && !returnTo.startsWith("//") && !returnTo.includes("\\") ? returnTo : "/");
   } catch (error) {
     if (isRedirectError(error)) throw error;
-    console.error(error);
+    console.warn("Login failed");
     return {
       error: "Something went wrong. Please try again.",
     };

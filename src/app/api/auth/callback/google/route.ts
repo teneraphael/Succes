@@ -17,16 +17,16 @@ export async function GET(req: NextRequest) {
   const storedState = cookieStore.get("state")?.value;
   const storedCodeVerifier = cookieStore.get("code_verifier")?.value;
 
-  // Debug pour vérifier que les cookies sont bien lus
-  console.log("--- DEBUG OAUTH ---");
-  console.log("State URL:", state);
-  console.log("State Cookie:", storedState);
-
   // 1. Validation de sécurité initiale
   if (!code || !state || !storedState || !storedCodeVerifier || state !== storedState) {
     return new Response("Validation failed: State mismatch or missing cookies.", { status: 400 });
   }
 
+  // Consume OAuth cookies before exchange, including on failure, with the same
+  // domain/path as issuance. cookies.delete() alone would miss domain cookies.
+  const cookieOptions = { path: "/", httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax" as const, domain: process.env.NODE_ENV === "production" ? ".dealcity.app" : undefined, maxAge: 0 };
+  cookieStore.set("state", "", cookieOptions);
+  cookieStore.set("code_verifier", "", cookieOptions);
   try {
     // 2. Échange du code contre les tokens (Arctic)
     const tokens = await google.validateAuthorizationCode(code, storedCodeVerifier);
@@ -82,8 +82,7 @@ export async function GET(req: NextRequest) {
     );
 
     // 7. Nettoyage des cookies OAuth
-    cookieStore.delete("state");
-    cookieStore.delete("code_verifier");
+
 
     // 8. Redirection intelligente : vers l'onboarding si la ville n'est pas définie, sinon vers l'accueil
     const redirectUrl = !userCity ? "/onboarding" : "/";
@@ -96,8 +95,7 @@ export async function GET(req: NextRequest) {
     });
 
   } catch (error) {
-    console.error("CRITICAL OAUTH ERROR:", error);
-    const errorMessage = error instanceof Error ? error.message : "Internal Server Error";
-    return new Response(`Erreur d'authentification: ${errorMessage}`, { status: 500 });
+    console.warn("Google authentication failed");
+    return new Response("Connexion Google indisponible. Veuillez réessayer.", { status: 500 });
   }
 }

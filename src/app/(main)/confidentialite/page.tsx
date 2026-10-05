@@ -1,37 +1,36 @@
+import Link from "next/link";
+
 export default function Confidentialite() {
   return (
-    <div className="max-w-3xl mx-auto py-10 px-4">
-      <h1 className="text-3xl font-bold mb-6">Politique de Confidentialité</h1>
-      <div className="prose prose-blue dark:prose-invert">
-        <p>
-          La protection de vos données est une priorité pour nous. Cette politique détaille comment nous traitons vos informations au sein de notre plateforme.
-        </p>
-
-        <h2 className="text-xl font-semibold mt-6">1. Données collectées</h2>
-        <p>
-          Nous collectons uniquement les informations nécessaires au bon fonctionnement de vos services :
-        </p>
-        <ul className="list-disc pl-6 space-y-2">
-          <li><strong>Informations de profil :</strong> Votre email, nom d&apos;utilisateur et photo de profil (via Google ou inscription directe).</li>
-          <li><strong>Données d&apos;activité :</strong> Les réservations et interactions effectuées sur la plateforme.</li>
+    <article className="mx-auto max-w-3xl space-y-6 px-4 py-10 leading-relaxed">
+      <h1 className="text-3xl font-bold">Politique de confidentialité</h1>
+      <p>Dernière mise à jour : 26 septembre 2026. TENE KENGNE RAPHAEL, éditeur de DealCity à Bonabéri, Douala, est le contact pour les données traitées par la plateforme : <a className="underline" href="mailto:teneraphael57@gmail.com">teneraphael57@gmail.com</a>. Les <Link className="underline" href="/mentions-legales">mentions légales</Link> donnent les autres coordonnées disponibles.</p>
+      <section>
+        <h2 className="text-xl font-semibold">1. Quelles données et pourquoi ?</h2>
+        <ul className="list-disc space-y-2 pl-6">
+          <li><strong>Compte :</strong> nom d’utilisateur, nom affiché, adresse e-mail, identifiants de connexion et, si vous la choisissez, connexion par Google. Ils servent à ouvrir et sécuriser le compte.</li>
+          <li><strong>Profil et annonces :</strong> photo, présentation, ville, quartier, coordonnées que vous ajoutez, annonces, images, vidéos et prix. Ils servent à présenter vos offres et à permettre la mise en relation.</li>
+          <li><strong>Activité :</strong> vues, favoris, abonnements, réactions, commentaires et signalements. Ils servent au fonctionnement, au classement des annonces, à la modération et à la sécurité.</li>
+          <li><strong>Profil vendeur :</strong> nom de boutique, domaine d’activité, coordonnées et localisation saisis dans le formulaire. Ces informations servent à créer et afficher le profil vendeur.</li>
+          <li><strong>Notifications :</strong> un jeton d’appareil est enregistré si vous acceptez les notifications, afin d’envoyer des alertes liées au service.</li>
         </ul>
-
-        <h2 className="text-xl font-semibold mt-6">2. Notifications et Sécurité</h2>
-        <p>
-          Nous utilisons <strong>Firebase</strong> pour stocker un jeton (token) de notification unique. Ce jeton nous permet de vous envoyer des alertes importantes en temps réel sur l&apos;état de vos services. 
-          Vos mots de passe sont sécurisés via un hachage de pointe et ne sont jamais stockés en clair.
-        </p>
-
-        <h2 className="text-xl font-semibold mt-6">3. Conservation des données</h2>
-        <p>
-          Vos données sont conservées aussi longtemps que votre compte est actif. Nous utilisons <strong>Prisma</strong> avec une base de données sécurisée pour garantir l&apos;intégrité de vos informations.
-        </p>
-
-        <h2 className="text-xl font-semibold mt-6">4. Vos droits</h2>
-        <p>
-          Conformément aux réglementations en vigueur, vous disposez d&apos;un droit d&apos;accès, de modification et de suppression de vos données. Vous pouvez fermer votre compte à tout moment depuis votre espace personnel, ce qui entraînera la suppression définitive de vos données privées.
-        </p>
-      </div>
-    </div>
+      </section>
+      <section>
+        <h2 className="text-xl font-semibold">2. Qui peut voir ou traiter ces données ?</h2>
+        <p>Votre profil public, vos annonces et les coordonnées que vous y affichez sont accessibles aux visiteurs. Les échanges ouverts dans WhatsApp sont ensuite soumis au fonctionnement de WhatsApp. Pour faire fonctionner DealCity, certaines données sont traitées par des prestataires : Vercel pour l’hébergement, UploadThing pour les médias, Google pour la connexion si vous la choisissez, Firebase pour les notifications et un service d’envoi d’e-mails pour les messages techniques. Ces prestataires peuvent traiter les données hors du Cameroun. N’affichez pas dans une annonce des informations personnelles que vous souhaitez garder privées.</p>
+      </section>
+      <section>
+        <h2 className="text-xl font-semibold">3. Conservation et sécurité</h2>
+        <p>Les données nécessaires au compte sont conservées pendant son utilisation. Des informations liées à la sécurité, à un signalement ou à une obligation légale peuvent devoir être conservées plus longtemps. Les mots de passe définis sur DealCity sont stockés sous forme hachée. L’accès aux données est limité aux fonctions du service et aux prestataires nécessaires ; aucune sécurité technique n’est absolue.</p>
+      </section>
+      <section>
+        <h2 className="text-xl font-semibold">4. Vos choix et vos droits</h2>
+        <p>Vous pouvez modifier certaines informations depuis votre profil et demander l’accès, la rectification ou la suppression de données vous concernant en écrivant à <a className="underline" href="mailto:teneraphael57@gmail.com">teneraphael57@gmail.com</a>. Vous pouvez aussi demander des précisions sur l’utilisation de vos données ou exercer les autres droits prévus par les règles applicables. La suppression du compte est proposée dans les paramètres ; contactez-nous si elle échoue ou si vous souhaitez connaître les données éventuellement conservées pour une obligation légale. Les notifications peuvent être refusées dans votre navigateur ou appareil.</p>
+      </section>
+      <section>
+        <h2 className="text-xl font-semibold">5. Cookies</h2>
+        <p>Des cookies et stockages locaux sont utilisés pour la session, la sécurité et les préférences. Les détails se trouvent sur la <Link className="underline" href="/cookies">page Cookies</Link>. Si une mesure d’audience facultative est activée ultérieurement, cette page et les choix proposés aux visiteurs devront être mis à jour.</p>
+      </section>
+    </article>
   );
 }

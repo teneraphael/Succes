@@ -1,0 +1,20 @@
+/** Comptes autorisés à créer des vendeurs depuis la conciergerie DealCity. */
+const SELLER_CREATOR_IDS = new Set([
+  "dgd2ohqrx3tqezng",
+  "3mi4ihdjlono3kmx",
+  "gyesvcknuipc5z2a",
+]);
+
+export function canCreateSeller(userId: string | null | undefined): boolean {
+  return !!userId && SELLER_CREATOR_IDS.has(userId);
+}
+
+/** Droit limité à la publication au nom d'un vendeur pionnier. */
+export function canPublishForSeller(user: { id: string; username: string } | null | undefined): boolean {
+  return !!user && (
+    user.id === "22lmc64bcqwsqybu" ||
+    user.username === "dealcity" ||
+    user.id === "3mi4ihdjlono3kmx" ||
+    user.id === "gyesvcknuipc5z2a"
+  );
+}

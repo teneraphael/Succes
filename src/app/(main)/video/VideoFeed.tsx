@@ -17,6 +17,7 @@ export default function VideoFeed() {
     hasNextPage,
     isFetching,
     status,
+    refetch,
   } = useInfiniteQuery({
     // ✅ Clé incluant l'userId pour rafraîchir les états like/bookmark à la connexion
     queryKey: ["post-feed", "videos-only", user?.id || "anonymous"],
@@ -64,12 +65,12 @@ export default function VideoFeed() {
   if (status === "error") {
     return (
       <div className="flex flex-col items-center justify-center py-16 gap-4">
-        <div className="size-14 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center">
-          <VideoOff className="size-6 text-red-500" />
+        <div className="size-14 rounded-2xl bg-[#4a90e2]/10 border border-[#4a90e2]/20 flex items-center justify-center">
+          <VideoOff className="size-6 text-[#4a90e2]" />
         </div>
-        <p className="text-sm font-black text-red-500 uppercase tracking-widest">
-          Erreur de chargement
-        </p>
+        <p className="text-sm font-bold text-foreground">Impossible de charger les vidéos.</p>
+        <p className="text-xs text-muted-foreground">Vérifiez votre connexion Internet, puis réessayez.</p>
+        <button type="button" onClick={() => refetch()} className="rounded-xl bg-primary px-5 py-2 text-sm font-bold text-primary-foreground">Réessayer</button>
       </div>
     );
   }

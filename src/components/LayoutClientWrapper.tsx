@@ -3,6 +3,7 @@
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import SidebarVendeur from "@/app/(main)/seller/SidebarVendeur";
+import ContextBackNavigation from "@/components/ContextBackNavigation";
 
 export default function LayoutClientWrapper({ children, navbar, menuBar, mobileMenu }: any) {
   const pathname = usePathname();
@@ -13,7 +14,7 @@ export default function LayoutClientWrapper({ children, navbar, menuBar, mobileM
   return (
     <div className={cn(
       "flex w-full flex-col",
-      isChatPage ? "h-[100dvh] overflow-hidden" : "min-h-screen"
+      isChatPage ? "h-[100dvh] overflow-hidden" : "min-h-screen pb-24 sm:pb-0"
     )}>
       
       {!isChatPage && navbar}
@@ -42,6 +43,7 @@ export default function LayoutClientWrapper({ children, navbar, menuBar, mobileM
           "min-w-0 flex-1",
           isChatPage ? "h-full w-full flex flex-col" : "w-full"
         )}>
+          {!isChatPage && <ContextBackNavigation />}
           {children}
         </main>
       </div>

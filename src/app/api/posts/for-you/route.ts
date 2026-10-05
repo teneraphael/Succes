@@ -1,5 +1,6 @@
 import { validateRequest } from "@/auth";
 import prisma from "@/lib/prisma";
+import { homeFeedVideoFilter } from "@/lib/feed-video-filter";
 import {
   getPostDataInclude,
   PostsPage,
@@ -8,10 +9,8 @@ import { NextRequest } from "next/server";
 
 const PAGE_SIZE = 10;
 
-/**
- * Nombre de candidats analysés à chaque page.
- */
-const CANDIDATE_SIZE = 100;
+// Chaque candidat parcouru doit être renvoyé avant de déplacer le curseur.
+const CANDIDATE_SIZE = 30;
 
 /* =========================================================
    POIDS DES ACTIONS
@@ -26,6 +25,8 @@ const INTERACTION_WEIGHTS: Record<
   VIEW: 2,
 
   LIKE: 8,
+
+  COMMENT: 12,
 
   FAVORITE: 15,
 
@@ -422,15 +423,6 @@ function calculateScore(
     post.createdAt
   );
 
-  /**
-   * Variabilité plus importante.
-   *
-   * Permet de changer l'ordre entre
-   * les publications ayant des scores
-   * relativement proches.
-   */
-  score += Math.random() * 15;
-
   return score;
 }
 
@@ -443,78 +435,24 @@ function diversifyPosts(
   limit: number
 ) {
   const result: any[] = [];
+  const sellerCount = new Map<string, number>();
+  const categoryCount = new Map<string, number>();
+  const selectedIds = new Set<string>();
 
-  const sellerCount =
-    new Map<string, number>();
-
-  const categoryCount =
-    new Map<string, number>();
-
-  for (const item of scoredPosts) {
-    if (result.length >= limit) {
-      break;
-    }
-
-    const sellerId =
-      item.post.userId;
-
-    const category =
-      item.post.category;
-
-    const sellerPosts =
-      sellerCount.get(sellerId) || 0;
-
-    const categoryPosts =
-      categoryCount.get(category) || 0;
-
-    /**
-     * Maximum 2 posts du même vendeur.
-     */
-    if (sellerPosts >= 2) {
-      continue;
-    }
-
-    /**
-     * Maximum 4 posts de la même catégorie.
-     */
-    if (
-      category !== "DIVERS" &&
-      categoryPosts >= 4
-    ) {
-      continue;
-    }
-
-    result.push(item);
-
-    sellerCount.set(
-      sellerId,
-      sellerPosts + 1
-    );
-
-    categoryCount.set(
-      category,
-      categoryPosts + 1
-    );
-  }
-
-  /**
-   * Compléter si nécessaire.
-   */
-  if (result.length < limit) {
-    const ids = new Set(
-      result.map((item) => item.post.id)
-    );
-
+  // Un passage par vendeur d'abord. Un second uniquement si le groupe manque
+  // de vendeurs distincts ; ne jamais remplir la page avec un seul vendeur.
+  for (const sellerLimit of [1, 2]) {
     for (const item of scoredPosts) {
-      if (result.length >= limit) {
-        break;
-      }
-
-      if (ids.has(item.post.id)) {
-        continue;
-      }
-
+      if (result.length >= limit) break;
+      const { id, userId, category } = item.post;
+      if (selectedIds.has(id) || (sellerCount.get(userId) || 0) >= sellerLimit) continue;
+      if (category !== "DIVERS" && (categoryCount.get(category) || 0) >= 4) continue;
+      // Même au second passage, espacer les publications du même vendeur.
+      if (result[result.length - 1]?.post.userId === userId) continue;
       result.push(item);
+      selectedIds.add(id);
+      sellerCount.set(userId, (sellerCount.get(userId) || 0) + 1);
+      categoryCount.set(category, (categoryCount.get(category) || 0) + 1);
     }
   }
 
@@ -549,6 +487,7 @@ export async function GET(
       req.nextUrl.searchParams.get("cursor");
 
     const where: any = {
+      ...homeFeedVideoFilter,
       ...(user
         ? {
             userId: {
@@ -577,71 +516,18 @@ export async function GET(
     }
 
     /* =====================================================
-       UTILISATEUR NON CONNECTÉ
-    ===================================================== */
-
-    if (!user) {
-      const posts =
-        await prisma.post.findMany({
-          where,
-
-          include:
-            getPostDataInclude(),
-
-          orderBy: [
-            {
-              createdAt: "desc",
-            },
-            {
-              id: "desc",
-            },
-          ],
-
-          take: PAGE_SIZE + 1,
-
-          cursor: cursor
-            ? { id: cursor }
-            : undefined,
-
-          skip: cursor ? 1 : 0,
-        });
-
-      const hasMore =
-        posts.length > PAGE_SIZE;
-
-      const result =
-        posts.slice(0, PAGE_SIZE);
-
-      return Response.json({
-        posts: result,
-
-        nextCursor: hasMore
-          ? result[result.length - 1]?.id || null
-          : null,
-      } satisfies PostsPage);
-    }
-
-    /* =====================================================
        PROFIL UTILISATEUR
     ===================================================== */
 
-    const [
-      profile,
-      currentUser,
-    ] = await Promise.all([
-      getUserProfile(user.id),
-
-      prisma.user.findUnique({
-        where: {
-          id: user.id,
-        },
-
-        select: {
-          city: true,
-          neighborhood: true,
-        },
-      }),
-    ]);
+    const [profile, currentUser] = user
+      ? await Promise.all([
+          getUserProfile(user.id),
+          prisma.user.findUnique({
+            where: { id: user.id },
+            select: { city: true, neighborhood: true },
+          }),
+        ])
+      : [{ categoryScores: {}, sellerScores: {}, recentlyViewedPostIds: [] } as UserProfile, null];
 
     /**
      * On évite les posts récemment vus,
@@ -664,9 +550,16 @@ export async function GET(
     const candidates =
       await prisma.post.findMany({
         where,
-
-        include:
-          getPostDataInclude(user.id),
+        select: {
+          id: true,
+          userId: true,
+          category: true,
+          city: true,
+          neighborhood: true,
+          views: true,
+          createdAt: true,
+          _count: { select: { likes: true, comments: true, orders: true } },
+        },
 
         orderBy: [
           {
@@ -740,10 +633,17 @@ export async function GET(
           ]?.id || null
         : null;
 
+    const selectedIds = diversified.map((item) => item.post.id);
+    const selectedPosts = selectedIds.length
+      ? await prisma.post.findMany({
+          where: { id: { in: selectedIds } },
+          include: getPostDataInclude(user?.id),
+        })
+      : [];
+    const postsById = new Map(selectedPosts.map((post) => [post.id, post]));
+
     return Response.json({
-      posts: diversified.map(
-        (item) => item.post
-      ),
+      posts: selectedIds.map((id) => postsById.get(id)).filter((post): post is NonNullable<typeof post> => Boolean(post)),
 
       nextCursor,
     } satisfies PostsPage);
@@ -754,9 +654,9 @@ export async function GET(
       error
     );
 
-    return Response.json({
-      posts: [],
-      nextCursor: null,
-    } satisfies PostsPage);
+    return Response.json(
+      { error: "Impossible de charger le fil. Veuillez réessayer." },
+      { status: 500 },
+    );
   }
 }

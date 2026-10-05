@@ -247,6 +247,7 @@ export default function UserPosts({
     isFetching,
     isFetchingNextPage,
     status,
+    refetch,
   } = useInfiniteQuery({
     queryKey: [
       "post-feed",
@@ -312,9 +313,11 @@ export default function UserPosts({
 
   if (status === "error") {
     return (
-      <p className="text-center text-destructive text-sm py-10">
-        {t.error_loading}
-      </p>
+      <div className="space-y-3 py-10 text-center">
+        <p className="text-sm text-foreground">Impossible de charger les publications de cette boutique.</p>
+        <p className="text-xs text-muted-foreground">Vérifiez votre connexion Internet, puis réessayez.</p>
+        <button type="button" onClick={() => refetch()} className="rounded-xl bg-primary px-5 py-2 text-sm font-bold text-primary-foreground">Réessayer</button>
+      </div>
     );
   }
 

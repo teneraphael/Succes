@@ -20,6 +20,7 @@ import { Calendar, ShieldCheck, CheckCircle2, Store } from "lucide-react";
 import ShareProfileButton from "./ShareProfileButton";
 import MoreOptionsButton from "./MoreOptionsButton";
 import UserProfileStickyHeader from "./UserProfileStickyHeader";
+import BackButton from "@/components/BackButton";
 import {
   ProfileTabs, ProfileStats, OnlineBadge, MemberSince, DefaultBio,
 } from "./UserProfileClient";
@@ -55,8 +56,21 @@ export async function generateMetadata(props: PageProps): Promise<Metadata> {
   const { username } = await props.params;
   const user = await getUserPublic(username);
   if (!user) return { title: "Profil introuvable — DealCity" };
-  const origin = process.env.NEXT_PUBLIC_BASE_URL || "https://dealcity.app";
-  return { title: `${user.displayName} — DealCity`, alternates: { canonical: `${origin}/users/${user.username}` } };
+  const origin = (process.env.NEXT_PUBLIC_BASE_URL || "https://dealcity.app").replace(/\/$/, "");
+  const url = `${origin}/users/${encodeURIComponent(user.username)}`;
+  const description = user.bio?.slice(0, 200) || `Découvrez le profil de ${user.displayName} sur DealCity.`;
+  const image = new URL(user.avatarUrl || "/icons/icon-192.png", origin).href;
+  return {
+    title: `${user.displayName} — DealCity`,
+    description,
+    alternates: { canonical: url },
+    openGraph: {
+      type: "profile", title: `${user.displayName} — DealCity`, description,
+      url, siteName: "DealCity", username: user.username,
+      images: [{ url: image, alt: `Photo de profil de ${user.displayName}` }],
+    },
+    twitter: { card: "summary", title: `${user.displayName} — DealCity`, description, images: [image] },
+  };
 }
 
 export default async function Page(props: PageProps) {
@@ -175,6 +189,12 @@ async function UserProfile({ user, loggedInUserId }: UserProfileProps) {
               <div className="absolute -top-6 -left-6 w-32 h-32 rounded-full bg-[#6ab344]/10 blur-2xl" />
             </div>
           )}
+          <BackButton
+            fallback="/"
+            label="Retour"
+            overlay
+            className="absolute left-3 top-3 z-20 shadow-lg backdrop-blur-sm sm:left-5 sm:top-5"
+          />
           <OnlineBadge />
         </div>
 

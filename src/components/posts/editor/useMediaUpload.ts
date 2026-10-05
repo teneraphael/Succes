@@ -60,6 +60,7 @@ export default function useMediaUpload() {
     },
     onUploadProgress: setUploadProgress,
     onClientUploadComplete(res) {
+      setUploadProgress(undefined);
       // On extrait le customId depuis le nom du fichier renvoyé par le serveur
       const getCustomIdFromName = (name: string) => {
         const match = name.match(/_(.*?)\./);
@@ -92,12 +93,16 @@ export default function useMediaUpload() {
       });
     },
     onUploadError(e) {
+      setUploadProgress(undefined);
       setAttachments((prev) => prev.filter((a) => !a.isUploading));
       setAudioAttachment(null);
-      toast({
-        variant: "destructive",
-        description: e.message,
-      });
+      const message = e.message.toLowerCase();
+      const description = /size|taille|large|big|limit/.test(message)
+        ? "Ce fichier est trop volumineux. Choisissez un fichier plus petit, puis réessayez."
+        : /type|format|extension|invalid file/.test(message)
+          ? "Ce format de fichier n’est pas accepté. Choisissez une photo ou une vidéo compatible."
+          : "L’envoi du média a échoué. Vérifiez votre connexion et réessayez.";
+      toast({ description });
     },
   });
 
@@ -129,7 +134,8 @@ export default function useMediaUpload() {
       return;
     }
 
-    startUpload(files);
+    setUploadProgress(0);
+    void startUpload(files);
   }
 
   function removeAttachment(customId: string) {

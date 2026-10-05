@@ -2,7 +2,6 @@
 
 import InfiniteScrollContainer from "@/components/InfiniteScrollContainer";
 import Post from "@/components/posts/Post";
-import TrackedPost from "@/components/posts/TrackedPost";
 import kyInstance from "@/lib/ky";
 import { PostsPage } from "@/lib/types";
 import { useInfiniteQuery } from "@tanstack/react-query";
@@ -98,8 +97,8 @@ export default function ForYouFeed({
   if (status === "error") {
     return (
       <div className="flex flex-col items-center justify-center py-16 gap-4">
-        <div className="size-14 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center">
-          <RefreshCw className="size-6 text-red-500" />
+        <div className="size-14 rounded-2xl bg-[#4a90e2]/10 border border-[#4a90e2]/20 flex items-center justify-center">
+          <RefreshCw className="size-6 text-[#4a90e2]" />
         </div>
 
         <div className="text-center space-y-1.5">
@@ -108,7 +107,7 @@ export default function ForYouFeed({
           </p>
 
           <p className="text-xs text-muted-foreground font-medium">
-            {t.no_posts}
+            Vérifiez votre connexion Internet, puis réessayez.
           </p>
         </div>
 
@@ -164,13 +163,7 @@ export default function ForYouFeed({
       }}
     >
       {posts.map((post) => (
-        <TrackedPost
-          key={post.id}
-          post={post}
-          userId={userId}
-        >
-          <Post post={post} />
-        </TrackedPost>
+        <Post key={post.id} post={post} />
       ))}
 
       {isFetchingNextPage && (

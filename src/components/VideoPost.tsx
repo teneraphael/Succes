@@ -341,4 +341,6 @@ export default function VideoPost({
       </div>
     </div>
   );
-}
+};
+
+export default VideoPost;

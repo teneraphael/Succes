@@ -56,10 +56,14 @@ export default function BoutiquesPage() {
 
   const [shops, setShops] = useState<Shop[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const [loadAttempt, setLoadAttempt] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     async function fetchShops() {
+      setLoading(true);
+      setLoadError(false);
       try {
         const res = await fetch("/api/shops");
 
@@ -69,21 +73,17 @@ export default function BoutiquesPage() {
 
         const data = await res.json();
 
-        if (Array.isArray(data)) {
-          setShops(data);
-        }
-      } catch (error) {
-        console.error(
-          "Erreur lors du chargement des boutiques:",
-          error
-        );
+        if (!Array.isArray(data)) throw new Error("Invalid shops response");
+        setShops(data);
+      } catch {
+        setLoadError(true);
       } finally {
         setLoading(false);
       }
     }
 
     fetchShops();
-  }, []);
+  }, [loadAttempt]);
 
   const filteredShops = useMemo(() => {
     const term = searchQuery.trim().toLowerCase();
@@ -298,6 +298,12 @@ export default function BoutiquesPage() {
               </div>
             ))}
           </div>
+        ) : loadError ? (
+          <div role="alert" className="rounded-3xl border border-border bg-card px-6 py-12 text-center space-y-4">
+            <h2 className="text-base font-bold">Impossible de charger les boutiques pour le moment.</h2>
+            <p className="text-sm text-muted-foreground">Vérifiez votre connexion Internet, puis réessayez.</p>
+            <button type="button" onClick={() => setLoadAttempt((attempt) => attempt + 1)} className="rounded-xl bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground">Réessayer</button>
+          </div>
         ) : filteredShops.length === 0 ? (
           /* EMPTY STATE */
           <div className="border border-border rounded-[1.5rem] sm:rounded-[2rem] bg-card py-16 sm:py-20 px-6 text-center">
@@ -333,7 +339,7 @@ export default function BoutiquesPage() {
                 "Boutique DealCity";
 
               return (
-                <article
+                <div
                   key={shop.id}
                   className="group relative overflow-hidden rounded-[1.5rem] sm:rounded-[1.75rem] bg-card border border-border/70 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
                 >
@@ -362,7 +368,7 @@ export default function BoutiquesPage() {
 
                     {/* AVATAR + FOLLOWERS */}
                     <div className="relative -mt-6 sm:-mt-7 mb-2 sm:mb-3 flex items-end justify-between">
-                      <div className="relative w-12 h-12 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl overflow-hidden bg-background border-3 sm:border-4 border-card shadow-md">
+                      <div className="relative w-12 h-12 sm:w-14 sm:h-14 rounded-full overflow-hidden bg-background border-3 sm:border-4 border-card shadow-md">
                         {shop.avatarUrl ? (
                           <Image
                             src={shop.avatarUrl}
@@ -513,7 +519,7 @@ export default function BoutiquesPage() {
                       <ArrowUpRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     </Link>
                   </div>
-                </article>
+                </div>
               );
             })}
           </div>
