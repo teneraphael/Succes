@@ -82,6 +82,8 @@ export default function LoginForm() {
                     <Lock size={18} />
                   </div>
                   <PasswordInput
+                    autoComplete="current-password"
+                    maxLength={128}
                     placeholder="Mot de passe"
                     {...field}
                     className="h-14 rounded-2xl pl-12 bg-[#f8faff] dark:bg-zinc-800/50 border border-[#4a90e2]/10 dark:border-white/5 focus-visible:border-[#4a90e2]/40 focus-visible:ring-2 focus-visible:ring-[#4a90e2]/10 text-sm font-semibold transition-all placeholder:text-muted-foreground/50"
@@ -125,7 +127,7 @@ export default function LoginForm() {
 
         {/* Google */}
         <Link
-          href="api/auth/login/google"
+          href="/api/auth/login/google"
           className="flex w-full h-14 items-center justify-center gap-3 rounded-2xl border border-border/60 bg-white dark:bg-zinc-800/50 hover:bg-[#f8faff] dark:hover:bg-zinc-800 hover:border-[#4a90e2]/30 transition-all active:scale-[0.97] group"
         >
           <svg className="size-5" viewBox="0 0 24 24">
