@@ -960,7 +960,7 @@ function MediaPreviews({
                         )}
                       />
                     ) : (
-                      <div className="absolute inset-0 w-full h-full [&_video]:w-full [&_video]:h-full [&_video]:object-contain">
+                      <div className="absolute inset-0 w-full h-full [&_video]:w-full [&_video]:h-full [&_video]:object-cover">
                         <VideoPost src={m.url} poster={m.settings?.thumbnailUrl || undefined} className="h-full min-h-0" />
                       </div>
                     )}
