@@ -743,6 +743,7 @@ export default function Post({
           attachments={visualAttachments}
           audioUrl={finalAudioUrl}
           postId={post.id}
+          thumbnailUrl={post.thumbnailUrl}
           attributes={post.attributes || []}
           selectedAttributes={
             selectedAttributes
@@ -865,6 +866,7 @@ function MediaPreviews({
   attachments,
   audioUrl,
   postId,
+  thumbnailUrl,
   attributes,
   selectedAttributes,
   setSelectedAttributes,
@@ -890,13 +892,15 @@ function MediaPreviews({
 
           {count === 1 ? (
             <div
-              onClick={() =>
-                router.push(
-                  `/posts/${postId}/photos`,
-                  { scroll: false },
-                )
-              }
-              className="w-full h-[500px] md:h-[580px] relative cursor-pointer overflow-hidden bg-zinc-950"
+              onClick={() => {
+                if (displayedMedia[0].type === "IMAGE") {
+                  router.push(`/posts/${postId}/photos`, { scroll: false });
+                }
+              }}
+              className={cn(
+                "w-full relative overflow-hidden bg-zinc-950",
+                displayedMedia[0].type === "IMAGE" && "h-[500px] md:h-[580px] cursor-pointer",
+              )}
             >
               {displayedMedia[0].type ===
               "IMAGE" ? (
@@ -912,11 +916,10 @@ function MediaPreviews({
                   )}
                 />
               ) : (
-                <div className="absolute inset-0 w-full h-full [&_video]:w-full [&_video]:h-full [&_video]:object-cover">
-                  <VideoPost
-                    src={displayedMedia[0].url}
-                  />
-                </div>
+                <VideoPost
+                  src={displayedMedia[0].url}
+                  poster={thumbnailUrl || displayedMedia[0].settings?.thumbnailUrl || undefined}
+                />
               )}
             </div>
           ) : (
@@ -957,8 +960,8 @@ function MediaPreviews({
                         )}
                       />
                     ) : (
-                      <div className="absolute inset-0 w-full h-full [&_video]:w-full [&_video]:h-full [&_video]:object-cover">
-                        <VideoPost src={m.url} />
+                      <div className="absolute inset-0 w-full h-full [&_video]:w-full [&_video]:h-full [&_video]:object-contain">
+                        <VideoPost src={m.url} poster={m.settings?.thumbnailUrl || undefined} className="h-full min-h-0" />
                       </div>
                     )}
 
