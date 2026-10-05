@@ -161,7 +161,7 @@ export default function VideoPost({
         ref={videoRef}
         src={src}
         poster={poster}
-        className="absolute inset-0 size-full object-contain"
+        className="absolute inset-0 size-full object-cover"
         loop
         muted={effectiveMuted}
         playsInline
