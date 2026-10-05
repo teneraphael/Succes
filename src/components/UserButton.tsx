@@ -82,10 +82,10 @@ export default function UserButton({ className, user: propUser }: UserButtonProp
               </Link>
             </DropdownMenuItem>
 
-              )}
+              </>
+            )}
 
             {canCreateSeller(user.id) && (
-            {/* Accès conciergerie pour les comptes autorisés. */}
             <DropdownMenuItem asChild className="rounded-xl py-2.5 mt-1 cursor-pointer bg-amber-500/10 text-amber-600 dark:text-amber-400 focus:bg-amber-500/20 focus:text-amber-600">
               <Link href="/admin/create-seller" className="flex items-center gap-2.5 w-full px-3">
                 <Sparkles className="size-4 shrink-0" />
