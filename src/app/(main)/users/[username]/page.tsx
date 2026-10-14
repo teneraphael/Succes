@@ -91,7 +91,11 @@ export default async function Page(props: PageProps) {
   const theme = resolveTheme(user.themeColor);
 
   return (
-    <main className="flex w-full min-w-0 gap-0 lg:gap-8 items-start">
+    // ✅ Application de la couleur en arrière-plan global de toute la page avec une transition douce et une légère nuance thématique
+    <main 
+      className="flex w-full min-w-0 gap-0 lg:gap-8 items-start transition-colors duration-500 rounded-3xl p-2 sm:p-4"
+      style={theme ? { backgroundColor: `${theme}08` } : undefined}
+    >
       <div className="w-full min-w-0 flex-1">
         <UserProfile
           user={user as any}
@@ -109,14 +113,14 @@ export default async function Page(props: PageProps) {
                 <div className="absolute inset-0 flex items-center" aria-hidden="true">
                   <div className="w-full border-t border-border/50" />
                 </div>
-                <div className="relative flex items-center gap-3 px-6 bg-background">
+                <div className="relative flex items-center gap-3 px-6 bg-background rounded-full border border-border/40 shadow-sm">
                   <div
-                    className="p-2 bg-primary/10 text-primary rounded-xl"
-                    style={theme ? { backgroundColor: `${theme}1f`, color: theme } : undefined}
+                    className="p-2 rounded-xl"
+                    style={theme ? { backgroundColor: `${theme}1f`, color: theme } : { backgroundColor: "rgba(74, 144, 226, 0.1)", color: "#4a90e2" }}
                   >
                     <Store className="size-5" />
                   </div>
-                  <div className="flex flex-col">
+                  <div className="flex flex-col py-1">
                     <span className="text-xs font-black uppercase tracking-widest text-foreground">Catalogue Boutique</span>
                     <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
                       {user._count.posts} Articles disponibles
@@ -158,7 +162,6 @@ async function UserProfile({ user, loggedInUserId, isOwner }: UserProfileProps) 
   const isAdmin = user.username.toLowerCase() === "dealcity";
   const dateFormatted = formatDate(user.createdAt, "MMMM yyyy", { locale: fr });
 
-  // 📊 Somme dynamique de tous les clics WhatsApp enregistrés sur les posts du vendeur
   const totalWhatsAppClicks = user.posts?.reduce((acc, currentPost) => {
     return acc + (currentPost._count?.interactions || 0);
   }, 0) || 0;
@@ -176,7 +179,6 @@ async function UserProfile({ user, loggedInUserId, isOwner }: UserProfileProps) 
         className="w-full -mt-14 bg-card text-foreground rounded-none sm:rounded-3xl overflow-hidden border border-border/60 shadow-sm relative"
         style={theme ? { borderColor: `${theme}55` } : undefined}
       >
-
         {/* Bannière */}
         <div className="h-32 sm:h-48 w-full relative overflow-hidden">
           {theme ? (
@@ -232,7 +234,6 @@ async function UserProfile({ user, loggedInUserId, isOwner }: UserProfileProps) 
         </div>
 
         <div className="px-4 sm:px-6 pb-6 -mt-10 sm:-mt-12 relative z-10 space-y-4">
-
           {/* Avatar + boutons */}
           <div className="flex items-end justify-between gap-3">
             <div className="relative">
@@ -263,7 +264,6 @@ async function UserProfile({ user, loggedInUserId, isOwner }: UserProfileProps) 
               {isOwner ? (
                 <>
                   <EditProfileButton user={user as any} />
-                  {/* ✅ Choix de la couleur du profil */}
                   <ProfileThemePicker currentColor={theme} />
                 </>
               ) : (
@@ -321,7 +321,7 @@ async function UserProfile({ user, loggedInUserId, isOwner }: UserProfileProps) 
             salesCount={totalWhatsAppClicks}
           />
 
-          {/* ✅ Bouton Publier directement depuis le profil (Visible uniquement par le propriétaire) */}
+          {/* Bouton Publier */}
           {isOwner && (
             <Link
               href="/post/new"
@@ -340,4 +340,4 @@ async function UserProfile({ user, loggedInUserId, isOwner }: UserProfileProps) 
       </div>
     </>
   );
-}
+}b
