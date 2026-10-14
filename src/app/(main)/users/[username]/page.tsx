@@ -9,6 +9,7 @@ import { formatNumber } from "@/lib/utils";
 import { formatDate } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Metadata } from "next";
+import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { cache } from "react";
 import EditProfileButton from "./EditProfileButton";
@@ -16,10 +17,12 @@ import UserPosts from "./UserPosts";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import BookmarksFeed from "@/app/(main)/bookmarks/Bookmarks";
 import ZoomableImage from "@/components/ZoomableImage";
-import { Calendar, ShieldCheck, CheckCircle2, Store } from "lucide-react";
+import { Calendar, ShieldCheck, CheckCircle2, Store, Plus } from "lucide-react";
 import ShareProfileButton from "./ShareProfileButton";
 import MoreOptionsButton from "./MoreOptionsButton";
 import UserProfileStickyHeader from "./UserProfileStickyHeader";
+import ProfileThemePicker from "./ProfileThemePicker";
+import { bannerGradient, resolveTheme, shadeColor } from "@/lib/profileTheme";
 import BackButton from "@/components/BackButton";
 import {
   ProfileTabs, ProfileStats, OnlineBadge, MemberSince, DefaultBio,
@@ -34,6 +37,7 @@ const getUser = cache(async (username: string, loggedInUserId: string) => {
     where: { username: { equals: username, mode: "insensitive" } },
     select: {
       ...getUserDataSelect(loggedInUserId),
+      themeColor: true,
       posts: { select: { _count: { select: { interactions: { where: { type: "CHAT" } } } } } }
     },
   });
@@ -84,11 +88,16 @@ export default async function Page(props: PageProps) {
 
   const user = await getUser(username, loggedInUser?.id ?? "");
   const isUserProfile = loggedInUser ? user.id === loggedInUser.id : false;
+  const theme = resolveTheme(user.themeColor);
 
   return (
     <main className="flex w-full min-w-0 gap-0 lg:gap-8 items-start">
       <div className="w-full min-w-0 flex-1">
-        <UserProfile user={user as any} loggedInUserId={loggedInUser?.id ?? ""} />
+        <UserProfile
+          user={user as any}
+          loggedInUserId={loggedInUser?.id ?? ""}
+          isOwner={isUserProfile}
+        />
 
         <div className="w-full mt-4 lg:mt-6">
           <Tabs defaultValue="posts" className="w-full">
@@ -101,7 +110,10 @@ export default async function Page(props: PageProps) {
                   <div className="w-full border-t border-border/50" />
                 </div>
                 <div className="relative flex items-center gap-3 px-6 bg-background">
-                  <div className="p-2 bg-primary/10 text-primary rounded-xl">
+                  <div
+                    className="p-2 bg-primary/10 text-primary rounded-xl"
+                    style={theme ? { backgroundColor: `${theme}1f`, color: theme } : undefined}
+                  >
                     <Store className="size-5" />
                   </div>
                   <div className="flex flex-col">
@@ -129,11 +141,12 @@ export default async function Page(props: PageProps) {
 }
 
 interface UserProfileProps {
-  user: UserData & { coverUrl?: string | null; posts: { _count: { interactions: number } }[] };
+  user: UserData & { coverUrl?: string | null; themeColor?: string | null; posts: { _count: { interactions: number } }[] };
   loggedInUserId: string;
+  isOwner: boolean;
 }
 
-async function UserProfile({ user, loggedInUserId }: UserProfileProps) {
+async function UserProfile({ user, loggedInUserId, isOwner }: UserProfileProps) {
   const followerInfo: FollowerInfo = {
     followers: user._count.followers,
     isFollowedByUser: user.followers.some(
@@ -141,6 +154,7 @@ async function UserProfile({ user, loggedInUserId }: UserProfileProps) {
     ),
   };
 
+  const theme = resolveTheme(user.themeColor);
   const isAdmin = user.username.toLowerCase() === "dealcity";
   const dateFormatted = formatDate(user.createdAt, "MMMM yyyy", { locale: fr });
 
@@ -158,11 +172,30 @@ async function UserProfile({ user, loggedInUserId }: UserProfileProps) {
         isAdmin={isAdmin}
       />
 
-      <div className="w-full -mt-14 bg-card text-foreground rounded-none sm:rounded-3xl overflow-hidden border border-border/60 shadow-sm relative">
+      <div
+        className="w-full -mt-14 bg-card text-foreground rounded-none sm:rounded-3xl overflow-hidden border border-border/60 shadow-sm relative"
+        style={theme ? { borderColor: `${theme}55` } : undefined}
+      >
 
         {/* Bannière */}
         <div className="h-32 sm:h-48 w-full relative overflow-hidden">
-          {user.coverUrl ? (
+          {theme ? (
+            <div className="absolute inset-0" style={{ background: bannerGradient(theme) }}>
+              <div
+                className="absolute inset-0 opacity-20"
+                style={{
+                  backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.7) 1px, transparent 1px)",
+                  backgroundSize: "22px 22px",
+                }}
+              />
+              <div className="absolute bottom-4 right-6 flex items-end gap-[6px] opacity-15">
+                <div className="w-3 h-8 bg-white rounded-sm" />
+                <div className="w-3 h-14 bg-white rounded-sm" />
+                <div className="w-3 h-[4.5rem] bg-white rounded-sm" />
+                <div className="w-3 h-10 bg-white rounded-sm" />
+              </div>
+            </div>
+          ) : user.coverUrl ? (
             <ZoomableImage
               src={user.coverUrl}
               alt="Banniere de couverture"
@@ -203,7 +236,13 @@ async function UserProfile({ user, loggedInUserId }: UserProfileProps) {
           {/* Avatar + boutons */}
           <div className="flex items-end justify-between gap-3">
             <div className="relative">
-              <div className="p-[3px] rounded-full bg-gradient-to-br from-[#4a90e2] to-[#6ab344] shadow-lg shadow-[#4a90e2]/20">
+              <div
+                className="p-[3px] rounded-full bg-gradient-to-br from-[#4a90e2] to-[#6ab344] shadow-lg shadow-[#4a90e2]/20"
+                style={theme ? {
+                  background: `linear-gradient(135deg, ${theme}, ${shadeColor(theme, 30)})`,
+                  boxShadow: `0 10px 15px -3px ${theme}40`,
+                } : undefined}
+              >
                 <div className="p-0.5 bg-card rounded-full">
                   <ZoomableImage
                     src={user.avatarUrl || "/icons/icon-192.png"}
@@ -221,8 +260,12 @@ async function UserProfile({ user, loggedInUserId }: UserProfileProps) {
             </div>
 
             <div className="flex items-center gap-2 pb-1">
-              {loggedInUserId && user.id === loggedInUserId ? (
-                <EditProfileButton user={user as any} />
+              {isOwner ? (
+                <>
+                  <EditProfileButton user={user as any} />
+                  {/* ✅ Choix de la couleur du profil */}
+                  <ProfileThemePicker currentColor={theme} />
+                </>
               ) : (
                 loggedInUserId && (
                   <FollowButton userId={user.id} initialState={followerInfo} />
@@ -252,8 +295,18 @@ async function UserProfile({ user, loggedInUserId }: UserProfileProps) {
           </div>
 
           {/* Bio */}
-          <div className="flex items-start gap-3 p-3.5 rounded-2xl bg-background border border-[#4a90e2]/10 shadow-sm">
-            <div className="shrink-0 px-2 py-0.5 bg-[#4a90e2]/10 border border-[#4a90e2]/20 rounded-lg text-[8px] font-black text-[#4a90e2] tracking-widest uppercase mt-0.5">
+          <div
+            className="flex items-start gap-3 p-3.5 rounded-2xl bg-background border border-[#4a90e2]/10 shadow-sm"
+            style={theme ? { borderColor: `${theme}33` } : undefined}
+          >
+            <div
+              className="shrink-0 px-2 py-0.5 bg-[#4a90e2]/10 border border-[#4a90e2]/20 rounded-lg text-[8px] font-black text-[#4a90e2] tracking-widest uppercase mt-0.5"
+              style={theme ? {
+                backgroundColor: `${theme}1f`,
+                borderColor: `${theme}40`,
+                color: theme,
+              } : undefined}
+            >
               Market
             </div>
             <p className="text-xs text-muted-foreground font-medium leading-relaxed flex-1">
@@ -267,6 +320,22 @@ async function UserProfile({ user, loggedInUserId }: UserProfileProps) {
             followersNode={<FollowerCount userId={user.id} initialState={followerInfo} />}
             salesCount={totalWhatsAppClicks}
           />
+
+          {/* ✅ Bouton Publier directement depuis le profil (Visible uniquement par le propriétaire) */}
+          {isOwner && (
+            <Link
+              href="/post/new"
+              className="flex w-full items-center justify-center gap-2 h-11 rounded-2xl text-white text-xs font-black uppercase tracking-widest shadow-lg transition-all active:scale-[0.98] hover:brightness-110"
+              style={{
+                background: theme
+                  ? `linear-gradient(135deg, ${theme}, ${shadeColor(theme, -15)})`
+                  : "linear-gradient(135deg, #6ab344, #5a9a38)",
+              }}
+            >
+              <Plus className="size-4 stroke-[3]" />
+              Publier un produit
+            </Link>
+          )}
         </div>
       </div>
     </>

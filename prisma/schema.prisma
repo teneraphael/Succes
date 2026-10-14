@@ -74,6 +74,7 @@ model User {
   businessName          String?
   businessDomain        String?
   businessEmail         String?
+  themeColor            String?  
   businessProducts      String?
   receivedNotifications Notification[]    @relation("Recipient")
   issuedNotifications   Notification[]    @relation("Issuer")
