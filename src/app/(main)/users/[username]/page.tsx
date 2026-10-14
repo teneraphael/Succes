@@ -340,4 +340,4 @@ async function UserProfile({ user, loggedInUserId, isOwner }: UserProfileProps) 
       </div>
     </>
   );
-}b
+}
