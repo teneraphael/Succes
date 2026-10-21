@@ -2,7 +2,7 @@
 
 import { useSession } from "@/app/(main)/SessionProvider";
 import { PostData } from "@/lib/types";
-import { MoreHorizontal, Trash2, ShieldAlert, Download, Copy, Share2, ExternalLink, Loader2, Store, MessageCircle, Instagram, Music2 } from "lucide-react";
+import { MoreHorizontal, Trash2, ShieldAlert, Download, Copy, ExternalLink, Loader2, Store, MessageCircle, Instagram, Music2 } from "lucide-react";
 import { useState } from "react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "../ui/dropdown-menu";
 import DeletePostDialog from "./DeletePostDialog";
@@ -44,13 +44,6 @@ export default function PostMoreButton({ post, className }: PostMoreButtonProps)
     toast({ description: t.link_copied });
   }
 
-  async function handleShare() {
-    if (navigator.share) {
-      try { await navigator.share({ title: "DealCity", text: post.content, url: window.location.origin + "/posts/" + post.id }); }
-      catch { copyLink(); }
-    } else { copyLink(); }
-  }
-
   // Charge le logo et supprime automatiquement son fond blanc/clair en pixels
   async function loadLogo(): Promise<HTMLImageElement | null> {
     return new Promise((resolve) => {
@@ -68,13 +61,11 @@ export default function PostMoreButton({ post, className }: PostMoreButtonProps)
           const imgData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
           const data = imgData.data;
 
-          // Parcourt chaque pixel pour rendre le blanc transparent
           for (let i = 0; i < data.length; i += 4) {
             const red = data[i];
             const green = data[i + 1];
             const blue = data[i + 2];
 
-            // Si le pixel est blanc ou très proche du blanc, on le rend transparent
             if (red > 230 && green > 230 && blue > 230) {
               data[i + 3] = 0; // Alpha à 0 (transparent)
             }
@@ -165,7 +156,6 @@ export default function PostMoreButton({ post, className }: PostMoreButtonProps)
           downloadUrl = await addWatermarkToImage(media.url);
           filename += ".jpg";
         } else {
-          // Pour les vidéos ou autres fichiers, téléchargement direct sans filigrane
           const res = await fetch(media.url + "?t=" + Date.now());
           const blob = await res.blob();
           downloadUrl = window.URL.createObjectURL(blob);
@@ -222,10 +212,6 @@ export default function PostMoreButton({ post, className }: PostMoreButtonProps)
           </DropdownMenuItem>
         )}
         {socialLink && <DropdownMenuSeparator className="my-1 bg-border/40" />}
-        <DropdownMenuItem onClick={handleShare} className={itemCls}>
-          <Share2 className="size-4 text-muted-foreground" />
-          {t.share}
-        </DropdownMenuItem>
         <DropdownMenuItem onClick={copyLink} className={itemCls}>
           <Copy className="size-4 text-muted-foreground" />
           {t.copy_link}
