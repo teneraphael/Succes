@@ -24,6 +24,7 @@ import UserProfileStickyHeader from "./UserProfileStickyHeader";
 import ProfileThemePicker from "./ProfileThemePicker";
 import { bannerGradient, resolveTheme, shadeColor } from "@/lib/profileTheme";
 import BackButton from "@/components/BackButton";
+import SellerStars from "@/components/SellerStars";
 import {
   ProfileTabs, ProfileStats, OnlineBadge, MemberSince, DefaultBio,
 } from "./UserProfileClient";
@@ -91,7 +92,6 @@ export default async function Page(props: PageProps) {
   const theme = resolveTheme(user.themeColor);
 
   return (
-    // ✅ Application de la couleur en arrière-plan global de toute la page avec une transition douce et une légère nuance thématique
     <main 
       className="flex w-full min-w-0 gap-0 lg:gap-8 items-start transition-colors duration-500 rounded-3xl p-2 sm:p-4"
       style={theme ? { backgroundColor: `${theme}08` } : undefined}
@@ -276,14 +276,24 @@ async function UserProfile({ user, loggedInUserId, isOwner }: UserProfileProps) 
             </div>
           </div>
 
-          {/* Nom + username */}
-          <div className="space-y-1">
-            <h1 className="text-xl sm:text-2xl font-black tracking-tight flex items-center gap-2 text-foreground leading-none">
-              {user.displayName}
-              {isAdmin && (
-                <CheckCircle2 className="size-[18px] text-[#4a90e2] fill-[#4a90e2]/15 stroke-[2.5] shrink-0" />
+         {/* Nom + username + Étoiles du vendeur */}
+          <div className="space-y-2">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <h1 className="text-2xl sm:text-3xl font-black tracking-tight flex items-center gap-2 text-foreground leading-none">
+                {user.displayName}
+                {isAdmin && (
+                  <CheckCircle2 className="size-5 text-[#4a90e2] fill-[#4a90e2]/15 stroke-[2.5] shrink-0" />
+                )}
+              </h1>
+              
+              {/* ✅ Agrandissement des étoiles sans altérer la logique de SellerStars */}
+              {user.isSeller && (
+                <div className="flex items-center gap-1.5 bg-muted/60 border border-border/60 px-3 py-1.5 rounded-2xl w-fit backdrop-blur-sm [&_svg]:size-5">
+                  <SellerStars followerCount={user._count.followers} />
+                </div>
               )}
-            </h1>
+            </div>
+
             <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs">
               <span className="text-[#4a90e2] font-bold">@{user.username}</span>
               <span className="text-border/70 select-none">·</span>
@@ -293,7 +303,6 @@ async function UserProfile({ user, loggedInUserId, isOwner }: UserProfileProps) 
               </div>
             </div>
           </div>
-
           {/* Bio */}
           <div
             className="flex items-start gap-3 p-3.5 rounded-2xl bg-background border border-[#4a90e2]/10 shadow-sm"

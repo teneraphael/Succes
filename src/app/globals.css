@@ -81,7 +81,7 @@
   animation: float-music 2s ease-in-out infinite;
 }
 
-/* --- MISE EN PAGE PLEIN ÉCRAN (EDGE-TO-EDGE) --- */
+/* --- MISE EN PAGE AVEC SEPARATION SUBTILE ENTRE POSTS --- */
 @media (max-width: 768px) {
   main {
     padding: 0 !important;
@@ -95,6 +95,9 @@
     max-width: 100% !important;
     margin-left: 0 !important;
     margin-right: 0 !important;
+    margin-top: 0 !important;
+    /* ✅ Marge basse subtile pour créer un espace propre entre les posts */
+    margin-bottom: 5px !important;
     border-radius: 0 !important;
     border-left: none !important;
     border-right: none !important;

@@ -46,7 +46,6 @@ import {
 } from "@tanstack/react-query";
 import kyInstance from "@/lib/ky";
 import useFollowerInfo from "@/hooks/useFollowerInfo";
-import SellerStars from "@/components/SellerStars";
 import { FollowerInfo } from "@/lib/types";
 
 function ExpandableDescription({
@@ -62,7 +61,7 @@ function ExpandableDescription({
   if (text.length <= limit) {
     return (
       <p
-        className="text-[11px] font-semibold leading-relaxed text-muted-foreground"
+        className="text-sm font-normal leading-relaxed text-muted-foreground"
         style={{ whiteSpace: "pre-wrap" }}
       >
         {text}
@@ -73,7 +72,7 @@ function ExpandableDescription({
   return (
     <div>
       <p
-        className="text-[11px] font-semibold leading-relaxed text-muted-foreground"
+        className="text-sm font-normal leading-relaxed text-muted-foreground"
         style={{ whiteSpace: "pre-wrap" }}
       >
         {isExpanded ? text : `${text.slice(0, limit)}...`}
@@ -81,7 +80,7 @@ function ExpandableDescription({
 
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="text-[10px] font-black uppercase text-[#4a90e2] mt-1 hover:underline tracking-wide"
+        className="text-xs font-bold text-[#4a90e2] mt-1 hover:underline tracking-wide"
       >
         {isExpanded ? t.see_less : t.see_more}
       </button>
@@ -273,7 +272,7 @@ function InlineFollowButton({
 
   if (data.isFollowedByUser) {
     return (
-      <div className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest bg-[#6ab344]/15 text-[#6ab344] border border-[#6ab344]/35 cursor-default">
+      <div className="flex items-center gap-1 px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-widest bg-[#6ab344]/15 text-[#6ab344] border border-[#6ab344]/35 cursor-default">
         <UserCheck className="size-3 shrink-0" />
         Suivi !
       </div>
@@ -289,10 +288,9 @@ function InlineFollowButton({
         mutate();
       }}
       disabled={isPending}
-      className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all disabled:opacity-50 bg-[#4a90e2]/10 text-[#4a90e2] hover:bg-[#4a90e2]/20 border border-[#4a90e2]/20"
+      className="flex items-center gap-1 px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all disabled:opacity-50 bg-[#4a90e2]/10 text-[#4a90e2] hover:bg-[#4a90e2]/20 border border-[#4a90e2]/20"
     >
       <UserPlus className="size-3" />
-
       {isPending ? "..." : "Suivre"}
     </motion.button>
   );
@@ -303,10 +301,6 @@ export default function Post({
   fullWidth = false,
 }: PostProps) {
   const postRef = useRef<HTMLElement>(null);
-
-  /**
-   * Empêche plusieurs VIEW pour le même affichage
-   */
   const hasTrackedView = useRef(false);
 
   const { user: loggedInUser } = useSession();
@@ -329,29 +323,21 @@ export default function Post({
     setSelectedAttributes,
   ] = useState<Record<string, string>>({});
 
-  const [activeVariant, setActiveVariant] =
-    useState<any>(null);
+  const [activeVariant, setActiveVariant] = useState<any>(null);
 
-  /**
-   * Initialisation des attributs
-   */
   useEffect(() => {
     if (
       post.attributes &&
       post.attributes.length > 0
     ) {
-      const initialSelection: Record<
-        string,
-        string
-      > = {};
+      const initialSelection: Record<string, string> = {};
 
       post.attributes.forEach((attr: any) => {
         if (
           attr.values &&
           attr.values.length > 0
         ) {
-          initialSelection[attr.name] =
-            attr.values[0];
+          initialSelection[attr.name] = attr.values[0];
         }
       });
 
@@ -359,10 +345,6 @@ export default function Post({
     }
   }, [post.attributes]);
 
-  /**
-   * Recherche de la variante correspondant
-   * aux attributs sélectionnés
-   */
   useEffect(() => {
     if (
       post.variants &&
@@ -371,34 +353,18 @@ export default function Post({
     ) {
       const matched = post.variants.find(
         (variant: any) => {
-          const combo =
-            variant.combinations as Record<
-              string,
-              string
-            >;
+          const combo = variant.combinations as Record<string, string>;
 
-          return Object.entries(
-            selectedAttributes,
-          ).every(
-            ([key, value]) =>
-              combo[key] === value,
+          return Object.entries(selectedAttributes).every(
+            ([key, value]) => combo[key] === value,
           );
         },
       );
 
       setActiveVariant(matched || null);
     }
-  }, [
-    selectedAttributes,
-    post.variants,
-  ]);
+  }, [selectedAttributes, post.variants]);
 
-  /**
-   * 🔥 TRACKING INTELLIGENT DES VUES
-   *
-   * Le post doit être visible à au moins 60%
-   * pendant 2 secondes.
-   */
   useEffect(() => {
     const element = postRef.current;
 
@@ -406,9 +372,7 @@ export default function Post({
       return;
     }
 
-    let timeout: ReturnType<
-      typeof setTimeout
-    > | null = null;
+    let timeout: ReturnType<typeof setTimeout> | null = null;
 
     const observer = new IntersectionObserver(
       ([entry]) => {
@@ -467,17 +431,12 @@ export default function Post({
     (m: any) => m.type === "AUDIO",
   );
 
-  const visualAttachments =
-    post.attachments.filter(
-      (m: any) => m.type !== "AUDIO",
-    );
+  const visualAttachments = post.attachments.filter(
+    (m: any) => m.type !== "AUDIO",
+  );
 
-  const finalAudioUrl =
-    post.audioUrl || audioMedia?.url;
+  const finalAudioUrl = post.audioUrl || audioMedia?.url;
 
-  /**
-   * Interaction CHAT
-   */
   const handleWhatsApp = useCallback(async () => {
     if (!isAvailable) {
       toast({
@@ -505,19 +464,10 @@ export default function Post({
       return;
     }
 
-    /**
-     * 🔥 Signal très fort pour l'algorithme :
-     * l'utilisateur souhaite contacter le vendeur
-     */
     trackInteraction(post.id, "CHAT");
 
-    const choiceLabel = Object.entries(
-      selectedAttributes,
-    )
-      .map(
-        ([key, val]) =>
-          `${key}: ${val}`,
-      )
+    const choiceLabel = Object.entries(selectedAttributes)
+      .map(([key, val]) => `${key}: ${val}`)
       .join(", ");
 
     const origin =
@@ -536,25 +486,13 @@ export default function Post({
     const lines: string[] = [];
 
     lines.push("Bonjour ! 👋");
-
-    lines.push(
-      "Je suis interesse(e) par votre produit sur *DealCity* :",
-    );
-
+    lines.push("Je suis interesse(e) par votre produit sur *DealCity* :");
     lines.push("");
-
-    lines.push(
-      `*${productName || "Article"}*`,
-    );
-
-    lines.push(
-      `Prix : *${currentPrice} FCFA*`,
-    );
+    lines.push(`*${productName || "Article"}*`);
+    lines.push(`Prix : *${currentPrice} FCFA*`);
 
     if (choiceLabel) {
-      lines.push(
-        `Options choisies : *${choiceLabel}*`,
-      );
+      lines.push(`Options choisies : *${choiceLabel}*`);
     }
 
     if (shortDesc) {
@@ -568,15 +506,9 @@ export default function Post({
     lines.push(postUrl);
 
     lines.push("");
+    lines.push("Est-ce que ce produit est toujours disponible ? Merci !");
 
-    lines.push(
-      "Est-ce que ce produit est toujours disponible ? Merci !",
-    );
-
-    const cleanNumber = number.replace(
-      /\D/g,
-      "",
-    );
+    const cleanNumber = number.replace(/\D/g, "");
 
     window.open(
       `https://wa.me/${cleanNumber}?text=${encodeURIComponent(
@@ -596,25 +528,17 @@ export default function Post({
     toast,
   ]);
 
-  const whatsappButtonText = isAvailable
-    ? t.chat_whatsapp || "Discuter via WhatsApp"
-    : t.unavailable;
-
   return (
     <article
       ref={postRef}
       className={cn(
-        "group/post w-full space-y-4 bg-card py-4 md:py-5 border-b md:border border-border/70 shadow-sm transition-all duration-200 hover:shadow-md mb-5 overflow-hidden",
-
-        fullWidth
-          ? "rounded-none"
-          : "md:rounded-3xl max-w-xl mx-auto",
+        "group/post w-full space-y-2.5 bg-card py-3 md:py-4 border-b md:border border-border/70 shadow-sm transition-all duration-200 hover:shadow-md mb-3 overflow-hidden",
+        fullWidth ? "rounded-none" : "md:rounded-2xl max-w-xl mx-auto",
       )}
     >
       {/* En-tête */}
-
-      <div className="flex justify-between items-center gap-3 px-5">
-        <div className="flex flex-wrap items-center gap-3 min-w-0">
+      <div className="flex justify-between items-center gap-3 px-4">
+        <div className="flex flex-wrap items-center gap-2.5 min-w-0">
           <UserTooltip user={post.user}>
             <Link
               href={`/users/${post.user.username}`}
@@ -622,7 +546,7 @@ export default function Post({
             >
               <UserAvatar
                 avatarUrl={post.user.avatarUrl}
-                className="ring-2 ring-[#4a90e2]/20 size-10"
+                className="ring-2 ring-[#4a90e2]/20 size-9"
               />
             </Link>
           </UserTooltip>
@@ -631,34 +555,22 @@ export default function Post({
             <div className="flex items-center gap-1.5 flex-wrap">
               <Link
                 href={`/users/${post.user.username}`}
-                className="font-extrabold text-sm tracking-tight text-foreground hover:text-[#4a90e2] transition-colors truncate"
+                className="font-extrabold text-xs sm:text-sm tracking-tight text-foreground hover:text-[#4a90e2] transition-colors truncate"
               >
                 {post.user.displayName}
               </Link>
 
               {post.user.isVerified && (
-                <ShieldCheck className="size-4 text-[#4a90e2] fill-current shrink-0" />
-              )}
-
-              {post.user.isSeller && (
-                <SellerStars
-                  followerCount={
-                    post.user._count.followers
-                  }
-                />
+                <ShieldCheck className="size-3.5 text-[#4a90e2] fill-current shrink-0" />
               )}
 
               {loggedInUser && (
-                <InlineFollowButton
-                  userId={post.user.id}
-                />
+                <InlineFollowButton userId={post.user.id} />
               )}
             </div>
 
             <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-widest mt-0.5 opacity-80">
-              {formatRelativeDate(
-                new Date(post.createdAt),
-              )}
+              {formatRelativeDate(new Date(post.createdAt))}
             </p>
           </div>
         </div>
@@ -667,28 +579,27 @@ export default function Post({
       </div>
 
       {/* Produit + prix */}
-
-      <div className="px-5 flex items-start justify-between gap-4">
-        <div className="space-y-1.5 flex-1">
+      <div className="px-4 flex items-start justify-between gap-3">
+        <div className="space-y-1 flex-1">
           {productName && (
-            <h3 className="font-black text-xl uppercase tracking-tight text-foreground leading-none line-clamp-2">
+            <h3 className="font-extrabold text-base uppercase tracking-tight text-foreground leading-snug line-clamp-2">
               {productName}
             </h3>
           )}
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-1.5">
             {isAvailable ? (
-              <span className="inline-flex text-[9px] font-black uppercase tracking-widest text-[#6ab344] bg-[#6ab344]/10 px-2 py-0.5 rounded-md border border-[#6ab344]/20">
+              <span className="inline-flex text-[9px] font-black uppercase tracking-widest text-[#6ab344] bg-[#6ab344]/10 px-1.5 py-0.5 rounded-md border border-[#6ab344]/20">
                 {t.available} ({currentStock})
               </span>
             ) : (
-              <span className="inline-flex text-[9px] font-black uppercase tracking-widest text-red-600 bg-red-50 px-2 py-0.5 rounded-md border border-red-500/10 animate-pulse">
+              <span className="inline-flex text-[9px] font-black uppercase tracking-widest text-red-600 bg-red-50 px-1.5 py-0.5 rounded-md border border-red-500/10 animate-pulse">
                 {t.out_of_stock}
               </span>
             )}
 
             {location && (
-              <span className="inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-[#4a90e2] bg-[#4a90e2]/10 px-2 py-0.5 rounded-md border border-[#4a90e2]/20">
+              <span className="inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-[#4a90e2] bg-[#4a90e2]/10 px-1.5 py-0.5 rounded-md border border-[#4a90e2]/20">
                 <MapPin className="size-3 shrink-0" />
                 {location}
               </span>
@@ -700,25 +611,23 @@ export default function Post({
           <div className="text-right whitespace-nowrap">
             <span
               className={cn(
-                "text-2xl font-black tracking-tighter px-3.5 py-1 rounded-2xl block shadow-sm transform -rotate-1 border-2",
-
+                "text-lg sm:text-xl font-black tracking-tighter px-2.5 py-0.5 rounded-xl block shadow-sm transform -rotate-1 border-2",
                 isAvailable
                   ? "text-[#6ab344] bg-[#6ab344]/8 border-[#6ab344]/20"
                   : "text-muted-foreground bg-neutral-100 border-neutral-200 line-through opacity-60",
               )}
               style={{
-                fontFamily:
-                  "'Geist Mono', 'Courier New', monospace",
+                fontFamily: "'Geist Mono', 'Courier New', monospace",
               }}
             >
               {currentPrice}{" "}
-              <span className="text-xs font-bold tracking-normal">
+              <span className="text-[10px] font-bold tracking-normal">
                 FCFA
               </span>
             </span>
 
             {priceType && (
-              <span className="text-[9px] font-black uppercase tracking-wider text-amber-600 bg-amber-500/10 px-2 py-0.5 rounded-md mt-1 inline-block border border-amber-500/25">
+              <span className="text-[8px] font-black uppercase tracking-wider text-amber-600 bg-amber-500/10 px-1.5 py-0.5 rounded-md mt-0.5 inline-block border border-amber-500/25">
                 {priceType}
               </span>
             )}
@@ -727,17 +636,13 @@ export default function Post({
       </div>
 
       {/* Description */}
-
       {cleanDescription && (
-        <div className="px-5">
-          <ExpandableDescription
-            text={cleanDescription}
-          />
+        <div className="px-4">
+          <ExpandableDescription text={cleanDescription} />
         </div>
       )}
 
       {/* Médias */}
-
       <div className="w-full overflow-hidden border-y border-border/40">
         <MediaPreviews
           attachments={visualAttachments}
@@ -745,35 +650,23 @@ export default function Post({
           postId={post.id}
           thumbnailUrl={post.thumbnailUrl}
           attributes={post.attributes || []}
-          selectedAttributes={
-            selectedAttributes
-          }
-          setSelectedAttributes={
-            setSelectedAttributes
-          }
+          selectedAttributes={selectedAttributes}
+          setSelectedAttributes={setSelectedAttributes}
         />
       </div>
 
       {/* Actions */}
-
-      <div className="px-5 pt-1">
+      <div className="px-4 pt-0.5">
         <div className="flex items-center justify-between pt-1 border-t border-border/40">
-          <div className="flex items-center gap-5">
+          <div className="flex items-center gap-4">
             <LikeButton
               postId={post.id}
               initialState={{
                 likes: post._count.likes,
-
-                isLikedByUser:
-                  post.likes.some(
-                    (l: {
-                      userId:
-                        | string
-                        | undefined;
-                    }) =>
-                      l.userId ===
-                      loggedInUser?.id,
-                  ),
+                isLikedByUser: post.likes.some(
+                  (l: { userId: string | undefined }) =>
+                    l.userId === loggedInUser?.id,
+                ),
               }}
             />
 
@@ -781,9 +674,8 @@ export default function Post({
               <Sheet>
                 <SheetTrigger asChild>
                   <button className="flex items-center gap-1.5 outline-none group/btn transition-transform active:scale-95">
-                    <MessageSquare className="size-5 text-muted-foreground group-hover/btn:text-[#4a90e2] transition-colors" />
-
-                    <span className="text-xs font-black text-muted-foreground group-hover/btn:text-foreground">
+                    <MessageSquare className="size-4 text-muted-foreground group-hover/btn:text-[#4a90e2] transition-colors" />
+                    <span className="text-xs font-bold text-muted-foreground group-hover/btn:text-foreground">
                       {post._count.comments}
                     </span>
                   </button>
@@ -800,9 +692,8 @@ export default function Post({
               <Drawer>
                 <DrawerTrigger asChild>
                   <button className="flex items-center gap-1.5 outline-none transition-transform active:scale-95">
-                    <MessageSquare className="size-5 text-muted-foreground" />
-
-                    <span className="text-xs font-black text-muted-foreground">
+                    <MessageSquare className="size-4 text-muted-foreground" />
+                    <span className="text-xs font-bold text-muted-foreground">
                       {post._count.comments}
                     </span>
                   </button>
@@ -817,28 +708,21 @@ export default function Post({
             <BookmarkButton
               postId={post.id}
               initialState={{
-                isBookmarkedByUser:
-                  post.bookmarks.some(
-                    (b: {
-                      userId:
-                        | string
-                        | undefined;
-                    }) =>
-                      b.userId ===
-                      loggedInUser?.id,
-                  ),
+                isBookmarkedByUser: post.bookmarks.some(
+                  (b: { userId: string | undefined }) =>
+                    b.userId === loggedInUser?.id,
+                ),
               }}
             />
           </div>
 
-          {/* WhatsApp */}
-
+          {/* WhatsApp Logo Uniquement */}
           <button
             onClick={handleWhatsApp}
             disabled={!isAvailable}
+            title={isAvailable ? "Discuter sur WhatsApp" : t.unavailable}
             className={cn(
-              "relative px-4 py-2 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all flex items-center gap-2 shadow-sm overflow-hidden",
-
+              "p-2 rounded-xl transition-all flex items-center justify-center shadow-sm overflow-hidden",
               isAvailable
                 ? "bg-[#25D366] hover:bg-[#20b858] text-white shadow-[#25D366]/20 active:scale-95"
                 : "bg-neutral-200 text-neutral-400 shadow-none cursor-not-allowed opacity-50",
@@ -846,15 +730,11 @@ export default function Post({
           >
             <svg
               viewBox="0 0 24 24"
-              className="size-4 fill-current relative z-10 shrink-0"
+              className="size-5 fill-current shrink-0"
               xmlns="http://www.w3.org/2000/svg"
             >
               <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
             </svg>
-
-            <span className="relative z-10">
-              {whatsappButtonText}
-            </span>
           </button>
         </div>
       </div>
@@ -874,9 +754,7 @@ function MediaPreviews({
   const router = useRouter();
 
   const count = attachments?.length || 0;
-
-  const displayedMedia =
-    attachments?.slice(0, 4) || [];
+  const displayedMedia = attachments?.slice(0, 4) || [];
 
   return (
     <div className="w-full space-y-0">
@@ -899,11 +777,10 @@ function MediaPreviews({
               }}
               className={cn(
                 "w-full relative overflow-hidden bg-zinc-950",
-                displayedMedia[0].type === "IMAGE" && "h-[500px] md:h-[580px] cursor-pointer",
+                displayedMedia[0].type === "IMAGE" && "h-[450px] md:h-[520px] cursor-pointer",
               )}
             >
-              {displayedMedia[0].type ===
-              "IMAGE" ? (
+              {displayedMedia[0].type === "IMAGE" ? (
                 <Image
                   src={displayedMedia[0].url}
                   alt="Product"
@@ -911,9 +788,7 @@ function MediaPreviews({
                   sizes="(max-width: 768px) 100vw, 600px"
                   className="object-cover"
                   priority
-                  unoptimized={isExternalImage(
-                    displayedMedia[0].url,
-                  )}
+                  unoptimized={isExternalImage(displayedMedia[0].url)}
                 />
               ) : (
                 <VideoPost
@@ -939,11 +814,7 @@ function MediaPreviews({
                     layoutId={`post-image-${m.id}`}
                     className={cn(
                       "relative overflow-hidden bg-zinc-900",
-
-                      count === 3 && i === 0
-                        ? "row-span-2"
-                        : "",
-
+                      count === 3 && i === 0 ? "row-span-2" : "",
                       "h-full",
                     )}
                   >
@@ -955,9 +826,7 @@ function MediaPreviews({
                         sizes="(max-width: 768px) 100vw, 600px"
                         className="object-cover transition-transform duration-500 hover:scale-105"
                         priority={i === 0}
-                        unoptimized={isExternalImage(
-                          m.url,
-                        )}
+                        unoptimized={isExternalImage(m.url)}
                       />
                     ) : (
                       <div className="absolute inset-0 w-full h-full [&_video]:w-full [&_video]:h-full [&_video]:object-cover">
@@ -980,62 +849,52 @@ function MediaPreviews({
         </div>
       )}
 
-      {attributes &&
-        attributes.length > 0 && (
-          <div className="px-5 py-6 space-y-5 bg-card">
-            {attributes.map((attr: any) => (
-              <div
-                key={attr.id || attr.name}
-                className="space-y-3"
-              >
-                <div className="flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#4a90e2]" />
-
-                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/50">
-                    {attr.name}
-                  </p>
-                </div>
-
-                <div className="flex flex-wrap gap-2.5">
-                  {attr.values.map(
-                    (val: string) => {
-                      const isSelected =
-                        selectedAttributes[
-                          attr.name
-                        ] === val;
-
-                      return (
-                        <button
-                          key={val}
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-
-                            setSelectedAttributes(
-                              (prev: any) => ({
-                                ...prev,
-                                [attr.name]: val,
-                              }),
-                            );
-                          }}
-                          className={cn(
-                            "relative px-5 py-2.5 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all duration-200 border-2",
-
-                            isSelected
-                              ? "bg-[#4a90e2] text-white border-[#4a90e2] shadow-lg shadow-[#4a90e2]/20 scale-105"
-                              : "bg-transparent text-muted-foreground border-border hover:border-[#4a90e2]/50 hover:text-[#4a90e2]",
-                          )}
-                        >
-                          {val}
-                        </button>
-                      );
-                    },
-                  )}
-                </div>
+      {attributes && attributes.length > 0 && (
+        <div className="px-4 py-4 space-y-3 bg-card">
+          {attributes.map((attr: any) => (
+            <div
+              key={attr.id || attr.name}
+              className="space-y-2"
+            >
+              <div className="flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#4a90e2]" />
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/50">
+                  {attr.name}
+                </p>
               </div>
-            ))}
-          </div>
-        )}
+
+              <div className="flex flex-wrap gap-2">
+                {attr.values.map((val: string) => {
+                  const isSelected = selectedAttributes[attr.name] === val;
+
+                  return (
+                    <button
+                      key={val}
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+
+                        setSelectedAttributes((prev: any) => ({
+                          ...prev,
+                          [attr.name]: val,
+                        }));
+                      }}
+                      className={cn(
+                        "relative px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-200 border-2",
+                        isSelected
+                          ? "bg-[#4a90e2] text-white border-[#4a90e2] shadow-md shadow-[#4a90e2]/20 scale-105"
+                          : "bg-transparent text-muted-foreground border-border hover:border-[#4a90e2]/50 hover:text-[#4a90e2]",
+                      )}
+                    >
+                      {val}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
