@@ -636,7 +636,7 @@ export default function Post({
           <div className="text-right whitespace-nowrap">
             <span
               className={cn(
-                "text-lg sm:text-xl font-black tracking-tighter px-2.5 py-0.5 rounded-xl block shadow-sm transform -rotate-1 border-2",
+                "text-lg sm:text-xl font-black tracking-tighter px-3 py-0.5 rounded-xl block shadow-sm transform -rotate-1 border-2",
                 isAvailable
                   ? "text-[#6ab344] bg-[#6ab344]/8 border-[#6ab344]/20"
                   : "text-muted-foreground bg-neutral-100 border-neutral-200 line-through opacity-60",
