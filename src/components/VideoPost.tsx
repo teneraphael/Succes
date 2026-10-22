@@ -50,11 +50,6 @@ interface VideoPostProps {
 const MUTE_EVENT = "video-global-mute-change";
 const PLAY_EVENT = "dealcity-video-playing";
 
-const formatTime = (seconds: number) => {
-  const value = Number.isFinite(seconds) ? Math.max(0, Math.floor(seconds)) : 0;
-  return `${Math.floor(value / 60)}:${String(value % 60).padStart(2, "0")}`;
-};
-
 const extractInfo = (content: string) => {
   if (!content) return { productName: null, price: null, priceType: null, cleanDescription: null, whatsappNumber: null, location: null };
   const productMatch = content.match(/PRODUIT\s*:\s*([^\n]+)/i);
@@ -107,7 +102,6 @@ export default function VideoPost({
   const en = lang === "en";
   const { user: loggedInUser } = useSession();
   const isDesktop = useMediaQuery("(min-width: 768px)");
-  const { t } = useLanguage();
 
   const [isMuted, setIsMuted] = useState(true);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -229,7 +223,7 @@ export default function VideoPost({
 
     const lines = [
       "Bonjour ! 👋",
-      "Je suis interesse(e) par votre produit sur *DealCity* :",
+      "Je suis intéresse(e) par votre produit sur *DealCity* :",
       "",
       `*${productName || "Article"}*`,
       `Prix : *${currentPrice} FCFA*`,
@@ -264,19 +258,21 @@ export default function VideoPost({
   };
 
   const controlClass =
-    "inline-flex size-9 shrink-0 items-center justify-center rounded-full text-white transition hover:bg-white/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white";
+    "inline-flex size-9 shrink-0 items-center justify-center rounded-full text-white transition hover:bg-white/20 active:scale-95 focus-visible:outline-none";
 
   return (
     <div
       ref={playerRef}
       className={cn(
-        "group/video relative isolate w-full overflow-hidden bg-zinc-950 text-white shadow-none sm:shadow-md mb-2 md:mb-4",
-        className || "h-[80vh] sm:h-[700px] rounded-none sm:rounded-3xl max-w-xl mx-auto",
+        "group/video relative isolate w-full overflow-hidden bg-black text-white select-none",
+        // Plein écran immersif mobile, ajusté pour PC
+        "h-[88vh] sm:h-[780px] max-h-[92vh] sm:rounded-3xl max-w-xl mx-auto my-0 sm:my-3 shadow-xl",
+        className
       )}
       style={style}
       onClick={togglePlayback}
     >
-      {/* 1. La Vidéo en arrière-plan */}
+      {/* 1. Vidéo d'arrière-plan immersive */}
       <video
         ref={videoRef}
         src={src}
@@ -323,62 +319,62 @@ export default function VideoPost({
         }}
       />
 
-      {/* 2. Superposition de dégradés (visible uniquement en pause ou sur les côtés pour garder la lisibilité) */}
-      <div className={cn("pointer-events-none absolute inset-x-0 top-0 z-10 h-32 bg-gradient-to-b from-black/80 via-black/40 to-transparent transition-opacity duration-300", isPlaying ? "opacity-40" : "opacity-100")} />
-      <div className={cn("pointer-events-none absolute inset-x-0 bottom-0 z-10 h-56 bg-gradient-to-t from-black/95 via-black/60 to-transparent transition-opacity duration-300", isPlaying ? "opacity-40" : "opacity-100")} />
+      {/* 2. Dégradés pour lisibilité des textes */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-36 bg-gradient-to-b from-black/85 via-black/35 to-transparent" />
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-64 bg-gradient-to-t from-black/95 via-black/50 to-transparent" />
 
-      {/* 3. Bouton Play central (uniquement visible si en pause) */}
+      {/* 3. Icône Play centrale lors de la pause */}
       {!isPlaying && !isLoading && !hasError && (
         <div className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none">
-          <span className="flex size-16 items-center justify-center rounded-full border border-white/30 bg-black/40 shadow-xl backdrop-blur-md">
-            <Play className="size-7 translate-x-0.5 fill-white text-white" />
+          <span className="flex size-16 items-center justify-center rounded-full border border-white/20 bg-black/40 backdrop-blur-md shadow-2xl animate-in zoom-in-75 duration-200">
+            <Play className="size-8 translate-x-0.5 fill-white text-white" />
           </span>
         </div>
       )}
 
-      {/* 4. En-tête de l'auteur superposé en haut */}
+      {/* 4. Vendeur et options en haut */}
       {post && (
         <div className="absolute top-0 inset-x-0 p-3.5 sm:p-4 flex justify-between items-center z-20">
           <div className="flex items-center gap-2.5 min-w-0 pointer-events-auto" onClick={(e) => e.stopPropagation()}>
             <UserTooltip user={post.user}>
               <Link href={`/users/${post.user.username}`} className="transition-transform active:scale-95 block shrink-0">
-                <UserAvatar avatarUrl={post.user.avatarUrl} className="ring-2 ring-white/40 size-9 shadow-md" />
+                <UserAvatar avatarUrl={post.user.avatarUrl} className="ring-2 ring-white/50 size-10 shadow-lg" />
               </Link>
             </UserTooltip>
 
             <div className="min-w-0">
               <div className="flex items-center gap-1.5 flex-wrap">
-                <Link href={`/users/${post.user.username}`} className="font-bold text-xs sm:text-sm tracking-tight text-white hover:underline truncate drop-shadow-md">
+                <Link href={`/users/${post.user.username}`} className="font-bold text-sm tracking-tight text-white hover:underline truncate drop-shadow">
                   {post.user.displayName}
                 </Link>
-                {post.user.isVerified && <ShieldCheck className="size-3.5 text-[#4a90e2] fill-current shrink-0" />}
+                {post.user.isVerified && <ShieldCheck className="size-4 text-[#4a90e2] fill-current shrink-0" />}
               </div>
-              <span className="text-[9px] text-white/70 font-bold uppercase tracking-widest bg-black/30 px-2 py-0.2 rounded-full backdrop-blur-sm inline-block mt-0.5">
+              <span className="text-[9px] text-white/80 font-bold uppercase tracking-widest bg-black/40 px-2 py-0.5 rounded-full backdrop-blur-md inline-block mt-0.5 border border-white/10">
                 Vidéo
               </span>
             </div>
           </div>
 
-          <div className="pointer-events-auto bg-black/40 backdrop-blur-md rounded-xl p-1 text-white shadow-md" onClick={(e) => e.stopPropagation()}>
+          <div className="pointer-events-auto bg-black/40 backdrop-blur-md rounded-xl p-1 text-white shadow-md border border-white/10" onClick={(e) => e.stopPropagation()}>
             <PostMoreButton post={post} />
           </div>
         </div>
       )}
 
-      {/* 5. Chargement & Erreur */}
+      {/* 5. Chargement / Erreur */}
       {isLoading && !hasError && (
         <div role="status" className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center">
-          <Loader2 className="size-9 animate-spin text-white" />
+          <Loader2 className="size-10 animate-spin text-white" />
         </div>
       )}
 
       {hasError && (
         <div role="alert" className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-3 bg-zinc-950/90 px-6 text-center" onClick={(e) => e.stopPropagation()}>
-          <AlertCircle className="size-8 text-white/70" />
+          <AlertCircle className="size-9 text-white/70" />
           <p className="text-sm">Impossible de charger cette vidéo.</p>
           <button
             type="button"
-            className="flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-semibold text-black"
+            className="flex items-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-black shadow-lg"
             onClick={() => {
               setHasError(false);
               setIsLoading(true);
@@ -391,18 +387,18 @@ export default function VideoPost({
         </div>
       )}
 
-      {/* 6. Éléments superposés en bas */}
-      <div className="absolute inset-x-0 bottom-0 z-30 px-3.5 pb-3 pt-6 sm:px-4 flex flex-col justify-end space-y-2" onClick={(e) => e.stopPropagation()}>
+      {/* 6. Zone d'actions et informations en bas */}
+      <div className="absolute inset-x-0 bottom-0 z-30 px-3.5 pb-3.5 pt-6 sm:px-5 flex flex-col justify-end space-y-2.5" onClick={(e) => e.stopPropagation()}>
         {post && (
           <div className="flex items-end justify-between gap-3">
-            <div className="space-y-1.5 flex-1">
+            <div className="space-y-1.5 flex-1 min-w-0">
               {productName && (
                 <h3 className="font-black text-base sm:text-lg uppercase tracking-tight text-white leading-snug line-clamp-2 drop-shadow-md">
                   {productName}
                 </h3>
               )}
               {location && (
-                <span className="inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-white bg-white/20 backdrop-blur-md px-2 py-0.5 rounded-md border border-white/30 shadow-sm">
+                <span className="inline-flex items-center gap-1 text-[9.5px] font-black uppercase tracking-widest text-white bg-white/20 backdrop-blur-md px-2.5 py-0.5 rounded-md border border-white/30 shadow-sm">
                   <MapPin className="size-3 shrink-0" />
                   {location}
                 </span>
@@ -410,8 +406,8 @@ export default function VideoPost({
             </div>
 
             {currentPrice && (
-              <div className="text-right whitespace-nowrap">
-                <span className="text-lg sm:text-xl font-black tracking-tighter px-3 py-1 rounded-xl block shadow-lg transform -rotate-1 border border-white/30 text-white bg-[#6ab344]/95 backdrop-blur-md">
+              <div className="text-right whitespace-nowrap shrink-0">
+                <span className="text-lg sm:text-xl font-black tracking-tighter px-3.5 py-1 rounded-xl block shadow-xl transform -rotate-1 border border-white/40 text-white bg-[#6ab344]/95 backdrop-blur-md">
                   {currentPrice} <span className="text-[10px] font-bold tracking-normal">FCFA</span>
                 </span>
               </div>
@@ -436,7 +432,7 @@ export default function VideoPost({
           </div>
         )}
 
-        {/* ✅ Barre de progression (Slider) : n'apparaît QUE si la vidéo est EN PAUSE (!isPlaying) */}
+        {/* Barre de progression (masquée pendant la lecture, visible uniquement en pause) */}
         {!isPlaying && (
           <input
             type="range"
@@ -455,9 +451,9 @@ export default function VideoPost({
           />
         )}
 
-        {/* Barre d'actions du bas */}
+        {/* Barre d'actions d'interaction */}
         <div className="flex items-center justify-between pt-1">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 sm:gap-4">
             <button
               type="button"
               onClick={togglePlayback}
@@ -484,7 +480,7 @@ export default function VideoPost({
                   <Sheet>
                     <SheetTrigger asChild>
                       <button className="flex items-center gap-1.5 text-white outline-none group/btn transition-transform active:scale-95">
-                        <MessageCircle className="size-4 group-hover/btn:text-[#4a90e2] transition-colors" />
+                        <MessageCircle className="size-5 group-hover/btn:text-[#4a90e2] transition-colors" />
                         <span className="text-xs font-bold">{post._count?.comments || 0}</span>
                       </button>
                     </SheetTrigger>
@@ -496,7 +492,7 @@ export default function VideoPost({
                   <Drawer>
                     <DrawerTrigger asChild>
                       <button className="flex items-center gap-1.5 text-white outline-none transition-transform active:scale-95">
-                        <MessageCircle className="size-4" />
+                        <MessageCircle className="size-5" />
                         <span className="text-xs font-bold">{post._count?.comments || 0}</span>
                       </button>
                     </DrawerTrigger>
@@ -520,7 +516,7 @@ export default function VideoPost({
                   title="Partager"
                   className="flex items-center gap-1 text-white hover:text-[#4a90e2] transition-colors active:scale-95 outline-none"
                 >
-                  <Share2 className="size-4" />
+                  <Share2 className="size-5" />
                 </button>
               </>
             )}
@@ -554,12 +550,12 @@ export default function VideoPost({
               <Maximize className="size-4" />
             </button>
 
-            {/* Bouton WhatsApp */}
+            {/* Bouton WhatsApp direct */}
             {post && (
               <button
                 onClick={handleWhatsApp}
                 disabled={!isAvailable}
-                className="p-2 rounded-xl transition-all flex items-center justify-center bg-[#25D366] hover:bg-[#20b858] text-white shadow-lg active:scale-95"
+                className="p-2.5 rounded-xl transition-all flex items-center justify-center bg-[#25D366] hover:bg-[#20b858] text-white shadow-lg active:scale-95"
               >
                 <svg viewBox="0 0 24 24" className="size-5 fill-current shrink-0" xmlns="http://www.w3.org/2000/svg">
                   <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />

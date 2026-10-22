@@ -5,7 +5,6 @@ interface MenuBarProps {
   className?: string;
 }
 
-// ✅ Server Component — récupère la session et passe les données au composant client
 export default async function MenuBar({ className }: MenuBarProps) {
   const { user } = await validateRequest();
 

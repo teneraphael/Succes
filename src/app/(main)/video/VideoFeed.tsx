@@ -5,7 +5,7 @@ import kyInstance from "@/lib/ky";
 import { PostsPage } from "@/lib/types";
 import { Loader2, Film, VideoOff } from "lucide-react";
 import InfiniteScrollContainer from "@/components/InfiniteScrollContainer";
-import VideoPost from "@/components/VideoPost"; // ✅ Utilisation du lecteur vidéo immersif
+import VideoPost from "@/components/VideoPost";
 import { useSession } from "@/app/(main)/SessionProvider";
 
 export default function VideoFeed() {
@@ -35,13 +35,13 @@ export default function VideoFeed() {
 
   if (status === "pending") {
     return (
-      <div className="space-y-5">
-        {Array.from({ length: 3 }).map((_, i) => (
+      <div className="space-y-4">
+        {Array.from({ length: 2 }).map((_, i) => (
           <div
             key={i}
-            className="rounded-3xl border border-border/40 bg-card overflow-hidden animate-pulse"
+            className="w-full h-[88vh] sm:h-[780px] max-w-xl mx-auto rounded-none sm:rounded-3xl bg-zinc-900 overflow-hidden animate-pulse flex items-center justify-center"
           >
-            <div className="h-[500px] bg-muted" />
+            <Loader2 className="size-8 animate-spin text-white/40" />
           </div>
         ))}
       </div>
@@ -50,7 +50,7 @@ export default function VideoFeed() {
 
   if (status === "error") {
     return (
-      <div className="flex flex-col items-center justify-center py-16 gap-4">
+      <div className="flex flex-col items-center justify-center py-24 gap-4 px-4 text-center">
         <div className="size-14 rounded-2xl bg-[#4a90e2]/10 border border-[#4a90e2]/20 flex items-center justify-center">
           <VideoOff className="size-6 text-[#4a90e2]" />
         </div>
@@ -63,18 +63,18 @@ export default function VideoFeed() {
 
   if (status === "success" && !posts.length && !hasNextPage) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 gap-4">
+      <div className="flex flex-col items-center justify-center py-32 gap-4 px-4 text-center">
         <div className="relative">
           <div className="size-16 rounded-2xl bg-[#4a90e2]/10 border border-[#4a90e2]/20 flex items-center justify-center">
             <Film className="size-7 text-[#4a90e2]" />
           </div>
           <div className="absolute -top-1 -right-1 size-4 rounded-full bg-[#6ab344] border-2 border-card" />
         </div>
-        <div className="text-center space-y-1.5">
+        <div className="space-y-1.5">
           <p className="font-black text-foreground text-sm uppercase tracking-tight">
             Aucune vidéo disponible
           </p>
-          <p className="text-xs text-muted-foreground font-medium max-w-[200px] leading-relaxed">
+          <p className="text-xs text-muted-foreground font-medium max-w-[220px] leading-relaxed mx-auto">
             Les vidéos de la communauté apparaîtront ici.
           </p>
         </div>
@@ -91,7 +91,7 @@ export default function VideoFeed() {
   return (
     <InfiniteScrollContainer
       onBottomReached={() => hasNextPage && !isFetching && fetchNextPage()}
-      className="space-y-4"
+      className="space-y-4 sm:space-y-6 pb-6"
     >
       {posts.map((post) => {
         const videoAttachment = post.attachments?.find((m: any) => m.type === "VIDEO") || post.attachments?.[0];
@@ -108,10 +108,10 @@ export default function VideoFeed() {
       })}
 
       {isFetching && (
-        <div className="flex items-center justify-center gap-2 py-5">
-          <Loader2 className="size-4 animate-spin text-[#4a90e2]" />
+        <div className="flex items-center justify-center gap-2 py-6">
+          <Loader2 className="size-5 animate-spin text-[#4a90e2]" />
           <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-            Chargement...
+            Chargement de plus de vidéos...
           </span>
         </div>
       )}
